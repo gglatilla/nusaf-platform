@@ -12,7 +12,7 @@
 |-----------|--------|
 | Project Foundation | ✅ Complete |
 | Documentation Structure | ✅ Complete |
-| Workflow System | ✅ Complete (v2.2) |
+| Workflow System | ✅ Complete (v2.3) |
 | Source Code | ⏳ Not Started |
 | Tests | ⏳ Not Started |
 
@@ -198,6 +198,7 @@ _Instructions will be added once development begins:_
 | 2026-01-17 | Workflow v2.0 (natural language) | CLAUDE.md, CURRENT-WORK.md, CODEBASE-OVERVIEW.md |
 | 2026-01-17 | Workflow v2.1 (specific commands) | CLAUDE.md, CURRENT-WORK.md, session log |
 | 2026-01-17 | Workflow v2.2 (test-as-you-go) | CLAUDE.md, CURRENT-WORK.md, session log |
+| 2026-01-17 | Workflow v2.3 (code simplicity guidelines) | CLAUDE.md, CURRENT-WORK.md, session log |
 
 ---
 

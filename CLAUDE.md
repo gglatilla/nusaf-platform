@@ -263,7 +263,29 @@ nusaf-platform/
 
 10. **Cross-reference** - When a decision affects a feature spec, update both. Keep documents in sync.
 
+11. **Keep it simple** - Follow these code guidelines:
+
+### Code Simplicity Guidelines
+
+| Guideline | Explanation |
+|-----------|-------------|
+| **Solve today's problem** | Build for current requirements. Don't add features "for later." |
+| **Simplest working solution** | If two approaches work, pick the simpler one. |
+| **Rule of Three** | Don't create abstractions until you have 3 real use cases. Two similar blocks of code is fine. |
+| **Validate at boundaries** | Check user input and external data thoroughly. Trust internal code. |
+| **Readable over clever** | Code is read more than written. Clarity beats elegance. |
+| **Delete, don't comment** | Remove unused code. Git remembers history. |
+| **Measure before optimizing** | Don't guess at performance problems. Optimize when you have evidence. |
+| **Security is not optional** | Authentication, input validation, and POPIA compliance are requirements, not extras. |
+
+### Before Adding Complexity, Ask:
+1. Am I solving a problem I have **right now**?
+2. Is there a simpler way?
+3. Will another developer understand this in 6 months?
+
+*These guidelines can be adjusted as project needs become clearer.*
+
 ---
 
 *Last updated: 2026-01-17*
-*Version: 2.2 - Added test-as-you-go development workflow*
+*Version: 2.3 - Added code simplicity guidelines*
