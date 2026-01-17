@@ -19,37 +19,31 @@ None currently.
 
 ## What We're Working On
 
-No active task. Workflow system v2.1 is complete and ready to use.
+No active task. Workflow system v2.2 is complete and ready to use.
 
 ---
 
 ## Current State
 
 ### Last Completed Work
-- **Task:** Workflow restructuring v2.1
+- **Task:** Workflow update v2.2 - Test-as-you-go development workflow
 - **Completed:** 2026-01-17
 - **What was done:**
-  - Replaced slash command system with specific commands (`nusaf start`, `nusaf save`, etc.)
-  - Created bulletproof context recovery system with mandatory checklists
-  - Created CURRENT-WORK.md for detailed state tracking
-  - Created CODEBASE-OVERVIEW.md for tracking built features
-  - Updated session log template to capture WHY not just WHAT
-  - Removed old `.claude/commands/` folder
+  - Added "DEVELOPMENT WORKFLOW (Test-As-You-Go)" section to CLAUDE.md
+  - Defined what a "logical unit" of work means
+  - Added test failure protocol (stop, fix, re-run before continuing)
+  - Updated rule #8 to reference the new workflow
 
 ### Files Modified in Last Session
 | File | What Changed |
 |------|--------------|
-| `CLAUDE.md` | Complete rewrite: mandatory checklists, specific commands (v2.1), rules |
-| `CURRENT-WORK.md` | Created new |
-| `CODEBASE-OVERVIEW.md` | Created new |
-| `docs/sessions/2026-01-17.md` | Updated with new template |
-| `.claude/` | Deleted entirely (old slash commands) |
+| `CLAUDE.md` | Added test-as-you-go development workflow section (v2.2) |
 
 ---
 
 ## Context & Decisions Made
 
-### Workflow v2.1 Decisions
+### Workflow v2.2 Decisions
 | Decision | Reasoning |
 |----------|-----------|
 | Specific commands over natural language | Less ambiguity, easier to remember, consistent triggering |
@@ -57,6 +51,7 @@ No active task. Workflow system v2.1 is complete and ready to use.
 | Mandatory startup checklist | Ensures Claude always gets full context before working |
 | Separate CURRENT-WORK.md | Different purpose from session logs: live state vs. historical record |
 | CODEBASE-OVERVIEW.md | Quick reference for what's built, prevents re-implementing |
+| Test-as-you-go workflow | Run tests after each logical unit, not just at commit time. Catches bugs early without being too slow. |
 
 ---
 
@@ -116,4 +111,4 @@ None currently.
 ---
 
 *Last updated: 2026-01-17*
-*Status: IDLE - Workflow v2.1 complete*
+*Status: IDLE - Workflow v2.2 complete*

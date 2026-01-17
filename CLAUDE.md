@@ -128,6 +128,50 @@ nusaf feature user-auth         → Create feature spec for user authentication
 
 ---
 
+## DEVELOPMENT WORKFLOW (Test-As-You-Go)
+
+**Claude MUST follow this workflow when writing code:**
+
+### The Rule
+> **Run tests after completing each logical unit of work. If tests fail, fix immediately before moving on. Never commit code with failing tests.**
+
+### What is a "Logical Unit"?
+- Completed implementing a function
+- Finished a todo item
+- Fixed a bug
+- Added a new API endpoint
+- Completed a component
+
+### Workflow Steps
+
+```
+1. Pick up a task/todo item
+2. Write the code
+3. Run tests immediately after completing the unit
+4. If tests PASS → mark todo complete, move to next item
+5. If tests FAIL → STOP and fix before doing anything else
+6. Repeat until all work is done
+7. Run `nusaf save` (which runs tests again before committing)
+```
+
+### Why This Approach
+| Approach | Problem |
+|----------|---------|
+| Test after every line | Too slow, interrupts flow |
+| Test only at commit time | Bugs compound, harder to debug |
+| **Test after each logical unit** | **Catches bugs early, still efficient** |
+
+### Test Failure Protocol
+When tests fail:
+1. **Do NOT move to the next task**
+2. **Do NOT commit**
+3. Analyze the failure
+4. Fix the issue
+5. Re-run tests
+6. Only continue when tests pass
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Phase
@@ -213,7 +257,7 @@ nusaf-platform/
 
 7. **POPIA compliance is mandatory** - Every feature touching personal data must be checked against POPIA-COMPLIANCE.md.
 
-8. **Test before committing** - Never commit code that fails tests.
+8. **Test as you go** - Run tests after each logical unit of work. Fix failures immediately. Never move on with failing tests. See "DEVELOPMENT WORKFLOW" section.
 
 9. **Be specific, not vague** - "Continue working on auth" is bad. "Implement password validation in src/auth/login.ts starting at the validatePassword function" is good.
 
@@ -222,4 +266,4 @@ nusaf-platform/
 ---
 
 *Last updated: 2026-01-17*
-*Version: 2.1 - Specific commands (nusaf start, nusaf save, etc.)*
+*Version: 2.2 - Added test-as-you-go development workflow*
