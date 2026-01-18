@@ -10,14 +10,16 @@ datasource db {
 // ==================== AUTHENTICATION ====================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  name          String
-  role          UserRole
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  role               UserRole
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
   quotes        Quote[]
@@ -25,6 +27,7 @@ model User {
   jobCards      JobCard[] @relation("AssignedJobCards")
   priceListApprovals PriceListApproval[]
   systemConfigChanges SystemConfig[] @relation("ConfigUpdater")
+  reviewedAccountRequests AccountRequest[] @relation("AccountRequestReviewer")
 
   @@map("users")
 }
@@ -36,6 +39,114 @@ enum UserRole {
   WAREHOUSE
   DESIGN
   DRIVER
+}
+
+// Customer users (multiple people per customer account)
+model CustomerUser {
+  id                 String           @id @default(cuid())
+  customerId         String
+  email              String           @unique
+  name               String
+  passwordHash       String
+  role               CustomerUserRole @default(USER)
+  mustChangePassword Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  invitedById        String?
+  lastLoginAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  // Relations
+  customer           Customer         @relation(fields: [customerId], references: [id])
+  invitedBy          CustomerUser?    @relation("InvitedUsers", fields: [invitedById], references: [id])
+  invitedUsers       CustomerUser[]   @relation("InvitedUsers")
+  knownDevices       KnownDevice[]
+
+  @@map("customer_users")
+}
+
+enum CustomerUserRole {
+  ADMIN
+  USER
+}
+
+// Password reset tokens
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  email     String
+  userType  String    // 'staff' or 'customer'
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@map("password_reset_tokens")
+}
+
+// Account requests (pending customer registrations)
+model AccountRequest {
+  id              String               @id @default(cuid())
+  companyName     String
+  contactName     String
+  email           String
+  phone           String
+  address         String
+  city            String
+  postalCode      String
+  vatNumber       String?
+  industry        String?
+  status          AccountRequestStatus @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  consentGiven    Boolean
+  consentAt       DateTime
+  createdAt       DateTime             @default(now())
+
+  // Relations
+  reviewedBy      User?                @relation("AccountRequestReviewer", fields: [reviewedById], references: [id])
+
+  @@map("account_requests")
+}
+
+enum AccountRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Login attempts (for rate limiting)
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ipAddress String
+  success   Boolean
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@map("login_attempts")
+}
+
+// Known devices (for new device alerts)
+model KnownDevice {
+  id             String        @id @default(cuid())
+  userId         String?
+  customerUserId String?
+  deviceHash     String
+  deviceName     String        // "Chrome on Windows"
+  ipAddress      String?
+  lastUsedAt     DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+
+  // Relations
+  customerUser   CustomerUser? @relation(fields: [customerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceHash])
+  @@unique([customerUserId, deviceHash])
+  @@map("known_devices")
 }
 
 // ==================== SUPPLIERS & PRICE LISTS ====================
@@ -275,7 +386,6 @@ model Customer {
   companyName     String
   contactName     String
   email           String    @unique
-  passwordHash    String?   // For B2B portal access
   phone           String?
   tier            CustomerTier @default(END_USER)
   vatNumber       String?
@@ -292,6 +402,7 @@ model Customer {
   addresses       CustomerAddress[]
   quotes          Quote[]
   orders          Order[]
+  users           CustomerUser[]
 
   @@map("customers")
 }

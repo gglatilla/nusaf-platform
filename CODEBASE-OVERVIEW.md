@@ -14,10 +14,12 @@
 | Database Schema | ✅ Complete |
 | Pricing Engine | ✅ Complete |
 | Staff Authentication | ✅ Complete |
+| Customer Authentication | ✅ Complete |
+| Login System (unified) | ✅ Complete |
 | Internal Dashboard | ✅ Complete |
 | Marketing Website | ⏳ Phase 2 |
 | B2B Portal | ⏳ Phase 3 |
-| Tests | ⏳ Not Started |
+| Tests | ✅ Login tests (9 passing) |
 
 ---
 
@@ -41,15 +43,112 @@
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
+| Unified Login System | ✅ Complete | `src/app/login/page.tsx` | Staff + customer login |
+| Customer Authentication | ✅ Complete | `src/lib/auth.ts` | CustomerUser model |
+| Password Reset Flow | ✅ Complete | `src/app/forgot-password/` | Token-based reset |
+| Account Request | ✅ Complete | `src/app/request-account/` | Customer registration |
+| Admin Approval Queue | ✅ Complete | `src/app/(internal)/internal/account-requests/` | Approve/reject requests |
+| Rate Limiting | ✅ Complete | `src/lib/auth.ts` | LoginAttempt tracking |
+| Device Tracking | ✅ Complete | `src/lib/device-tracking.ts` | New device alerts |
+| Session Timeout | ✅ Complete | `src/components/session-timeout-warning.tsx` | Warning modal |
+| Cookie Consent | ✅ Complete | `src/components/cookie-consent.tsx` | POPIA compliance |
+| Password Validation | ✅ Complete | `src/lib/password-validation.ts` | Strength checker |
+| Login Behavior Tests | ✅ Complete | `src/__tests__/auth/login.test.tsx` | 9 tests |
 | Staff Authentication | ✅ Complete | `src/lib/auth.ts` | JWT sessions, role-based |
 | Pricing Engine | ✅ Complete | `src/lib/pricing/` | Full calculation logic |
 | Price List Import | ✅ Complete | `src/lib/import/` | Excel/CSV with SKU conversion |
 | Internal Dashboard | ✅ Complete | `src/app/(internal)/` | All management pages |
 | UI Components | ✅ Complete | `src/components/ui/` | shadcn/ui style |
-| Database Schema | ✅ Complete | `prisma/schema.prisma` | 20+ models |
+| Database Schema | ✅ Complete | `prisma/schema.prisma` | 26+ models |
 | Seed Script | ✅ Complete | `prisma/seed.ts` | Initial data |
 
 ### Feature Details
+
+#### Unified Login System
+**Status:** Complete
+**Implemented:** 2026-01-18
+
+**What it does:**
+- Single login page for both staff and customer users
+- Password visibility toggle
+- Remember me checkbox (extends session duration)
+- Role-based routing: staff→/internal, customers→/portal
+- Force password change on first login
+- Rate limiting (5 attempts per 15 minutes)
+- Account status messages (locked, pending, disabled)
+
+**Key files:**
+- `src/app/login/page.tsx` - Unified login page
+- `src/lib/auth.ts` - Auth configuration with dual user support
+- `src/components/ui/password-input.tsx` - Password field with toggle
+- `src/components/ui/checkbox.tsx` - Remember me checkbox
+- `src/__tests__/auth/login.test.tsx` - 9 behavior tests
+
+**Flows:**
+- Staff login → /internal dashboard
+- Customer login → /portal dashboard
+- mustChangePassword → /change-password
+
+---
+
+#### Customer Account Request
+**Status:** Complete
+**Implemented:** 2026-01-18
+
+**What it does:**
+- Public form for new customers to request accounts
+- Captures company info, contact details, POPIA consent
+- Creates AccountRequest record with PENDING status
+- Admin approval queue at /internal/account-requests
+
+**Key files:**
+- `src/app/request-account/page.tsx` - Registration form
+- `src/app/api/account-requests/route.ts` - Create request API
+- `src/app/(internal)/internal/account-requests/page.tsx` - Admin queue
+- `src/app/api/account-requests/[id]/approve/route.ts` - Approval API
+- `src/app/api/account-requests/[id]/reject/route.ts` - Rejection API
+
+---
+
+#### Password Reset Flow
+**Status:** Complete
+**Implemented:** 2026-01-18
+
+**What it does:**
+- Forgot password page (enter email)
+- Generates secure token (1 hour expiry)
+- Reset password page (set new password)
+- Works for both staff and customer users
+- No email enumeration (same message regardless)
+
+**Key files:**
+- `src/app/forgot-password/page.tsx` - Enter email
+- `src/app/reset-password/page.tsx` - Set new password
+- `src/app/api/auth/forgot-password/route.ts` - Generate token
+- `src/app/api/auth/reset-password/route.ts` - Reset password
+
+---
+
+#### Security Features
+**Status:** Complete
+**Implemented:** 2026-01-18
+
+**What it does:**
+- Rate limiting via LoginAttempt table (5 per 15 min)
+- Password strength validation (12+ chars, mixed case, number, symbol)
+- Common password blocking (top 10,000)
+- Device tracking for new device alerts
+- Session timeout warning (5 min before expiry)
+- Cookie consent banner (POPIA compliance)
+
+**Key files:**
+- `src/lib/password-validation.ts` - Password strength checker
+- `src/lib/device-tracking.ts` - Device fingerprinting
+- `src/components/session-timeout-warning.tsx` - Timeout modal
+- `src/components/cookie-consent.tsx` - POPIA banner
+- `src/app/privacy-policy/page.tsx` - Privacy policy
+
+---
 
 #### Staff Authentication
 **Status:** Complete
@@ -184,6 +283,11 @@ prisma/
 | Table | Purpose |
 |-------|---------|
 | users | Staff authentication |
+| customer_users | Customer user accounts (multiple per customer) |
+| password_reset_tokens | Password reset tokens |
+| account_requests | Pending customer registrations |
+| login_attempts | Rate limiting tracking |
+| known_devices | Device fingerprints for alerts |
 | suppliers | Tecom, Regina, Chiaravalli |
 | price_lists | Supplier price lists |
 | price_list_items | Individual price list entries |
@@ -212,9 +316,16 @@ prisma/
 
 | Method | Endpoint | Purpose | Auth Required |
 |--------|----------|---------|---------------|
-| POST | `/api/auth/signin` | Staff login | No |
-| POST | `/api/auth/signout` | Staff logout | Yes |
+| POST | `/api/auth/signin` | Staff/customer login | No |
+| POST | `/api/auth/signout` | Logout | Yes |
 | GET | `/api/auth/session` | Get session | No |
+| POST | `/api/auth/forgot-password` | Request password reset | No |
+| POST | `/api/auth/reset-password` | Reset password with token | No |
+| POST | `/api/auth/change-password` | Change password (logged in) | Yes |
+| POST | `/api/account-requests` | Create account request | No |
+| GET | `/api/account-requests` | List account requests | Admin |
+| POST | `/api/account-requests/[id]/approve` | Approve request | Admin |
+| POST | `/api/account-requests/[id]/reject` | Reject request | Admin |
 
 *More API endpoints to be added in Phase 2+*
 
@@ -297,6 +408,7 @@ npm start
 
 | Date | Change | Files Affected |
 |------|--------|----------------|
+| 2026-01-18 | Login System Revision | 20+ files (auth, tests, components) |
 | 2026-01-18 | Phase 1: Foundation + Pricing Engine | All source files |
 | 2026-01-17 | Workflow v2.3 (code simplicity) | CLAUDE.md |
 | 2026-01-17 | Initial project setup | Documentation files |

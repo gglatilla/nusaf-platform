@@ -7,7 +7,7 @@
 
 ## Status
 
-**IDLE** - Phase 1 complete. Ready for Phase 2 (Marketing Website).
+**IDLE** - Login System Revision complete. Ready for Phase 2 (Marketing Website).
 
 ---
 
@@ -19,43 +19,82 @@ None currently.
 
 ## What We're Working On
 
-Phase 1: Foundation + Pricing Engine is **COMPLETE**. The platform now has:
-- Full Next.js 14 application with TypeScript
-- Complete database schema for all business entities
-- Pricing engine implementing the full calculation flow
-- Staff authentication and internal dashboard
-- Price list import functionality
+Login System Revision is **COMPLETE**. The platform now has:
+- Unified login page for both staff and customers
+- Password visibility toggle and Remember Me functionality
+- Forgot password / Reset password flow
+- Customer account request and admin approval queue
+- Force password change on first login
+- Rate limiting and login security
+- Session timeout with warning
+- New device notifications
+- Cookie consent banner (POPIA compliance)
+- Comprehensive login behavior tests (9 tests passing)
 
 ---
 
 ## Current State
 
 ### Last Completed Work
-- **Task:** Implement Phase 1: Foundation + Pricing Engine
+- **Task:** Implement Login System Revision (from plan)
 - **Completed:** 2026-01-18
 - **What was done:**
-  - Set up Next.js 14 with TypeScript, Tailwind CSS, shadcn/ui style components
-  - Created complete Prisma schema (Users, Suppliers, Products, Categories, Pricing Rules, Customers, Quotes, Orders, Job Cards)
-  - Built pricing engine with full calculation logic (imported, manufactured, assembled products)
-  - Implemented price list import from Excel/CSV with Tecom→Nusaf SKU conversion
-  - Created staff authentication with NextAuth.js
-  - Built internal dashboard with all pages (Products, Pricing, Price Lists, Quotes, Customers, Job Cards, Settings)
-  - Created database seed script with initial data
+  - Redesigned login page as unified Sign In for staff + customers
+  - Created PasswordInput component with visibility toggle
+  - Added Checkbox component for Remember Me
+  - Rewrote auth.ts to support dual user types (staff Users + CustomerUsers)
+  - Implemented role-based routing (staff→/internal, customers→/portal)
+  - Created request account page and API for customer registration
+  - Created admin approval queue at /internal/account-requests
+  - Created forgot password and reset password flows
+  - Created change password page for first login
+  - Implemented rate limiting with LoginAttempt tracking
+  - Added device tracking for new device alerts
+  - Created session timeout warning component
+  - Created cookie consent banner
+  - Created privacy policy page
+  - Created password validation utility
+  - Added 6 new database models (CustomerUser, PasswordResetToken, AccountRequest, LoginAttempt, KnownDevice, CustomerUserRole enum)
+  - Set up Jest + React Testing Library with 9 login behavior tests
 
 ### Files Modified/Created in This Session
 | File | What Changed |
 |------|--------------|
-| `package.json` | Project dependencies (Next.js, Prisma, NextAuth, etc.) |
-| `prisma/schema.prisma` | Complete database schema |
-| `prisma/seed.ts` | Initial data seeding script |
-| `src/app/**/*` | All application pages |
-| `src/components/**/*` | UI components |
-| `src/lib/**/*` | Auth, DB, Pricing engine, Import utilities |
-| `tsconfig.json`, `tailwind.config.ts`, etc. | Configuration files |
+| `prisma/schema.prisma` | Added 6 new models for login system |
+| `src/app/login/page.tsx` | Completely redesigned unified login |
+| `src/lib/auth.ts` | Rewrote for dual user type support |
+| `src/lib/password-validation.ts` | New - password strength checker |
+| `src/lib/device-tracking.ts` | New - device fingerprinting |
+| `src/components/ui/password-input.tsx` | New - password with toggle |
+| `src/components/ui/checkbox.tsx` | New - remember me checkbox |
+| `src/components/session-timeout-warning.tsx` | New - timeout modal |
+| `src/components/cookie-consent.tsx` | New - POPIA banner |
+| `src/app/request-account/page.tsx` | New - customer registration |
+| `src/app/forgot-password/page.tsx` | New - forgot password |
+| `src/app/reset-password/page.tsx` | New - reset password |
+| `src/app/change-password/page.tsx` | New - force change |
+| `src/app/privacy-policy/page.tsx` | New - privacy policy |
+| `src/app/(internal)/internal/account-requests/page.tsx` | New - admin queue |
+| `src/app/api/account-requests/**` | New - account request APIs |
+| `src/app/api/auth/forgot-password/route.ts` | New - forgot password API |
+| `src/app/api/auth/reset-password/route.ts` | New - reset password API |
+| `src/app/api/auth/change-password/route.ts` | New - change password API |
+| `jest.config.js`, `jest.setup.js` | New - test configuration |
+| `src/__tests__/auth/login.test.tsx` | New - 9 login behavior tests |
+| `package.json` | Added Jest + Testing Library deps |
 
 ---
 
 ## Context & Decisions Made
+
+### Login System Decisions
+| Decision | Reasoning |
+|----------|-----------|
+| Dual user model (User + CustomerUser) | Staff and customers have different needs, separate tables cleaner |
+| JWT sessions | Continue using JWT, consistent with Phase 1 |
+| Rate limiting in LoginAttempt table | Simple to implement, works without Redis |
+| Device fingerprinting via hash | Lightweight, no third-party service needed |
+| Password strength via custom validator | No external dependency, block top 10k common passwords |
 
 ### Phase 1 Decisions
 | Decision | Reasoning |
@@ -70,7 +109,13 @@ Phase 1: Foundation + Pricing Engine is **COMPLETE**. The platform now has:
 
 ## Problems & Debugging
 
-No active problems. Build passes successfully.
+### Fixed: Login Redirect Bug
+- **Problem:** After login, users were redirected to "/" instead of /internal or /portal
+- **Cause:** Login page wasn't using user type from session to determine redirect
+- **Fix:** Updated handleSubmit to call getRedirectUrl(session.user.userType)
+- **Prevention:** Added 9 behavior tests to catch routing logic errors
+
+No active problems. Build passes successfully. All 9 tests passing.
 
 ---
 
@@ -100,19 +145,30 @@ No active problems. Build passes successfully.
 - `src/lib/pricing/calculator.ts` - Pricing engine for quote calculations
 - `prisma/schema.prisma` - Database schema for quotes
 
+### For Login System Reference
+- `src/lib/auth.ts` - Auth configuration with dual user support
+- `src/__tests__/auth/login.test.tsx` - Login behavior tests
+
 ---
 
 ## Code Snippets / Implementation Notes
 
-### Key Pricing Calculation Flow
+### Role-Based Routing
 ```typescript
-// For imported products:
-// 1. Supplier Price (EUR) → apply dealer discount if gross
-// 2. Convert to ZAR (× exchange rate)
-// 3. Add freight (× 1.12 sea or × 1.30 air)
-// 4. Apply margin (÷ margin factor, e.g., 0.5)
-// 5. Calculate list price (÷ 0.60 for OEM anchor)
-// 6. Tier prices: List × (1 - tier discount)
+// In src/lib/auth.ts
+export function getRedirectUrl(userType: UserType): string {
+  return userType === "staff" ? "/internal" : "/portal";
+}
+
+// In login page handleSubmit:
+const session = await updateSession();
+if (session?.user?.mustChangePassword) {
+  router.push("/change-password");
+} else if (callbackUrl) {
+  router.push(callbackUrl);
+} else {
+  router.push(getRedirectUrl(session?.user?.userType || "customer"));
+}
 ```
 
 ### Default Login Credentials (from seed)
@@ -132,9 +188,9 @@ None currently.
 - Run `npx prisma db push` then `npm run db:seed` to set up database
 - Run `npm run dev` to start development server
 - Build passes with `npm run build`
-- Tests not yet configured (will add in future phase)
+- Run `npm test` to run all tests (9 tests passing)
 
 ---
 
 *Last updated: 2026-01-18*
-*Status: IDLE - Phase 1 complete*
+*Status: IDLE - Login System Revision complete*

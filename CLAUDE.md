@@ -175,10 +175,17 @@ When tests fail:
 ## CURRENT PROJECT STATE
 
 ### Phase
-**Phase 1 Complete** - Foundation + Pricing Engine implemented
+**Login System Revision Complete** - Ready for Phase 2
 
 ### Currently Working On
 Nothing active - ready for Phase 2.
+
+### Recently Completed
+- Unified login page for staff + customers
+- Password reset flow
+- Customer account request + admin approval
+- Rate limiting and security features
+- 9 login behavior tests
 
 ### Immediate Next Steps
 1. Build public marketing website pages (About, Industries, Capabilities, Contact)

@@ -14,7 +14,27 @@
       "Bash(npm run build:*)",
       "Bash(npm uninstall:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "Bash(npm run dev)",
+      "Bash(psql:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(net start postgresql-x64-17)",
+      "Bash(net start postgresql-x64-16)",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/pg_isready\")",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/createdb\" -U postgres nusaf_platform)",
+      "Bash(set PGPASSWORD=OGJWXard1xBmwe2FTfK4:*)",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql\" -U postgres -c \"CREATE DATABASE nusaf_platform;\")",
+      "Bash(npm run db:seed:*)",
+      "Bash(npx prisma validate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(cmd //c \"tasklist | findstr node\")",
+      "Bash(cmd //c \"netstat -ano | findstr :3000\")",
+      "Bash(taskkill //F //PID 27856)",
+      "Bash(cmd //c \"netstat -ano | findstr :3000 | findstr LISTENING\")"
     ]
   }
 }
