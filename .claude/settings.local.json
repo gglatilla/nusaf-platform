@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:www.nusaf.co.za)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npx prisma init)",
+      "Bash(node ./node_modules/tailwindcss/lib/cli.js:*)",
+      "Bash(node ./node_modules/prisma/build/index.js:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm test)"
     ]
   }
 }

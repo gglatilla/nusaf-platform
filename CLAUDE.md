@@ -175,28 +175,31 @@ When tests fail:
 ## CURRENT PROJECT STATE
 
 ### Phase
-**Phase 2: Planning** (Foundation complete, workflow v2.1 complete)
+**Phase 1 Complete** - Foundation + Pricing Engine implemented
 
 ### Currently Working On
-Nothing active - ready for next task.
+Nothing active - ready for Phase 2.
 
 ### Immediate Next Steps
-1. Fill in `docs/PROJECT-VISION.md` with actual business requirements
-2. Choose technology stack (see `docs/TECH-STACK.md`)
-3. Create first feature spec (`nusaf feature user-auth`)
-4. Begin implementation
+1. Build public marketing website pages (About, Industries, Capabilities, Contact)
+2. Create public product catalog (no prices shown)
+3. Implement quote basket functionality
+4. Build quote request form (lead capture)
+5. Create salesperson review queue
+6. Generate PDF quotes
 
 ---
 
 ## PROJECT OVERVIEW
 
-**NUSAF Platform** is a business management system for Guido's company designed to handle:
-- Employee management
-- Customer relationships
-- Business operations
-- Data compliance (POPIA - South African data protection law)
+**NUSAF Platform** is a unified business platform for Nusaf Dynamic Technologies comprising:
+- **Marketing Website** (www.nusaf.co.za) - Product catalog, fast quoting, company info
+- **B2B Portal** - Customer login, live pricing, quote acceptance, order tracking
+- **Internal App** - Staff tools: job cards, PO management, price lists, part numbers
 
-The exact scope and features are documented in `docs/PROJECT-VISION.md`.
+All components share a single backend that integrates with Odoo (ERP going live March 2026).
+
+**Tech Stack:** Next.js 14, TypeScript, Tailwind CSS, PostgreSQL, Prisma v5, NextAuth.js
 
 ---
 
@@ -287,5 +290,5 @@ nusaf-platform/
 
 ---
 
-*Last updated: 2026-01-17*
-*Version: 2.3 - Added code simplicity guidelines*
+*Last updated: 2026-01-18*
+*Version: 2.4 - Phase 1 complete*

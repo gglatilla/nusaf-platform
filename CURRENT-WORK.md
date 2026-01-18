@@ -7,7 +7,7 @@
 
 ## Status
 
-**IDLE** - No active task. Ready for next work.
+**IDLE** - Phase 1 complete. Ready for Phase 2 (Marketing Website).
 
 ---
 
@@ -19,56 +19,71 @@ None currently.
 
 ## What We're Working On
 
-No active task. Workflow system v2.3 is complete and ready to use.
+Phase 1: Foundation + Pricing Engine is **COMPLETE**. The platform now has:
+- Full Next.js 14 application with TypeScript
+- Complete database schema for all business entities
+- Pricing engine implementing the full calculation flow
+- Staff authentication and internal dashboard
+- Price list import functionality
 
 ---
 
 ## Current State
 
 ### Last Completed Work
-- **Task:** Workflow update v2.3 - Code simplicity guidelines
-- **Completed:** 2026-01-17
+- **Task:** Implement Phase 1: Foundation + Pricing Engine
+- **Completed:** 2026-01-18
 - **What was done:**
-  - Added code simplicity guidelines to rule #11 in CLAUDE.md
-  - Guidelines cover: solve today's problem, simplest solution, rule of three, validate at boundaries, readable over clever, delete don't comment, measure before optimizing, security not optional
-  - Added "before adding complexity" checklist
+  - Set up Next.js 14 with TypeScript, Tailwind CSS, shadcn/ui style components
+  - Created complete Prisma schema (Users, Suppliers, Products, Categories, Pricing Rules, Customers, Quotes, Orders, Job Cards)
+  - Built pricing engine with full calculation logic (imported, manufactured, assembled products)
+  - Implemented price list import from Excel/CSV with Tecom→Nusaf SKU conversion
+  - Created staff authentication with NextAuth.js
+  - Built internal dashboard with all pages (Products, Pricing, Price Lists, Quotes, Customers, Job Cards, Settings)
+  - Created database seed script with initial data
 
-### Files Modified in Last Session
+### Files Modified/Created in This Session
 | File | What Changed |
 |------|--------------|
-| `CLAUDE.md` | Added code simplicity guidelines (v2.3) |
+| `package.json` | Project dependencies (Next.js, Prisma, NextAuth, etc.) |
+| `prisma/schema.prisma` | Complete database schema |
+| `prisma/seed.ts` | Initial data seeding script |
+| `src/app/**/*` | All application pages |
+| `src/components/**/*` | UI components |
+| `src/lib/**/*` | Auth, DB, Pricing engine, Import utilities |
+| `tsconfig.json`, `tailwind.config.ts`, etc. | Configuration files |
 
 ---
 
 ## Context & Decisions Made
 
-### Workflow v2.2 Decisions
+### Phase 1 Decisions
 | Decision | Reasoning |
 |----------|-----------|
-| Specific commands over natural language | Less ambiguity, easier to remember, consistent triggering |
-| `nusaf` prefix | Includes project name, works from any directory, clear intent |
-| Mandatory startup checklist | Ensures Claude always gets full context before working |
-| Separate CURRENT-WORK.md | Different purpose from session logs: live state vs. historical record |
-| CODEBASE-OVERVIEW.md | Quick reference for what's built, prevents re-implementing |
-| Test-as-you-go workflow | Run tests after each logical unit, not just at commit time. Catches bugs early without being too slow. |
-| Code simplicity guidelines | Balanced rules for keeping code simple without cutting corners on security/validation. |
+| Prisma v5 over v7 | v7 has breaking changes, v5 is more stable for current needs |
+| Tailwind CSS v3 over v4 | Better compatibility with Next.js 14 PostCSS setup |
+| shadcn/ui style components | Built manually for flexibility, no external dependency |
+| JWT sessions over database sessions | Simpler setup, works well for staff auth |
+| Single pricing calculator class | Clean separation, easy to test and maintain |
 
 ---
 
 ## Problems & Debugging
 
-No active problems.
+No active problems. Build passes successfully.
 
 ---
 
 ## Immediate Next Steps
 
-**When starting next session (`nusaf start`):**
+**Phase 2: Marketing Website + Public Quoting**
 
-1. Fill in `docs/PROJECT-VISION.md` with actual business requirements
-2. Make technology stack decision (see `docs/TECH-STACK.md`)
-3. Create first feature spec: `nusaf feature user-auth`
-4. Begin implementation
+1. Build public marketing website pages (About, Industries, Capabilities, Contact)
+2. Create public product catalog (no prices shown)
+3. Implement quote basket functionality
+4. Build quote request form (lead capture)
+5. Create salesperson review queue
+6. Generate PDF quotes
 
 ---
 
@@ -78,18 +93,31 @@ No active problems.
 - `CLAUDE.md` - Commands and rules
 - `CURRENT-WORK.md` - This file
 - Latest `docs/sessions/*.md`
-- `docs/PROJECT-VISION.md`
-- `docs/TECH-STACK.md`
-- `docs/ARCHITECTURE.md`
 - `CODEBASE-OVERVIEW.md`
-- `docs/POPIA-COMPLIANCE.md`
-- `docs/DATA-INVENTORY.md`
+
+### For Phase 2 Development
+- `src/app/(internal)/internal/pricing/page.tsx` - Reference for pricing UI
+- `src/lib/pricing/calculator.ts` - Pricing engine for quote calculations
+- `prisma/schema.prisma` - Database schema for quotes
 
 ---
 
 ## Code Snippets / Implementation Notes
 
-No code implementation yet - project is in planning phase.
+### Key Pricing Calculation Flow
+```typescript
+// For imported products:
+// 1. Supplier Price (EUR) → apply dealer discount if gross
+// 2. Convert to ZAR (× exchange rate)
+// 3. Add freight (× 1.12 sea or × 1.30 air)
+// 4. Apply margin (÷ margin factor, e.g., 0.5)
+// 5. Calculate list price (÷ 0.60 for OEM anchor)
+// 6. Tier prices: List × (1 - tier discount)
+```
+
+### Default Login Credentials (from seed)
+- Admin: admin@nusaf.co.za / admin123
+- Sales: sales@nusaf.co.za / sales123
 
 ---
 
@@ -101,14 +129,12 @@ None currently.
 
 ## Reminders for Next Session
 
-- Use `nusaf start` to begin
-- Use `nusaf save` when done
-- PROJECT-VISION.md needs business requirements before tech stack decision
-- POPIA compliance must be considered for all features handling personal data
-- Use `nusaf decision [topic]` for important choices
-- Use `nusaf feature [name]` before implementing features
+- Run `npx prisma db push` then `npm run db:seed` to set up database
+- Run `npm run dev` to start development server
+- Build passes with `npm run build`
+- Tests not yet configured (will add in future phase)
 
 ---
 
-*Last updated: 2026-01-17*
-*Status: IDLE - Workflow v2.3 complete*
+*Last updated: 2026-01-18*
+*Status: IDLE - Phase 1 complete*

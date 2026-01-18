@@ -1,0 +1,566 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTHENTICATION ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          UserRole
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  quotes        Quote[]
+  reviewedQuotes Quote[]  @relation("QuoteReviewer")
+  jobCards      JobCard[] @relation("AssignedJobCards")
+  priceListApprovals PriceListApproval[]
+  systemConfigChanges SystemConfig[] @relation("ConfigUpdater")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  SALES
+  MACHINE_SHOP
+  WAREHOUSE
+  DESIGN
+  DRIVER
+}
+
+// ==================== SUPPLIERS & PRICE LISTS ====================
+
+model Supplier {
+  id                  String    @id @default(cuid())
+  name                String
+  code                String    @unique
+  currency            String    @default("EUR")
+  defaultFreightType  FreightType @default(SEA)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  priceLists          PriceList[]
+  products            Product[]
+  pricingRules        PricingRule[]
+
+  @@map("suppliers")
+}
+
+enum FreightType {
+  SEA
+  AIR
+}
+
+model PriceList {
+  id            String    @id @default(cuid())
+  supplierId    String
+  name          String
+  category      String?
+  isGrossPrice  Boolean   @default(false)
+  effectiveDate DateTime
+  status        PriceListStatus @default(DRAFT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  supplier      Supplier  @relation(fields: [supplierId], references: [id])
+  items         PriceListItem[]
+  approvals     PriceListApproval[]
+
+  @@map("price_lists")
+}
+
+enum PriceListStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SUPERSEDED
+}
+
+model PriceListItem {
+  id            String    @id @default(cuid())
+  priceListId   String
+  productCode   String    // Supplier's product code
+  description   String?
+  price         Decimal   @db.Decimal(12, 4)
+  uom           String    @default("EACH")  // Unit of measure
+  weight        Decimal?  @db.Decimal(10, 4)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  priceList     PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+
+  @@unique([priceListId, productCode])
+  @@map("price_list_items")
+}
+
+model PriceListApproval {
+  id            String    @id @default(cuid())
+  priceListId   String
+  approvedBy    String
+  approvedAt    DateTime  @default(now())
+  notes         String?
+
+  // Relations
+  priceList     PriceList @relation(fields: [priceListId], references: [id])
+  user          User      @relation(fields: [approvedBy], references: [id])
+
+  @@map("price_list_approvals")
+}
+
+// ==================== PRODUCTS & CATEGORIES ====================
+
+model Category {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  parentId      String?
+  brandsAvailable String[] // Array of brand names available in this category
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  parent        Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[] @relation("CategoryHierarchy")
+  products      Product[]
+  pricingRules  PricingRule[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  nusafSku      String    @unique
+  supplierSku   String?   // Original supplier SKU (e.g., Tecom code)
+  name          String
+  description   String?
+  categoryId    String
+  supplierId    String?
+  brand         String?
+  productType   ProductType
+  specifications Json?    // Technical specs as JSON
+  weight        Decimal?  @db.Decimal(10, 4)
+  bomId         String?   // Reference to BOM if assembled
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Cost tracking (cached, updated from price list imports)
+  lastCostEur   Decimal?  @db.Decimal(12, 4)
+  lastCostZar   Decimal?  @db.Decimal(12, 4)
+  lastCostDate  DateTime?
+
+  // Relations
+  category      Category  @relation(fields: [categoryId], references: [id])
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  bom           Bom?      @relation(fields: [bomId], references: [id])
+  quoteItems    QuoteItem[]
+  customPartInfo CustomPart?
+
+  @@map("products")
+}
+
+enum ProductType {
+  IMPORTED
+  MANUFACTURED
+  ASSEMBLED
+}
+
+// ==================== BILL OF MATERIALS ====================
+
+model Bom {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  items         BomItem[]
+  products      Product[]
+
+  @@map("boms")
+}
+
+model BomItem {
+  id            String    @id @default(cuid())
+  bomId         String
+  componentSku  String    // SKU of the component
+  quantity      Decimal   @db.Decimal(10, 4)
+  uom           String    @default("EACH")
+  notes         String?
+
+  // Relations
+  bom           Bom       @relation(fields: [bomId], references: [id], onDelete: Cascade)
+
+  @@map("bom_items")
+}
+
+// ==================== PRICING ENGINE ====================
+
+model PricingRule {
+  id                    String    @id @default(cuid())
+  categoryId            String?
+  subCategoryId         String?
+  supplierId            String?
+  brand                 String?
+  dealerDiscountPercent Decimal?  @db.Decimal(5, 2)  // For gross price lists
+  freightType           FreightType @default(SEA)
+  marginFactor          Decimal   @db.Decimal(5, 3)  // e.g., 0.5 = 50% margin
+  notes                 String?
+  priority              Int       @default(0)        // Higher = more specific
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  category              Category? @relation(fields: [categoryId], references: [id])
+  supplier              Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("pricing_rules")
+}
+
+model MachineRate {
+  id            String    @id @default(cuid())
+  machineType   String    @unique
+  rateType      RateType
+  rateAmount    Decimal   @db.Decimal(12, 2)
+  effectiveDate DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("machine_rates")
+}
+
+enum RateType {
+  HOURLY
+  PER_METER
+  PER_EACH
+}
+
+model SystemConfig {
+  id                        String    @id @default(cuid())
+  exchangeRateEurZar        Decimal   @db.Decimal(10, 4)
+  defaultSeaFreightPercent  Decimal   @db.Decimal(5, 2) @default(12)
+  defaultAirFreightPercent  Decimal   @db.Decimal(5, 2) @default(30)
+  tierDiscountEndUser       Decimal   @db.Decimal(5, 2) @default(30)
+  tierDiscountOem           Decimal   @db.Decimal(5, 2) @default(40)
+  tierDiscountDistributor   Decimal   @db.Decimal(5, 2) @default(50)
+  updatedAt                 DateTime  @updatedAt
+  updatedById               String?
+
+  // Relations
+  updatedBy                 User?     @relation("ConfigUpdater", fields: [updatedById], references: [id])
+
+  @@map("system_config")
+}
+
+// ==================== CUSTOMERS ====================
+
+model Customer {
+  id              String    @id @default(cuid())
+  companyName     String
+  contactName     String
+  email           String    @unique
+  passwordHash    String?   // For B2B portal access
+  phone           String?
+  tier            CustomerTier @default(END_USER)
+  vatNumber       String?
+  odooCustomerId  String?   // Link to Odoo
+  isApproved      Boolean   @default(false)
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdFrom     CustomerSource @default(REGISTRATION)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  addresses       CustomerAddress[]
+  quotes          Quote[]
+  orders          Order[]
+
+  @@map("customers")
+}
+
+enum CustomerTier {
+  END_USER
+  OEM_RESELLER
+  DISTRIBUTOR
+}
+
+enum CustomerSource {
+  REGISTRATION
+  IMPORT
+  MANUAL
+}
+
+model CustomerAddress {
+  id            String    @id @default(cuid())
+  customerId    String
+  type          AddressType
+  line1         String
+  line2         String?
+  city          String
+  province      String?
+  postalCode    String?
+  country       String    @default("South Africa")
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("customer_addresses")
+}
+
+enum AddressType {
+  BILLING
+  SHIPPING
+  BOTH
+}
+
+// ==================== QUOTES ====================
+
+model Quote {
+  id              String    @id @default(cuid())
+  quoteNumber     String    @unique
+  customerId      String?
+  // Prospect info (when no customer account)
+  prospectName    String?
+  prospectEmail   String?
+  prospectCompany String?
+  prospectPhone   String?
+  status          QuoteStatus @default(DRAFT)
+  createdById     String?   // Staff member or null for self-service
+  reviewedById    String?
+  reviewedAt      DateTime?
+  subtotal        Decimal   @db.Decimal(12, 2)
+  discountTotal   Decimal   @db.Decimal(12, 2) @default(0)
+  total           Decimal   @db.Decimal(12, 2)
+  notesInternal   String?
+  notesCustomer   String?
+  validUntil      DateTime
+  acceptedAt      DateTime?
+  poNumber        String?
+  poDocumentUrl   String?
+  deliveryMethod  DeliveryMethod?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  createdBy       User?     @relation(fields: [createdById], references: [id])
+  reviewedBy      User?     @relation("QuoteReviewer", fields: [reviewedById], references: [id])
+  items           QuoteItem[]
+  order           Order?
+
+  @@map("quotes")
+}
+
+enum QuoteStatus {
+  DRAFT
+  PENDING_REVIEW
+  SENT
+  ACCEPTED
+  EXPIRED
+  REJECTED
+}
+
+enum DeliveryMethod {
+  COLLECT
+  DELIVER
+}
+
+model QuoteItem {
+  id              String    @id @default(cuid())
+  quoteId         String
+  productId       String
+  quantity        Decimal   @db.Decimal(10, 4)
+  unitPrice       Decimal   @db.Decimal(12, 4)
+  discountPercent Decimal   @db.Decimal(5, 2) @default(0)
+  lineTotal       Decimal   @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  quote           Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product         Product   @relation(fields: [productId], references: [id])
+
+  @@map("quote_items")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id              String    @id @default(cuid())
+  orderNumber     String    @unique
+  quoteId         String?   @unique
+  customerId      String
+  odooOrderId     String?   // Link to Odoo Sales Order
+  status          OrderStatus @default(CREATED)
+  deliveryAddress String?
+  trackingNumber  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  quote           Quote?    @relation(fields: [quoteId], references: [id])
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  jobCard         JobCard?
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  IN_PRODUCTION
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// ==================== JOB CARDS ====================
+
+model JobCard {
+  id                  String    @id @default(cuid())
+  jobNumber           String    @unique
+  orderId             String?   @unique
+  quoteId             String?
+  customerName        String
+  poNumber            String?
+  location            Location
+  status              JobStatus @default(CREATED)
+  assignedToId        String?
+  requiredBy          DateTime?
+  notes               String?
+  deliveredAt         DateTime?
+  deliverySignatureUrl String?
+  deliveryPhotoUrl    String?
+  odooMoId            String?   // Link to Odoo Manufacturing Order
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  order               Order?    @relation(fields: [orderId], references: [id])
+  assignedTo          User?     @relation("AssignedJobCards", fields: [assignedToId], references: [id])
+  items               JobCardItem[]
+  bomPicking          JobCardBomPicking[]
+  operations          JobCardOperation[]
+
+  @@map("job_cards")
+}
+
+enum Location {
+  SANDTON
+  CAPE_TOWN
+}
+
+enum JobStatus {
+  CREATED
+  PICKED
+  IN_PRODUCTION
+  QC
+  COMPLETE
+  SHIPPED
+  DELIVERED
+}
+
+model JobCardItem {
+  id            String    @id @default(cuid())
+  jobCardId     String
+  productSku    String
+  description   String
+  quantity      Decimal   @db.Decimal(10, 4)
+  status        JobItemStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  jobCard       JobCard   @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  @@map("job_card_items")
+}
+
+enum JobItemStatus {
+  PENDING
+  PICKED
+  IN_PRODUCTION
+  COMPLETE
+}
+
+model JobCardBomPicking {
+  id            String    @id @default(cuid())
+  jobCardId     String
+  item          String
+  requiredQty   Decimal   @db.Decimal(10, 4)
+  pickedQty     Decimal   @db.Decimal(10, 4) @default(0)
+  isPicked      Boolean   @default(false)
+  pickedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  jobCard       JobCard   @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  @@map("job_card_bom_picking")
+}
+
+model JobCardOperation {
+  id              String    @id @default(cuid())
+  jobCardId       String
+  operationType   String    // CNC Router, Milling, Assembly, etc.
+  estimatedMins   Int?
+  actualMins      Int?
+  completedAt     DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  jobCard         JobCard   @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  @@map("job_card_operations")
+}
+
+// ==================== CUSTOM PARTS ====================
+
+model CustomPart {
+  id                    String    @id @default(cuid())
+  productId             String    @unique
+  customerDrawingNumber String?
+  drawingUrl            String?
+  drawingRevision       String?
+  isPermanent           Boolean   @default(false)  // vs one-off
+  materialId            String?
+  dimensions            Json?
+  costEstimate          Decimal?  @db.Decimal(12, 2)
+  createdForCustomerId  String?
+  orderCount            Int       @default(0)
+  lastOrderedAt         DateTime?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("custom_parts")
+}
