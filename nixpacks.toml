@@ -1,6 +1,9 @@
 # Nixpacks configuration for Railway deployment
+# Uses corepack to automatically enable pnpm based on packageManager in package.json
+
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm"]
+nixPkgs = ["nodejs_20"]
+cmds = ["corepack enable"]
 
 [phases.install]
 cmds = ["pnpm install"]
