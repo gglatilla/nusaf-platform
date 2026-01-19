@@ -1,0 +1,21 @@
+{
+  "name": "@nusaf/pricing",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@nusaf/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@nusaf/typescript-config": "workspace:*",
+    "@types/node": "^25.0.9",
+    "typescript": "^5.9.3"
+  }
+}

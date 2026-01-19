@@ -81,3 +81,10 @@ temp/
 # yarn.lock
 
 /src/generated/prisma
+
+# Turbo
+.turbo
+
+# pnpm
+.pnpm-store
+pnpm-lock.yaml
