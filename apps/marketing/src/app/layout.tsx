@@ -4,6 +4,8 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const isStaging = process.env.NEXT_PUBLIC_IS_STAGING === "true";
+
 export const metadata: Metadata = {
   title: "NUSAF Dynamic Technologies | Industrial Components & Engineering",
   description:
@@ -16,6 +18,10 @@ export const metadata: Metadata = {
     "industrial engineering",
     "South Africa",
   ],
+  // Block indexing on staging
+  robots: isStaging
+    ? { index: false, follow: false, nocache: true }
+    : { index: true, follow: true },
 };
 
 export default function RootLayout({

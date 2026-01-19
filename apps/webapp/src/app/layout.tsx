@@ -8,6 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "NUSAF Platform",
   description: "Business management platform for Nusaf Dynamic Technologies",
+  // Webapp should never be indexed - it's all authenticated content
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default function RootLayout({
