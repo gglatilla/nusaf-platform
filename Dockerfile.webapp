@@ -3,11 +3,10 @@ FROM node:20-alpine AS base
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 
-# Set working directory to monorepo root
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# Copy all package.json files for dependency installation
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/webapp/package.json ./apps/webapp/
 COPY packages/database/package.json ./packages/database/
 COPY packages/auth/package.json ./packages/auth/
@@ -28,8 +27,6 @@ RUN pnpm --filter=@nusaf/database db:generate
 # Build the webapp
 RUN pnpm build --filter=@nusaf/webapp
 
-# Expose port
 EXPOSE 3001
 
-# Start the webapp
 CMD ["pnpm", "--filter=@nusaf/webapp", "start"]
