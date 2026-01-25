@@ -4,28 +4,31 @@
 [TASK-001] Project initialization and setup
 
 ## Status
-NOT_STARTED | 0% complete
+IN_PROGRESS | 20% complete
 
 ## Completed Micro-tasks
-- [ ] Initialize Next.js project with TypeScript
-- [ ] Configure Tailwind with Nusaf brand tokens
-- [ ] Set up Prisma with PostgreSQL connection
-- [ ] Create initial database schema (users, companies)
-- [ ] Set up authentication foundation
-- [ ] Create basic layout components
+- [x] Initialize Git and connect to GitHub
+- [ ] Create monorepo structure with workspaces
+- [ ] Initialize backend project (Node.js + TypeScript + Prisma)
+- [ ] Initialize frontend project (Next.js + Tailwind)
+- [ ] Create shared types package
+- [ ] Verify local development works
 
 ## Files Modified
-(none yet)
+- .gitignore (created)
+- CLAUDE.md (committed)
+- .claude/* (committed)
 
 ## Decisions Made
-(none yet)
+- Two-project monorepo: /backend (Railway) + /frontend (Vercel) + /shared
+- Local PostgreSQL for development, Railway PostgreSQL for production
+- Staging URLs: app.nusaf.net (portal), www.nusaf.net (website)
 
 ## Next Steps (Exact)
-1. Start Claude Code in project directory
-2. Run: `npx create-next-app@latest nusaf-platform --typescript --tailwind --eslint --app`
-3. Configure Tailwind with brand colours from `domain/brand-identity` skill
-4. Set up folder structure per `foundation/project-architecture` skill
+1. Create /backend, /frontend, /shared folders
+2. Create root package.json with npm workspaces
+3. Initialize each project with its dependencies
 
 ## Context for Next Session
-This is a fresh project. Begin with project initialization.
-The first task is to set up the foundational structure before any feature work.
+Git initialized and connected to https://github.com/gglatilla/nusaf-platform.git
+Initial commit pushed. Working on monorepo structure next.

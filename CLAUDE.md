@@ -46,6 +46,22 @@ For every task:
 
 ---
 
+## Before Starting Any New Task
+
+Before beginning work on a new task, Claude MUST enter plan mode to:
+
+1. Confirm understanding of the task
+2. Ask clarifying questions about any ambiguities
+3. Gather information not covered in the skills
+4. Present the proposed approach
+5. Get user approval before writing any code
+
+**RULE**: Do NOT start coding until the user has answered all questions and approved the plan.
+
+This applies to NEW tasks only, not to continuing micro-tasks within an already-approved task.
+
+---
+
 ## Context Compacting Protection
 
 **Problem**: Long Claude Code sessions can trigger "compacting" where context is summarized and details are lost.
