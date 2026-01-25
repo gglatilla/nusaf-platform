@@ -1,0 +1,123 @@
+// Prisma Schema for Nusaf Platform
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id])
+
+  sessions  Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sessions")
+}
+
+model Company {
+  id                 String       @id @default(cuid())
+  name               String
+  tradingName        String?      @map("trading_name")
+  registrationNumber String?      @map("registration_number")
+  vatNumber          String?      @map("vat_number")
+  tier               CustomerTier @default(END_USER)
+  isActive           Boolean      @default(true) @map("is_active")
+
+  users     User[]
+  addresses CompanyAddress[]
+  contacts  CompanyContact[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
+
+model CompanyAddress {
+  id         String      @id @default(cuid())
+  companyId  String      @map("company_id")
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type       AddressType
+  line1      String
+  line2      String?
+  city       String
+  province   String
+  postalCode String      @map("postal_code")
+  country    String      @default("South Africa")
+  isDefault  Boolean     @default(false) @map("is_default")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("company_addresses")
+}
+
+model CompanyContact {
+  id        String  @id @default(cuid())
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  firstName String  @map("first_name")
+  lastName  String  @map("last_name")
+  email     String
+  phone     String?
+  mobile    String?
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("company_contacts")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  SALES
+  CUSTOMER
+}
+
+enum CustomerTier {
+  END_USER
+  OEM_RESELLER
+  DISTRIBUTOR
+}
+
+enum AddressType {
+  BILLING
+  SHIPPING
+}
