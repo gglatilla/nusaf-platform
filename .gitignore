@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Build outputs (workspaces)
+shared/dist/
+backend/dist/
+
 # Environment files
 .env
 .env.local
