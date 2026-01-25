@@ -1,14 +1,16 @@
 # Task Queue
 
 ## Current
-- [TASK-001] Project initialization and setup (NOT_STARTED)
+- [TASK-002] Database schema — Core tables (users, companies, products) (NOT_STARTED)
 
 ## Up Next
-- [TASK-002] Database schema — Core tables (users, companies, products)
 - [TASK-003] Authentication system (login, logout, sessions)
 - [TASK-004] Customer portal layout (sidebar, header, main content)
 - [TASK-005] Product catalog — Display products with categories
 - [TASK-006] Pricing engine — Calculate prices per customer tier
+
+## Completed
+- [TASK-001] Project initialization and setup ✓
 
 ## Backlog
 - [TASK-010] Supplier price list import
