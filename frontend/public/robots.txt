@@ -1,0 +1,5 @@
+# STAGING ENVIRONMENT - Block all search engine crawlers
+# This file will be replaced with proper SEO rules for production
+
+User-agent: *
+Disallow: /

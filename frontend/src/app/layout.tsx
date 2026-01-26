@@ -11,6 +11,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Nusaf Dynamic Technologies',
   description: 'Conveyor components, power transmission, and industrial supplies',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
