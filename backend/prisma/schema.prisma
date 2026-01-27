@@ -26,7 +26,7 @@ model User {
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])
 
-  sessions  Session[]
+  sessions Session[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -120,4 +120,187 @@ enum CustomerTier {
 enum AddressType {
   BILLING
   SHIPPING
+}
+
+enum SupplierCurrency {
+  EUR
+  ZAR
+}
+
+enum SkuHandling {
+  DIRECT
+  TECOM_CONVERSION
+  NUSAF_INTERNAL
+}
+
+enum UnitOfMeasure {
+  EA
+  M
+  KG
+  BOX
+  SET
+  PAIR
+  ROLL
+}
+
+// ============================================
+// PRODUCT CATALOG ENTITIES
+// ============================================
+
+model Supplier {
+  id          String           @id @default(cuid())
+  code        String           @unique // TECOM, CHIARAVALLI, REGINA, NUSAF
+  name        String
+  country     String           @default("Italy")
+  currency    SupplierCurrency @default(EUR)
+  skuHandling SkuHandling      @map("sku_handling")
+  isLocal     Boolean          @default(false) @map("is_local")
+  isActive    Boolean          @default(true) @map("is_active")
+
+  // Relations
+  products    Product[]
+  skuMappings SkuMapping[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@map("suppliers")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  code        String  @unique // e.g., CONV, LVL, BRG
+  name        String // e.g., "Conveyor Components"
+  description String?
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Relations
+  subCategories SubCategory[]
+  products      Product[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id          String  @id @default(cuid())
+  code        String // e.g., BASES, UCF
+  name        String // e.g., "Bases", "UCF Bearings"
+  description String?
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Parent category
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  // Relations
+  products Product[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([categoryId, code])
+  @@map("sub_categories")
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  supplierSku   String        @map("supplier_sku")
+  nusafSku      String        @unique @map("nusaf_sku")
+  description   String
+  unitOfMeasure UnitOfMeasure @default(EA) @map("unit_of_measure")
+  isActive      Boolean       @default(true) @map("is_active")
+
+  // Supplier
+  supplierId String   @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  // Categorization
+  categoryId    String       @map("category_id")
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId String?      @map("sub_category_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  // Relations
+  crossReferences CompetitorCrossReference[]
+
+  // Audit
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String?   @map("created_by")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  updatedBy String?   @map("updated_by")
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+
+  @@unique([supplierId, supplierSku])
+  @@index([supplierId])
+  @@index([categoryId])
+  @@index([nusafSku])
+  @@map("products")
+}
+
+model CompetitorCrossReference {
+  id              String  @id @default(cuid())
+  competitorBrand String  @map("competitor_brand") // e.g., "Rexnord", "Intralox"
+  competitorSku   String  @map("competitor_sku")
+  notes           String? // Fit notes, compatibility details
+
+  // Verification for SEO quality
+  isVerified Boolean   @default(false) @map("is_verified")
+  verifiedAt DateTime? @map("verified_at")
+  verifiedBy String?   @map("verified_by")
+
+  // Link to Nusaf product
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([competitorBrand, competitorSku])
+  @@index([productId])
+  @@index([competitorSku])
+  @@map("competitor_cross_references")
+}
+
+model SkuMapping {
+  id          String  @id @default(cuid())
+  supplierSku String  @map("supplier_sku")
+  nusafSku    String  @map("nusaf_sku")
+  isOverride  Boolean @default(false) @map("is_override") // true = manual override, false = auto-generated
+  notes       String? // Reason for override
+
+  // Supplier (primarily for Tecom)
+  supplierId String   @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  // Optional category reassignment (e.g., Idler Wheels moved to Sprockets and Idlers)
+  overrideCategoryId String? @map("override_category_id")
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([supplierId, supplierSku])
+  @@index([supplierSku])
+  @@index([nusafSku])
+  @@map("sku_mappings")
 }
