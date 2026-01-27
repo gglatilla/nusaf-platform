@@ -1,7 +1,7 @@
 # Task Queue
 
 ## Current
-- [TASK-002] Database schema — Core tables (users, companies, products) (NOT_STARTED)
+(none - ready for new task)
 
 ## Up Next
 - [TASK-003] Authentication system (login, logout, sessions)
@@ -11,6 +11,7 @@
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
+- [TASK-002] Database schema — Product tables (suppliers, categories, products) ✓
 
 ## Backlog
 - [TASK-010] Supplier price list import
@@ -21,31 +22,44 @@
 - [TASK-015] Public website — Homepage
 - [TASK-016] Public website — Product pages
 
-## Completed
-(none yet)
-
 ## Blocked
-(none yet)
+(none)
 
 ---
 
-## Task Breakdown Guidelines
+## TASK-002 Summary
 
-Each task above should be broken into micro-tasks when worked on.
+**What was added:**
 
-**Example breakdown for TASK-003 (Authentication):**
+Prisma Models (6):
+- Supplier (TECOM, CHIARAVALLI, REGINA, NUSAF)
+- Category (11 product categories)
+- SubCategory (86 subcategories)
+- Product (SKUs, descriptions, categorization)
+- CompetitorCrossReference (for SEO)
+- SkuMapping (Tecom SKU conversion overrides)
+
+Enums (3):
+- SupplierCurrency (EUR, ZAR)
+- SkuHandling (DIRECT, TECOM_CONVERSION, NUSAF_INTERNAL)
+- UnitOfMeasure (EA, M, KG, BOX, SET, PAIR, ROLL)
+
+TypeScript Types (5 files in shared/src/types/):
+- supplier.ts
+- category.ts
+- product.ts
+- competitor.ts
+- sku-mapping.ts
+
+Seed Data:
+- 4 suppliers
+- 11 categories
+- 86 subcategories
+
+**To apply changes:**
+```bash
+cd backend
+# Create .env with DATABASE_URL
+npx prisma migrate dev --name add_product_tables
+npm run db:seed
 ```
-Micro-tasks:
-- [ ] Create users table migration
-- [ ] Create sessions table migration
-- [ ] Build password hashing utility
-- [ ] Create POST /api/auth/register endpoint
-- [ ] Create POST /api/auth/login endpoint
-- [ ] Create POST /api/auth/logout endpoint
-- [ ] Build LoginForm component
-- [ ] Build RegisterForm component
-- [ ] Add session middleware
-- [ ] Write auth integration tests
-```
-
-Break down tasks BEFORE starting implementation.

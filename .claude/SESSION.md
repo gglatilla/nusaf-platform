@@ -1,48 +1,65 @@
 # Current Session
 
 ## Active Task
-[STAGING] Staging Infrastructure Setup
+[TASK-002] Database Schema - Product Tables
 
 ## Status
 COMPLETED | 100% complete
 
 ## Completed Micro-tasks
-- [x] Railway backend deployed and working
-- [x] PostgreSQL database connected
-- [x] Vercel frontend deployed
-- [x] Custom domains configured (api/app/www.nusaf.net)
-- [x] Cloudflare DNS set up (DNS only mode)
-- [x] SSL certificates issued
-- [x] SEO blocking implemented (robots.txt, meta tag, X-Robots-Tag header)
+### Phase 1: Schema Changes
+- [x] Add enums to schema (SupplierCurrency, SkuHandling, UnitOfMeasure)
+- [x] Add Supplier model
+- [x] Add Category and SubCategory models
+- [x] Add Product model
+- [x] Add CompetitorCrossReference model
+- [x] Add SkuMapping model
+- [x] Validate schema with `prisma format`
 
-## Files Modified This Session
-- frontend/public/robots.txt (created) - Blocks all crawlers
-- frontend/src/app/layout.tsx (modified) - Added noindex meta tag
-- frontend/next.config.js (modified) - Added X-Robots-Tag header
+### Phase 2: TypeScript Types
+- [x] Create shared/src/types/supplier.ts
+- [x] Create shared/src/types/category.ts
+- [x] Create shared/src/types/product.ts
+- [x] Create shared/src/types/competitor.ts
+- [x] Create shared/src/types/sku-mapping.ts
+- [x] Update shared/src/index.ts exports
+- [x] Verify types compile
+
+### Phase 3: Seed Data
+- [x] Create seed.ts with suppliers (4)
+- [x] Add categories seed (11)
+- [x] Add subcategories seed (86)
+- [x] Add prisma seed config to package.json
+
+## Files Modified
+- backend/prisma/schema.prisma (modified - added 6 models, 3 enums)
+- backend/prisma/seed.ts (created - seed data)
+- backend/package.json (modified - added prisma seed config)
+- shared/src/types/supplier.ts (created)
+- shared/src/types/category.ts (created)
+- shared/src/types/product.ts (created)
+- shared/src/types/competitor.ts (created)
+- shared/src/types/sku-mapping.ts (created)
+- shared/src/index.ts (modified - added exports)
 
 ## Decisions Made
-- Staging URLs: api.nusaf.net, app.nusaf.net, www.nusaf.net
-- Three-layer SEO blocking: robots.txt + meta tag + HTTP header
-- Cloudflare in DNS-only mode (not proxied)
-- Railway for backend + PostgreSQL
-- Vercel for frontend (Next.js)
+- Using cuid() for IDs (matching existing schema pattern)
+- Full audit columns on business tables (createdAt/By, updatedAt/By)
+- Soft deletes on Product table (deletedAt/By) - main business entity
+- Supplier and Category tables don't need soft delete (reference data)
+- SubCategory unique constraint on (categoryId, code)
+- Product unique constraint on (supplierId, supplierSku) + unique nusafSku
+- SkuMapping includes overrideCategoryId for category reassignments
 
 ## Next Steps (Exact)
-1. Push SEO blocking changes to trigger Vercel redeploy
-2. Verify SEO blocking works:
-   - curl https://www.nusaf.net/robots.txt (should show Disallow: /)
-   - curl -I https://www.nusaf.net | grep -i robots (should show X-Robots-Tag)
-3. Begin TASK-002: Database schema - Core tables
+To complete migration (requires DATABASE_URL):
+1. Create `.env` file in backend with DATABASE_URL
+2. Run `npm run db:migrate` (or `npx prisma migrate dev --name add_product_tables`)
+3. Run `npm run db:seed`
+4. Verify with `npx prisma studio`
 
 ## Context for Next Session
-Staging infrastructure is fully set up and deployed:
-- Backend API: https://api.nusaf.net (Railway)
-- Customer Portal: https://app.nusaf.net (Vercel)
-- Public Website: https://www.nusaf.net (Vercel)
+TASK-002 code is complete. Migration and seed require database connection.
+Schema validated with `prisma format`. Types compile successfully.
 
-SEO blocking added but needs deploy to take effect. Run:
-```bash
-git add . && git commit -m "Add SEO blocking for staging" && git push
-```
-
-GitHub repo: https://github.com/gglatilla/nusaf-platform.git
+Ready for TASK-003: Authentication system
