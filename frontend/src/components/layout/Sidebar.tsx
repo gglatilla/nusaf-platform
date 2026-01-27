@@ -4,7 +4,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mainNavigation, secondaryNavigation, type NavItem } from '@/lib/navigation';
+import {
+  mainNavigation,
+  adminNavigation,
+  secondaryNavigation,
+  filterNavByRole,
+  type NavItem,
+  type UserRole,
+} from '@/lib/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 
 interface SidebarProps {
@@ -113,6 +120,23 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
               <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
             ))}
           </div>
+
+          {/* Admin navigation (role-based) */}
+          {user?.role && filterNavByRole(adminNavigation, user.role as UserRole).length > 0 && (
+            <>
+              <div className="my-4 mx-4 border-t border-slate-800" />
+              {!isCollapsed && (
+                <p className="px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Admin
+                </p>
+              )}
+              <div className="space-y-1">
+                {filterNavByRole(adminNavigation, user.role as UserRole).map((item) => (
+                  <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Divider */}
           <div className="my-4 mx-4 border-t border-slate-800" />

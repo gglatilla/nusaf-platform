@@ -5,13 +5,17 @@ import {
   ShoppingCart,
   Receipt,
   Settings,
+  Upload,
   type LucideIcon,
 } from 'lucide-react';
+
+export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER';
 
 export interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  roles?: UserRole[]; // If specified, only visible to these roles
 }
 
 export interface NavGroup {
@@ -30,8 +34,25 @@ export const mainNavigation: NavItem[] = [
 ];
 
 /**
+ * Admin navigation items (only visible to ADMIN, MANAGER, SALES)
+ */
+export const adminNavigation: NavItem[] = [
+  { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
+];
+
+/**
  * Secondary navigation items (bottom of sidebar)
  */
 export const secondaryNavigation: NavItem[] = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
+
+/**
+ * Filter navigation items by user role
+ */
+export function filterNavByRole(items: NavItem[], userRole: UserRole): NavItem[] {
+  return items.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole);
+  });
+}
