@@ -4,6 +4,7 @@
 export * from './types/user';
 export * from './types/company';
 export * from './types/api';
+export * from './types/auth';
 
 // Product catalog types
 export * from './types/supplier';
