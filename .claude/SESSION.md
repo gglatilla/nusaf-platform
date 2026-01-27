@@ -1,104 +1,87 @@
 # Current Session
 
 ## Active Task
-[TASK-003] Authentication System (login, logout, sessions)
+[TASK-004] Customer Portal Layout
 
 ## Status
 COMPLETED | 100% complete
 
 ## Completed Micro-tasks
-### Phase 1: Backend Dependencies
-- [x] Add jsonwebtoken package
+### Phase 1: Navigation Config
+- [x] Create lib/navigation.ts with main/secondary nav items
 
-### Phase 2: Schema Updates
-- [x] Enhance Session model (refreshToken, ipAddress, userAgent, etc.)
-- [x] Add auth metadata to User (lastLoginAt, failedAttempts, lockedUntil)
-- [x] Run migration
+### Phase 2: Layout Components
+- [x] Create Sidebar.tsx (dark theme, responsive, collapsed state)
+- [x] Create Header.tsx (mobile hamburger, logo)
+- [x] Create PageHeader.tsx (title, description, actions)
+- [x] Create MainLayout.tsx (combines all, handles state)
+- [x] Create index.ts barrel export
 
-### Phase 3: Backend Auth Core
-- [x] Create src/utils/password.ts
-- [x] Create src/utils/jwt.ts
-- [x] Create src/services/auth.service.ts
-- [x] Create src/utils/validation/auth.ts
-
-### Phase 4: Backend Middleware
-- [x] Create src/middleware/auth.ts
-- [x] Create src/middleware/company-scope.ts
-
-### Phase 5: Backend Endpoints
-- [x] POST /api/v1/auth/login
-- [x] POST /api/v1/auth/refresh
-- [x] POST /api/v1/auth/logout
-- [x] GET /api/v1/auth/me
-
-### Phase 6: Shared Types
-- [x] Create shared/src/types/auth.ts
-
-### Phase 7: Frontend Auth
-- [x] Install dependencies (zustand, react-hook-form, zod)
-- [x] Create src/lib/api.ts
-- [x] Create src/stores/auth-store.ts
-- [x] Create login page
-- [x] Create auth guard component
-- [x] Create dashboard page
-
-### Phase 8: Testing
-- [x] Seed test users (test@example.com / password123, admin@nusaf.co.za / admin123)
+### Phase 3: Portal Layout
+- [x] Create app/(portal)/layout.tsx with AuthGuard wrapper
+- [x] Update dashboard page to use new layout
 
 ## Files Modified
-**Backend:**
-- backend/prisma/schema.prisma (modified)
-- backend/prisma/migrations/20260127120000_add_auth_fields/ (created)
-- backend/prisma/seed.ts (modified - added test users)
-- backend/src/config/index.ts (modified)
-- backend/src/utils/password.ts (created)
-- backend/src/utils/jwt.ts (created)
-- backend/src/utils/validation/auth.ts (created)
-- backend/src/services/auth.service.ts (created)
-- backend/src/middleware/auth.ts (created)
-- backend/src/middleware/company-scope.ts (created)
-- backend/src/api/v1/auth/route.ts (created)
-- backend/src/index.ts (modified)
+**New files:**
+- frontend/src/lib/navigation.ts
+- frontend/src/components/layout/Sidebar.tsx
+- frontend/src/components/layout/Header.tsx
+- frontend/src/components/layout/PageHeader.tsx
+- frontend/src/components/layout/MainLayout.tsx
+- frontend/src/components/layout/index.ts
+- frontend/src/app/(portal)/layout.tsx
 
-**Shared:**
-- shared/src/types/auth.ts (created)
-- shared/src/index.ts (modified)
-
-**Frontend:**
-- frontend/src/lib/api.ts (created)
-- frontend/src/stores/auth-store.ts (created)
-- frontend/src/app/(auth)/login/page.tsx (created)
-- frontend/src/app/(portal)/dashboard/page.tsx (created)
-- frontend/src/components/auth/AuthGuard.tsx (created)
-- frontend/src/middleware.ts (created)
+**Modified:**
+- frontend/src/app/(portal)/dashboard/page.tsx
 
 ## Decisions Made
-- Using simple companyId on User (not CompanyUser model)
-- Access tokens: 15 min, stored in memory
-- Refresh tokens: 7 days, in Zustand store (client-side)
-- bcrypt with 12 rounds
-- Brute force: 5 attempts, 15-min lockout
-- Token rotation on refresh
+- Built components from scratch (no shadcn/ui) to keep it lean
+- Sidebar: 240px full, 64px collapsed, drawer for mobile
+- Using Zustand auth store in Sidebar for user info and logout
+- Portal layout wraps all (portal) routes with AuthGuard + MainLayout
+
+## Layout Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Dark Sidebar (240px)  │  Main Content Area (fluid)        │
+│  - Logo                │  ┌─────────────────────────────┐  │
+│  - Navigation          │  │  Header (mobile only)       │  │
+│  - User Menu           │  ├─────────────────────────────┤  │
+│                        │  │  PageHeader (per page)      │  │
+│                        │  ├─────────────────────────────┤  │
+│                        │  │  Page Content               │  │
+│                        │  │  (Snow #F8FAFC background)  │  │
+│                        │  └─────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Test Credentials
 - Customer: test@example.com / password123
 - Admin: admin@nusaf.co.za / admin123
 
 ## Next Steps (Exact)
-TASK-003 is complete. To test:
+TASK-004 is complete. To verify:
 
 1. Start backend: `cd backend && npm run dev`
 2. Start frontend: `cd frontend && npm run dev`
 3. Navigate to http://localhost:3000/login
 4. Login with test@example.com / password123
-5. Should redirect to /dashboard
-
-Ready for TASK-004: Customer portal layout
+5. Should see:
+   - Dark sidebar with navigation items
+   - Dashboard highlighted as active
+   - User info at bottom with logout
+   - Main content area with stat cards
+6. Test responsive:
+   - Desktop (>1024px): full sidebar
+   - Tablet (768-1024px): collapsed sidebar (icons only) with toggle
+   - Mobile (<768px): hamburger menu, drawer sidebar
 
 ## Context for Next Session
-Authentication system fully implemented with:
-- Backend API endpoints for login/refresh/logout/me
-- Frontend login page with form validation
-- Zustand auth store with token persistence
-- Auth guard for protected routes
-- Test users seeded in database
+Portal layout complete with:
+- Dark sidebar (Ink #0F172A) with navigation
+- Responsive behavior (full/collapsed/drawer)
+- PageHeader component for consistent page headers
+- Dashboard updated with stat cards and content sections
+- All portal routes now share the layout
+
+Ready for next task.
