@@ -1,7 +1,7 @@
 # Task Queue
 
 ## Current
-- [TASK-003] Authentication system (login, logout, sessions) — IN_PROGRESS
+(none - ready for new task)
 
 ## Up Next
 - [TASK-004] Customer portal layout (sidebar, header, main content)
@@ -11,6 +11,7 @@
 ## Completed
 - [TASK-001] Project initialization and setup ✓
 - [TASK-002] Database schema — Product tables (suppliers, categories, products) ✓
+- [TASK-003] Authentication system (login, logout, sessions) ✓
 
 ## Backlog
 - [TASK-010] Supplier price list import
