@@ -6,9 +6,17 @@ export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   databaseUrl: process.env.DATABASE_URL,
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
-  jwtExpiry: process.env.JWT_EXPIRY || '24h',
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+
+  // Auth
+  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
+  accessTokenExpiry: '15m', // 15 minutes
+  refreshTokenExpiry: '7d', // 7 days
+  bcryptRounds: 12,
+
+  // Security
+  maxLoginAttempts: 5,
+  lockoutDuration: 15 * 60 * 1000, // 15 minutes in ms
 };
 
 export const isDev = config.nodeEnv === 'development';

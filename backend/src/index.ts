@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { config } from './config';
 import { connectDatabase } from './config/database';
 import healthRoutes from './api/v1/health/route';
+import authRoutes from './api/v1/auth/route';
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/v1/health', healthRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // 404 handler
 app.use((_req, res) => {
