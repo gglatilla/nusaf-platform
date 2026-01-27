@@ -4,55 +4,90 @@
 [TASK-005] Supplier Price List Import
 
 ## Status
-IN_PROGRESS | 0% complete
-
-## Micro-tasks
-
-### Phase 0: Category Code Migration
-- [ ] MT-0: Migrate category/subcategory codes to new format (C, L, B... and C-001, B-001...)
-
-### Phase 1: Backend Infrastructure
-- [ ] MT-1: Create import validation schemas
-- [ ] MT-2: Create Excel parser service
-- [ ] MT-3: Create import service
-- [ ] MT-4: Create import API routes
-
-### Phase 2: Database
-- [ ] MT-5: Add Import tracking tables (ImportBatch, ImportRow)
-
-### Phase 3: Frontend Components
-- [ ] MT-6: Create FileUpload component
-- [ ] MT-7: Create ColumnMapper component
-- [ ] MT-8: Create ValidationResults component
-- [ ] MT-9: Create ImportReview component
-- [ ] MT-10: Create ImportHistory component
-
-### Phase 4: Frontend Pages
-- [ ] MT-11: Create import wizard page
-- [ ] MT-12: Create import history page
-
-### Phase 5: Testing
-- [ ] MT-13: Write import service tests
+COMPLETED | 100% complete
 
 ## Completed Micro-tasks
-(none yet)
 
-## Files Modified
-(none yet)
+### Phase 0: Category Code Migration
+- [x] MT-0: Migrate category/subcategory codes to new format (C, L, B... and C-001, B-001...)
+
+### Phase 1: Backend Infrastructure
+- [x] MT-1: Create import validation schemas (utils/validation/imports.ts)
+- [x] MT-2: Create Excel parser service (services/excel-parser.service.ts)
+- [x] MT-3: Create import service (services/import.service.ts)
+- [x] MT-4: Create import API routes (api/v1/admin/imports/route.ts)
+
+### Phase 2: Database
+- [x] MT-5: Add Import tracking tables (ImportBatch, ImportRow)
+
+### Phase 3: Frontend Components
+- [x] MT-6: Create FileUpload component
+- [x] MT-7: Create ColumnMapper component
+- [x] MT-8: Create ValidationResults component
+- [x] MT-9: Create ImportReview component
+- [x] MT-10: Create ImportHistory component
+
+### Phase 4: Frontend Pages
+- [x] MT-11: Create import wizard page (/imports/new)
+- [x] MT-12: Create import history page (/imports)
+
+### Phase 5: Testing
+- [x] MT-13: Write import service tests
+
+## Files Modified/Created
+
+### Backend
+- backend/src/utils/validation/imports.ts (created)
+- backend/src/services/excel-parser.service.ts (created)
+- backend/src/services/import.service.ts (created)
+- backend/src/api/v1/admin/imports/route.ts (created)
+- backend/src/index.ts (modified - added imports route)
+- backend/package.json (modified - added xlsx, multer)
+- backend/prisma/schema.prisma (modified - added ImportBatch, ImportRow)
+- backend/prisma/seed.ts (modified - new category codes)
+
+### Frontend
+- frontend/src/components/admin/imports/FileUpload.tsx (created)
+- frontend/src/components/admin/imports/ColumnMapper.tsx (created)
+- frontend/src/components/admin/imports/ValidationResults.tsx (created)
+- frontend/src/components/admin/imports/ImportReview.tsx (created)
+- frontend/src/components/admin/imports/ImportHistory.tsx (created)
+- frontend/src/components/admin/imports/index.ts (created)
+- frontend/src/app/(portal)/imports/page.tsx (created)
+- frontend/src/app/(portal)/imports/new/page.tsx (created)
+- frontend/src/lib/api.ts (modified - added import endpoints)
+- frontend/src/lib/navigation.ts (modified - added admin nav)
+- frontend/src/components/layout/Sidebar.tsx (modified - admin section)
+
+### Shared
+- shared/src/types/category.ts (modified - new codes)
+
+### Tests
+- tests/unit/services/import.service.test.ts (created)
+- vitest.config.ts (created)
+- package.json (modified - added vitest)
 
 ## Decisions Made
-- Using existing portal (app.nusaf.net) with role-based visibility for admin features
-- Category codes: Single letter (C, L, B...), Subcategory codes: Letter-Number (C-001, B-001...)
-- Excel columns needed: CODE, DESCRIPTION, PRICE, UM, CATEGORY, SUBCATEGORY
+- Category codes: Single letter (C, L, B, T, M, P, S, V, D, W, G)
+- Subcategory codes: Letter-Number format (C-001, B-001, etc.)
 - Only 3 Italian suppliers for MVP: Tecom, Chiaravalli, Regina
+- Admin navigation visible to ADMIN, MANAGER, SALES roles
+- Using vitest for unit testing
 
-## Next Steps (Exact)
-1. Update shared/src/types/category.ts with new CATEGORY_CODES
-2. Update backend/prisma/seed.ts with new codes
-3. The codes will be used for import column mapping
+## API Endpoints Added
+- POST /api/v1/admin/imports/upload - Upload Excel file
+- POST /api/v1/admin/imports/validate - Validate with column mapping
+- POST /api/v1/admin/imports/execute - Execute import
+- GET /api/v1/admin/imports/suppliers - List importable suppliers
+- GET /api/v1/admin/imports/categories - List categories
+
+## Next Steps
+1. Run `npm install` to install new dependencies (xlsx, multer, vitest)
+2. Run `npx prisma migrate dev` to apply ImportBatch/ImportRow schema changes
+3. Run `npm run db:seed` to update categories with new codes
+4. Test the import flow at /imports/new
 
 ## Context for Next Session
-- This task populates the Product table from supplier Excel files
-- Tecom SKU conversion function already exists in shared/src/types/sku-mapping.ts
-- Database schema for Product, Supplier, Category, SubCategory already exists
-- No products in database yet - this task creates them
+- TASK-005 is complete
+- Ready for TASK-006 (Pricing engine) or TASK-007 (Product catalog display)
+- The import feature now allows admins to upload supplier Excel files and import products
