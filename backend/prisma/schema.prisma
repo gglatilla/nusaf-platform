@@ -28,6 +28,11 @@ model User {
 
   sessions Session[]
 
+  // Auth metadata
+  lastLoginAt    DateTime? @map("last_login_at")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -35,13 +40,26 @@ model User {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String  @id @default(cuid())
+  token        String  @unique
+  refreshToken String? @unique @map("refresh_token")
+  userId       String  @map("user_id")
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Expiry
+  expiresAt        DateTime  @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+
+  // Context
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  // Audit
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
+
+  @@index([userId])
+  @@index([expiresAt])
   @@map("sessions")
 }
 

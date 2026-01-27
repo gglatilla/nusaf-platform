@@ -1,10 +1,9 @@
 # Task Queue
 
 ## Current
-(none - ready for new task)
+- [TASK-003] Authentication system (login, logout, sessions) — IN_PROGRESS
 
 ## Up Next
-- [TASK-003] Authentication system (login, logout, sessions)
 - [TASK-004] Customer portal layout (sidebar, header, main content)
 - [TASK-005] Product catalog — Display products with categories
 - [TASK-006] Pricing engine — Calculate prices per customer tier

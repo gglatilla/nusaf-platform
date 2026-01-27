@@ -1,71 +1,67 @@
 # Current Session
 
 ## Active Task
-[TASK-002] Database Schema - Product Tables
+[TASK-003] Authentication System (login, logout, sessions)
 
 ## Status
-COMPLETED | 100% complete
+IN_PROGRESS | 0% complete
 
 ## Completed Micro-tasks
-### Phase 1: Schema Changes
-- [x] Add enums to schema (SupplierCurrency, SkuHandling, UnitOfMeasure)
-- [x] Add Supplier model
-- [x] Add Category and SubCategory models
-- [x] Add Product model
-- [x] Add CompetitorCrossReference model
-- [x] Add SkuMapping model
-- [x] Validate schema with `prisma format`
+(none yet)
 
-### Phase 2: TypeScript Types
-- [x] Create shared/src/types/supplier.ts
-- [x] Create shared/src/types/category.ts
-- [x] Create shared/src/types/product.ts
-- [x] Create shared/src/types/competitor.ts
-- [x] Create shared/src/types/sku-mapping.ts
-- [x] Update shared/src/index.ts exports
-- [x] Verify types compile
+## Planned Micro-tasks
+### Phase 1: Backend Dependencies
+- [ ] Add jsonwebtoken package
 
-### Phase 3: Seed Data
-- [x] Create seed.ts with suppliers (4)
-- [x] Add categories seed (11)
-- [x] Add subcategories seed (86)
-- [x] Add prisma seed config to package.json
+### Phase 2: Schema Updates
+- [ ] Enhance Session model (refreshToken, ipAddress, userAgent, etc.)
+- [ ] Add auth metadata to User (lastLoginAt, failedAttempts, lockedUntil)
+- [ ] Run migration
 
-### Phase 4: Migration Deployment
-- [x] Run prisma migrate dev to create migration
-- [x] Run prisma migrate deploy on Railway
-- [x] Run prisma generate
-- [x] Run db:seed - seeded 4 suppliers, 11 categories, 86 subcategories
-- [x] Verify data in database
+### Phase 3: Backend Auth Core
+- [ ] Create src/utils/password.ts
+- [ ] Create src/utils/jwt.ts
+- [ ] Create src/services/auth.service.ts
+- [ ] Create src/utils/validation/auth.ts
+
+### Phase 4: Backend Middleware
+- [ ] Create src/middleware/auth.ts
+- [ ] Create src/middleware/company-scope.ts
+
+### Phase 5: Backend Endpoints
+- [ ] POST /api/v1/auth/login
+- [ ] POST /api/v1/auth/refresh
+- [ ] POST /api/v1/auth/logout
+- [ ] GET /api/v1/auth/me
+
+### Phase 6: Shared Types
+- [ ] Create shared/src/types/auth.ts
+
+### Phase 7: Frontend Auth
+- [ ] Install shadcn/ui base components
+- [ ] Create src/lib/api.ts
+- [ ] Create src/hooks/use-auth.tsx
+- [ ] Create login page
+- [ ] Create frontend middleware
+
+### Phase 8: Testing
+- [ ] Unit tests for auth service
+- [ ] Integration tests for endpoints
 
 ## Files Modified
-- backend/prisma/schema.prisma (modified - added 6 models, 3 enums)
-- backend/prisma/seed.ts (created - seed data)
-- backend/prisma/migrations/20260127114110_init_product_catalog/ (created - migration)
-- backend/package.json (modified - added prisma seed config)
-- shared/src/types/supplier.ts (created)
-- shared/src/types/category.ts (created)
-- shared/src/types/product.ts (created)
-- shared/src/types/competitor.ts (created)
-- shared/src/types/sku-mapping.ts (created)
-- shared/src/index.ts (modified - added exports)
+(none yet)
 
 ## Decisions Made
-- Using cuid() for IDs (matching existing schema pattern)
-- Full audit columns on business tables (createdAt/By, updatedAt/By)
-- Soft deletes on Product table (deletedAt/By) - main business entity
-- Supplier and Category tables don't need soft delete (reference data)
-- SubCategory unique constraint on (categoryId, code)
-- Product unique constraint on (supplierId, supplierSku) + unique nusafSku
-- SkuMapping includes overrideCategoryId for category reassignments
+- Using simple companyId on User (not CompanyUser model)
+- Access tokens: 15 min, stored in memory
+- Refresh tokens: 7 days, HttpOnly cookie
+- bcrypt with 12 rounds
+- Brute force: 5 attempts, 15-min lockout
 
 ## Next Steps (Exact)
-TASK-002 is now fully complete. Ready for next task.
+1. Add jsonwebtoken package to backend
+2. Update Prisma schema with Session enhancements
+3. Run migration
 
 ## Context for Next Session
-TASK-002 fully complete including migration and seeding:
-- Migration deployed to Railway PostgreSQL
-- Seeded: 4 suppliers, 11 categories, 86 subcategories
-- Prisma client generated
-
-Ready for TASK-003: Authentication system
+Starting TASK-003 Authentication System implementation.
