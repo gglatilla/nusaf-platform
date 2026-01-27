@@ -9,6 +9,7 @@
     "frontend"
   ],
   "scripts": {
+    "postinstall": "npm run build -w shared",
     "dev": "npm run dev:backend & npm run dev:frontend",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
