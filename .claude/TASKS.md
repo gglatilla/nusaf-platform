@@ -1,20 +1,19 @@
 # Task Queue
 
 ## Current
-(none - ready for new task)
+- [TASK-005] Supplier Price List Import (IN_PROGRESS)
 
 ## Up Next
-- [TASK-004] Customer portal layout (sidebar, header, main content)
-- [TASK-005] Product catalog — Display products with categories
 - [TASK-006] Pricing engine — Calculate prices per customer tier
+- [TASK-007] Product catalog — Display products with categories
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
 - [TASK-002] Database schema — Product tables (suppliers, categories, products) ✓
 - [TASK-003] Authentication system (login, logout, sessions) ✓
+- [TASK-004] Customer portal layout (sidebar, header, main content) ✓
 
 ## Backlog
-- [TASK-010] Supplier price list import
 - [TASK-011] Quote creation flow
 - [TASK-012] Order management
 - [TASK-013] Inventory tracking
@@ -27,39 +26,25 @@
 
 ---
 
-## TASK-002 Summary
+## TASK-005 Summary
 
-**What was added:**
+**What will be added:**
 
-Prisma Models (6):
-- Supplier (TECOM, CHIARAVALLI, REGINA, NUSAF)
-- Category (11 product categories)
-- SubCategory (86 subcategories)
-- Product (SKUs, descriptions, categorization)
-- CompetitorCrossReference (for SEO)
-- SkuMapping (Tecom SKU conversion overrides)
+Backend:
+- Import validation schemas (Zod)
+- Excel parser service (xlsx package)
+- Import service (validation, SKU conversion, batch operations)
+- Import API routes (upload, validate, execute, history)
+- ImportBatch and ImportRow database tables
 
-Enums (3):
-- SupplierCurrency (EUR, ZAR)
-- SkuHandling (DIRECT, TECOM_CONVERSION, NUSAF_INTERNAL)
-- UnitOfMeasure (EA, M, KG, BOX, SET, PAIR, ROLL)
+Frontend:
+- FileUpload component (drag & drop)
+- ColumnMapper component (map Excel columns to fields)
+- ValidationResults component (errors/warnings display)
+- ImportReview component (preview before import)
+- ImportHistory component (list past imports)
+- Import wizard page (multi-step flow)
+- Import history page
 
-TypeScript Types (5 files in shared/src/types/):
-- supplier.ts
-- category.ts
-- product.ts
-- competitor.ts
-- sku-mapping.ts
-
-Seed Data:
-- 4 suppliers
-- 11 categories
-- 86 subcategories
-
-**To apply changes:**
-```bash
-cd backend
-# Create .env with DATABASE_URL
-npx prisma migrate dev --name add_product_tables
-npm run db:seed
-```
+Tests:
+- Import service unit tests (SKU conversion, validation rules)
