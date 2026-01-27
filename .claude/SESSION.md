@@ -1,10 +1,10 @@
 # Current Session
 
 ## Active Task
-[TASK-005] Supplier Price List Import
+[TASK-005] Supplier Price List Import - Deployment Readiness
 
 ## Status
-COMPLETED | 100% complete
+IN_PROGRESS | 90% complete
 
 ## Completed Micro-tasks
 
@@ -34,17 +34,26 @@ COMPLETED | 100% complete
 ### Phase 5: Testing
 - [x] MT-13: Write import service tests
 
+### Phase 6: Deployment Readiness
+- [x] MT-14: Create database migration for ImportBatch/ImportRow
+- [x] MT-15: Add GET /history endpoint
+- [x] MT-16: Update package-lock.json with vitest and other new dependencies
+- [x] MT-17: Create R2 storage service with fallback to in-memory
+
 ## Files Modified/Created
 
 ### Backend
 - backend/src/utils/validation/imports.ts (created)
 - backend/src/services/excel-parser.service.ts (created)
-- backend/src/services/import.service.ts (created)
-- backend/src/api/v1/admin/imports/route.ts (created)
+- backend/src/services/import.service.ts (created, updated)
+- backend/src/services/r2-storage.service.ts (created)
+- backend/src/api/v1/admin/imports/route.ts (created, updated with history endpoint and R2 support)
 - backend/src/index.ts (modified - added imports route)
-- backend/package.json (modified - added xlsx, multer)
+- backend/package.json (modified - added xlsx, multer, @aws-sdk/client-s3)
 - backend/prisma/schema.prisma (modified - added ImportBatch, ImportRow)
+- backend/prisma/migrations/20260127173317_add_import_tables/migration.sql (created)
 - backend/prisma/seed.ts (modified - new category codes)
+- backend/tsconfig.json (modified - fixed shared package path)
 
 ### Frontend
 - frontend/src/components/admin/imports/FileUpload.tsx (created)
@@ -61,6 +70,7 @@ COMPLETED | 100% complete
 
 ### Shared
 - shared/src/types/category.ts (modified - new codes)
+- shared/src/types/auth.ts (modified - removed unused imports)
 
 ### Tests
 - tests/unit/services/import.service.test.ts (created)
@@ -73,6 +83,8 @@ COMPLETED | 100% complete
 - Only 3 Italian suppliers for MVP: Tecom, Chiaravalli, Regina
 - Admin navigation visible to ADMIN, MANAGER, SALES roles
 - Using vitest for unit testing
+- R2 storage with fallback to in-memory for local development
+- Backend tsconfig fixed to use shared/dist instead of shared/src
 
 ## API Endpoints Added
 - POST /api/v1/admin/imports/upload - Upload Excel file
@@ -80,14 +92,27 @@ COMPLETED | 100% complete
 - POST /api/v1/admin/imports/execute - Execute import
 - GET /api/v1/admin/imports/suppliers - List importable suppliers
 - GET /api/v1/admin/imports/categories - List categories
+- GET /api/v1/admin/imports/history - List past imports
+
+## Environment Variables Required for R2
+```
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+R2_BUCKET_NAME=nusaf-imports
+```
 
 ## Next Steps
-1. Run `npm install` to install new dependencies (xlsx, multer, vitest)
-2. Run `npx prisma migrate dev` to apply ImportBatch/ImportRow schema changes
-3. Run `npm run db:seed` to update categories with new codes
-4. Test the import flow at /imports/new
+1. Commit and push all changes
+2. Verify Railway build passes
+3. Set up R2 bucket in Cloudflare Dashboard
+4. Add R2 environment variables in Railway
+5. Test the import flow end-to-end
 
 ## Context for Next Session
-- TASK-005 is complete
-- Ready for TASK-006 (Pricing engine) or TASK-007 (Product catalog display)
-- The import feature now allows admins to upload supplier Excel files and import products
+- TASK-005 is almost complete
+- Railway build was failing due to out-of-sync package-lock.json
+- Fixed by running npm install at workspace root
+- Database migration created manually and applied with prisma db push
+- Migration status resolved for all 3 migrations
+- R2 storage service created with fallback to in-memory storage for dev

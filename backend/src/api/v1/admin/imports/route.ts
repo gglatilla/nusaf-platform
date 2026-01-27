@@ -16,9 +16,14 @@ import {
   uploadFileSchema,
   validateImportSchema,
   executeImportSchema,
-  type ColumnMapping,
 } from '../../../../utils/validation/imports';
-import type { ParseResult, ParsedRow } from '../../../../services/excel-parser.service';
+import {
+  isR2Configured,
+  uploadToR2,
+  deleteFromR2,
+  generateImportKey,
+} from '../../../../services/r2-storage.service';
+import type { ParseResult } from '../../../../services/excel-parser.service';
 
 const router = Router();
 
@@ -26,9 +31,12 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
 
-// In-memory storage for uploaded files (temporary - for development)
-// In production, use R2 or similar cloud storage
+// In-memory storage for uploaded files (fallback for development without R2)
+// In production with R2 configured, files are stored in Cloudflare R2
 const fileStore = new Map<string, { buffer: Buffer; parseResult: ParseResult; supplierCode: string; fileName: string }>();
+
+// Store metadata separately when using R2 (parseResult is kept in memory, file in R2)
+const r2MetadataStore = new Map<string, { r2Key: string; parseResult: ParseResult; supplierCode: string; fileName: string }>();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -95,12 +103,25 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     // Generate file ID and store
     const fileId = randomUUID();
-    fileStore.set(fileId, {
-      buffer: file.buffer,
-      parseResult: excelResult,
-      supplierCode,
-      fileName: file.originalname,
-    });
+
+    // Use R2 if configured, otherwise fallback to in-memory storage
+    if (isR2Configured()) {
+      const r2Key = generateImportKey(file.originalname, supplierCode);
+      await uploadToR2(r2Key, file.buffer, file.mimetype);
+      r2MetadataStore.set(fileId, {
+        r2Key,
+        parseResult: excelResult,
+        supplierCode,
+        fileName: file.originalname,
+      });
+    } else {
+      fileStore.set(fileId, {
+        buffer: file.buffer,
+        parseResult: excelResult,
+        supplierCode,
+        fileName: file.originalname,
+      });
+    }
 
     // Auto-detect column mapping
     const detectedMapping = autoDetectColumnMapping(excelResult.headers);
@@ -108,7 +129,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Get sample rows for preview
     const sampleRows = getSampleRows(excelResult.rows);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         fileId,
@@ -121,7 +142,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'UPLOAD_ERROR',
@@ -151,17 +172,22 @@ router.post('/validate', async (req, res) => {
 
     const { fileId, supplierCode, columnMapping } = parseResult.data;
 
-    // Get stored file
-    const stored = fileStore.get(fileId);
-    if (!stored) {
+    // Get stored file (check R2 metadata first, then in-memory)
+    const r2Metadata = r2MetadataStore.get(fileId);
+    const memoryStored = fileStore.get(fileId);
+
+    if (!r2Metadata && !memoryStored) {
       return res.status(404).json({
         success: false,
         error: { code: 'FILE_NOT_FOUND', message: 'File not found. Please upload again.' },
       });
     }
 
+    const storedSupplierCode = r2Metadata?.supplierCode || memoryStored?.supplierCode;
+    const storedParseResult = r2Metadata?.parseResult || memoryStored?.parseResult;
+
     // Verify supplier code matches
-    if (stored.supplierCode !== supplierCode) {
+    if (storedSupplierCode !== supplierCode) {
       return res.status(400).json({
         success: false,
         error: { code: 'SUPPLIER_MISMATCH', message: 'Supplier code does not match uploaded file' },
@@ -169,18 +195,18 @@ router.post('/validate', async (req, res) => {
     }
 
     // Apply column mapping
-    const mappedRows = applyColumnMapping(stored.parseResult.rows, columnMapping);
+    const mappedRows = applyColumnMapping(storedParseResult!.rows, columnMapping);
 
     // Validate all rows
     const validationResult = await validateImport(mappedRows, supplierCode);
 
-    res.json({
+    return res.json({
       success: true,
       data: validationResult,
     });
   } catch (error) {
     console.error('Validation error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
@@ -211,17 +237,21 @@ router.post('/execute', async (req, res) => {
 
     const { fileId, supplierCode, columnMapping, skipErrors } = parseResult.data;
 
-    // Get stored file
-    const stored = fileStore.get(fileId);
-    if (!stored) {
+    // Get stored file (check R2 metadata first, then in-memory)
+    const r2Metadata = r2MetadataStore.get(fileId);
+    const memoryStored = fileStore.get(fileId);
+
+    if (!r2Metadata && !memoryStored) {
       return res.status(404).json({
         success: false,
         error: { code: 'FILE_NOT_FOUND', message: 'File not found. Please upload again.' },
       });
     }
 
+    const storedParseResult = r2Metadata?.parseResult || memoryStored?.parseResult;
+
     // Apply column mapping
-    const mappedRows = applyColumnMapping(stored.parseResult.rows, columnMapping);
+    const mappedRows = applyColumnMapping(storedParseResult!.rows, columnMapping);
 
     // Validate first
     const validationResult = await validateImport(mappedRows, supplierCode);
@@ -249,9 +279,14 @@ router.post('/execute', async (req, res) => {
     );
 
     // Clean up stored file
-    fileStore.delete(fileId);
+    if (r2Metadata) {
+      await deleteFromR2(r2Metadata.r2Key);
+      r2MetadataStore.delete(fileId);
+    } else {
+      fileStore.delete(fileId);
+    }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         created: result.created,
@@ -263,7 +298,7 @@ router.post('/execute', async (req, res) => {
     });
   } catch (error) {
     console.error('Execute error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'EXECUTE_ERROR',
@@ -294,6 +329,52 @@ router.get('/suppliers', async (_req, res) => {
     res.status(500).json({
       success: false,
       error: { code: 'ERROR', message: 'Failed to get suppliers' },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/admin/imports/history
+ * Get import history
+ */
+router.get('/history', async (_req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const imports = await prisma.importBatch.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        _count: {
+          select: { rows: true },
+        },
+      },
+    });
+
+    await prisma.$disconnect();
+
+    res.json({
+      success: true,
+      data: imports.map((batch) => ({
+        id: batch.id,
+        fileName: batch.fileName,
+        supplierCode: batch.supplierCode,
+        status: batch.status,
+        totalRows: batch.totalRows,
+        processedRows: batch.processedRows,
+        successRows: batch.successRows,
+        errorRows: batch.errorRows,
+        createdAt: batch.createdAt,
+        completedAt: batch.completedAt,
+        rowCount: batch._count.rows,
+      })),
+    });
+  } catch (error) {
+    console.error('History error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'ERROR', message: 'Failed to get import history' },
     });
   }
 });

@@ -1,8 +1,5 @@
 // Authentication types shared between backend and frontend
 
-import type { UserRole } from './user';
-import type { CustomerTier } from './company';
-
 export interface AuthenticatedUser {
   id: string;
   email: string;

@@ -6,7 +6,6 @@ import type {
   RowError,
   RowWarning,
   ImportValidationResult,
-  ColumnMapping,
 } from '../utils/validation/imports';
 
 const prisma = new PrismaClient();
@@ -51,7 +50,6 @@ export async function validateRow(
   }
 
   // Optional field: SUBCATEGORY (but validate if provided)
-  let subcategoryId: string | undefined;
   if (mapped.subcategory && mapped.subcategory.trim() !== '') {
     const subcat = subcategoryMap.get(mapped.subcategory);
     if (!subcat) {
@@ -64,8 +62,6 @@ export async function validateRow(
           field: 'SUBCATEGORY',
           message: `Subcategory ${mapped.subcategory} does not belong to category ${mapped.category}`,
         });
-      } else {
-        subcategoryId = subcat.id;
       }
     }
   }
