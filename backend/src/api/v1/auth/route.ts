@@ -13,6 +13,20 @@ import { authenticate, AuthenticatedRequest } from '../../../middleware/auth';
 const router = Router();
 
 /**
+ * GET /api/v1/auth
+ * Health check for auth routes (diagnostic)
+ */
+router.get('/', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      message: 'Auth routes are working',
+      routes: ['POST /login', 'POST /refresh', 'POST /logout', 'GET /me'],
+    },
+  });
+});
+
+/**
  * POST /api/v1/auth/login
  * Authenticate a user and return tokens
  */
