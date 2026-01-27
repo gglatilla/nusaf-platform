@@ -59,29 +59,28 @@ COMPLETED | 100% complete
 - Customer: test@example.com / password123
 - Admin: admin@nusaf.co.za / admin123
 
-## Next Steps (Exact)
-TASK-004 is complete. To verify:
+## Quick Fix Applied
+**Domain Routing for app.nusaf.net** (2026-01-27)
 
-1. Start backend: `cd backend && npm run dev`
-2. Start frontend: `cd frontend && npm run dev`
-3. Navigate to http://localhost:3000/login
-4. Login with test@example.com / password123
-5. Should see:
-   - Dark sidebar with navigation items
-   - Dashboard highlighted as active
-   - User info at bottom with logout
-   - Main content area with stat cards
-6. Test responsive:
-   - Desktop (>1024px): full sidebar
-   - Tablet (768-1024px): collapsed sidebar (icons only) with toggle
-   - Mobile (<768px): hamburger menu, drawer sidebar
+Modified `frontend/src/middleware.ts`:
+- Added `portalDomains` array: `['app.nusaf.net', 'app.nusaf.co.za']`
+- Detects hostname from request headers
+- Redirects `/` to `/login` on portal domains
+- `www.nusaf.net` continues to show landing page (no redirect)
+
+Commit: `e9a8ad2` - pushed to trigger Vercel deployment
+
+## Verification Steps
+1. Visit `https://app.nusaf.net/` → Should redirect to `/login`
+2. Visit `https://app.nusaf.net/login` → Should show login form
+3. Visit `https://www.nusaf.net/` → Should show landing page
+4. Login with test credentials → Should go to `/dashboard`
+
+## Test Credentials
+- Customer: test@example.com / password123
+- Admin: admin@nusaf.co.za / admin123
 
 ## Context for Next Session
-Portal layout complete with:
-- Dark sidebar (Ink #0F172A) with navigation
-- Responsive behavior (full/collapsed/drawer)
-- PageHeader component for consistent page headers
-- Dashboard updated with stat cards and content sections
-- All portal routes now share the layout
-
-Ready for next task.
+- TASK-004 (Customer Portal Layout) is complete
+- Domain routing fix deployed - `app.nusaf.net` now redirects `/` to `/login`
+- Ready for next task
