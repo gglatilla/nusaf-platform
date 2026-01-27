@@ -322,3 +322,84 @@ model SkuMapping {
   @@index([nusafSku])
   @@map("sku_mappings")
 }
+
+// ============================================
+// IMPORT TRACKING ENTITIES
+// ============================================
+
+model ImportBatch {
+  id            String       @id @default(cuid())
+  fileName      String       @map("file_name")
+  supplierCode  String       @map("supplier_code")
+  status        ImportStatus @default(PENDING)
+  totalRows     Int          @default(0) @map("total_rows")
+  processedRows Int          @default(0) @map("processed_rows")
+  successRows   Int          @default(0) @map("success_rows")
+  errorRows     Int          @default(0) @map("error_rows")
+
+  // Column mapping used for import (stored as JSON)
+  columnMapping Json? @map("column_mapping")
+
+  // File errors (not row-level errors)
+  fileErrors Json? @map("file_errors")
+
+  // Relations
+  rows ImportRow[]
+
+  // Audit
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdBy   String    @map("created_by")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([supplierCode])
+  @@index([status])
+  @@index([createdAt])
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id              String          @id @default(cuid())
+  rowNumber       Int             @map("row_number")
+  supplierSku     String          @map("supplier_sku")
+  nusafSku        String?         @map("nusaf_sku")
+  description     String?
+  price           Decimal?        @db.Decimal(10, 4)
+  unitOfMeasure   String?         @map("unit_of_measure")
+  categoryCode    String?         @map("category_code")
+  subcategoryCode String?         @map("subcategory_code")
+  status          ImportRowStatus @default(PENDING)
+
+  // Validation results (stored as JSON arrays)
+  errors   Json? // Array of { field: string, message: string }
+  warnings Json? // Array of { field: string, message: string }
+
+  // Link to created/updated product (set after successful import)
+  productId String? @map("product_id")
+
+  // Parent batch
+  batchId String      @map("batch_id")
+  batch   ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([batchId])
+  @@index([status])
+  @@map("import_rows")
+}
+
+enum ImportStatus {
+  PENDING
+  VALIDATING
+  VALIDATED
+  IMPORTING
+  COMPLETED
+  FAILED
+}
+
+enum ImportRowStatus {
+  PENDING
+  SUCCESS
+  ERROR
+  SKIPPED
+}
