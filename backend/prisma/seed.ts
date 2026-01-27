@@ -2,8 +2,11 @@
 // Run with: npm run db:seed
 
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+
+const BCRYPT_ROUNDS = 12;
 
 async function main() {
   console.log('Starting seed...');
@@ -280,6 +283,74 @@ async function main() {
 
   console.log(`Seeded ${categoryData.length} categories`);
   console.log(`Seeded ${totalSubCategories} subcategories`);
+
+  // ============================================
+  // TEST COMPANY AND USER
+  // ============================================
+  console.log('Seeding test company and user...');
+
+  // Create test company
+  const testCompany = await prisma.company.upsert({
+    where: { id: 'test-company-1' },
+    update: {},
+    create: {
+      id: 'test-company-1',
+      name: 'Test Company',
+      tradingName: 'Test Co',
+      tier: 'END_USER',
+      isActive: true,
+    },
+  });
+
+  // Create test user with hashed password
+  const testPassword = await bcrypt.hash('password123', BCRYPT_ROUNDS);
+
+  const testUser = await prisma.user.upsert({
+    where: { email: 'test@example.com' },
+    update: {},
+    create: {
+      email: 'test@example.com',
+      password: testPassword,
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'CUSTOMER',
+      companyId: testCompany.id,
+      isActive: true,
+    },
+  });
+
+  // Create admin company
+  const adminCompany = await prisma.company.upsert({
+    where: { id: 'nusaf-internal' },
+    update: {},
+    create: {
+      id: 'nusaf-internal',
+      name: 'Nusaf Dynamic Technologies',
+      tradingName: 'Nusaf',
+      tier: 'DISTRIBUTOR',
+      isActive: true,
+    },
+  });
+
+  // Create admin user
+  const adminPassword = await bcrypt.hash('admin123', BCRYPT_ROUNDS);
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@nusaf.co.za' },
+    update: {},
+    create: {
+      email: 'admin@nusaf.co.za',
+      password: adminPassword,
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'ADMIN',
+      companyId: adminCompany.id,
+      isActive: true,
+    },
+  });
+
+  console.log(`Created test user: ${testUser.email} (password: password123)`);
+  console.log(`Created admin user: ${adminUser.email} (password: admin123)`);
 
   console.log('Seed completed successfully!');
 }
