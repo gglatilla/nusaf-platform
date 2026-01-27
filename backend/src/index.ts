@@ -46,6 +46,29 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   });
 });
 
+// Helper to log registered routes
+function logRoutes(app: express.Application): void {
+  console.log('Registered routes:');
+  app._router.stack.forEach((middleware: { route?: { path: string; methods: Record<string, boolean> }; name?: string; handle?: { stack?: Array<{ route?: { path: string; methods: Record<string, boolean> } }> }; regexp?: RegExp }) => {
+    if (middleware.route) {
+      // Direct routes
+      console.log(`  ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
+    } else if (middleware.name === 'router' && middleware.handle?.stack) {
+      // Router middleware
+      const path = middleware.regexp?.source
+        .replace('\\/?(?=\\/|$)', '')
+        .replace(/\\\//g, '/')
+        .replace('^', '')
+        .replace('(?:\\/)?$', '');
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          console.log(`  ${Object.keys(handler.route.methods).join(', ').toUpperCase()} ${path}${handler.route.path}`);
+        }
+      });
+    }
+  });
+}
+
 // Start server
 async function start(): Promise<void> {
   await connectDatabase();
@@ -53,6 +76,7 @@ async function start(): Promise<void> {
   app.listen(config.port, () => {
     console.log(`Backend running on http://localhost:${config.port}`);
     console.log(`Environment: ${config.nodeEnv}`);
+    logRoutes(app);
   });
 }
 
