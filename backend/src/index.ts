@@ -5,6 +5,7 @@ import { config } from './config';
 import { connectDatabase } from './config/database';
 import healthRoutes from './api/v1/health/route';
 import authRoutes from './api/v1/auth/route';
+import importsRoutes from './api/v1/admin/imports/route';
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin/imports', importsRoutes);
 
 // 404 handler
 app.use((_req, res) => {
