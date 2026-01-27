@@ -15,9 +15,14 @@
     "build": "npm run build -w shared && npm run build -w backend && npm run build -w frontend",
     "build:backend": "npm run build -w backend",
     "build:frontend": "npm run build -w frontend",
-    "test": "npm run test -w backend && npm run test -w frontend",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
     "lint": "npm run lint -w backend && npm run lint -w frontend",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w frontend"
+  },
+  "devDependencies": {
+    "vitest": "^1.2.0"
   },
   "engines": {
     "node": ">=18.0.0"
