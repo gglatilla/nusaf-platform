@@ -178,11 +178,14 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Lookup subCategory by code (optional)
+    // Lookup subCategory by code + categoryId (code is not unique across categories)
     let subCategoryId: string | null = null;
     if (data.subCategoryId) {
-      const subCategory = await prisma.subCategory.findUnique({
-        where: { code: data.subCategoryId },
+      const subCategory = await prisma.subCategory.findFirst({
+        where: {
+          code: data.subCategoryId,
+          categoryId: category.id,
+        },
       });
       if (!subCategory) {
         return res.status(400).json({
