@@ -1,19 +1,54 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Save, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Save, AlertCircle, CheckCircle, RefreshCw, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { api, type GlobalSettings, ApiError } from '@/lib/api';
+import { PricingRulesTable } from '@/components/admin/pricing/PricingRulesTable';
+import { PricingRuleModal } from '@/components/admin/pricing/PricingRuleModal';
+import {
+  api,
+  type GlobalSettings,
+  type PricingRule,
+  type ImportSupplier,
+  type ImportCategory,
+  type CreatePricingRuleData,
+  type UpdatePricingRuleData,
+  ApiError,
+} from '@/lib/api';
+
+type SettingsTab = 'exchange-rate' | 'pricing-rules';
 
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('exchange-rate');
+
+  // Exchange rate state
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [eurZarRate, setEurZarRate] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Pricing rules state
+  const [rules, setRules] = useState<PricingRule[]>([]);
+  const [suppliers, setSuppliers] = useState<ImportSupplier[]>([]);
+  const [categories, setCategories] = useState<ImportCategory[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
+  const [isLoadingRules, setIsLoadingRules] = useState(true);
+  const [isLoadingRef, setIsLoadingRef] = useState(true);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<PricingRule | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Delete confirmation state
+  const [deletingRule, setDeletingRule] = useState<PricingRule | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Shared state
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch current settings
+  // Fetch exchange rate settings
   useEffect(() => {
     async function fetchSettings() {
       try {
@@ -26,15 +61,64 @@ export default function SettingsPage() {
         const message = err instanceof ApiError ? err.message : 'Failed to load settings';
         setError(message);
       } finally {
-        setIsLoading(false);
+        setIsLoadingSettings(false);
       }
     }
 
     fetchSettings();
   }, []);
 
-  // Handle save
-  const handleSave = async () => {
+  // Fetch reference data (suppliers, categories) for pricing rules
+  useEffect(() => {
+    async function fetchRefData() {
+      try {
+        const [suppliersRes, categoriesRes] = await Promise.all([
+          api.getImportSuppliers(),
+          api.getImportCategories(),
+        ]);
+
+        if (suppliersRes.success && suppliersRes.data) {
+          setSuppliers(suppliersRes.data);
+        }
+        if (categoriesRes.success && categoriesRes.data) {
+          setCategories(categoriesRes.data);
+        }
+      } catch (err) {
+        console.error('Failed to load reference data:', err);
+      } finally {
+        setIsLoadingRef(false);
+      }
+    }
+
+    fetchRefData();
+  }, []);
+
+  // Fetch pricing rules
+  const fetchRules = useCallback(async () => {
+    setIsLoadingRules(true);
+    setError(null);
+
+    try {
+      const response = await api.getPricingRules(selectedSupplier || undefined);
+      if (response.success && response.data) {
+        setRules(response.data);
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load pricing rules';
+      setError(message);
+    } finally {
+      setIsLoadingRules(false);
+    }
+  }, [selectedSupplier]);
+
+  useEffect(() => {
+    if (activeTab === 'pricing-rules') {
+      fetchRules();
+    }
+  }, [fetchRules, activeTab]);
+
+  // Handle save exchange rate
+  const handleSaveRate = async () => {
     setError(null);
     setSuccess(null);
 
@@ -55,7 +139,7 @@ export default function SettingsPage() {
       if (response.success && response.data) {
         setSettings(response.data);
         setEurZarRate(response.data.eurZarRate.toString());
-        setSuccess('Settings saved successfully');
+        setSuccess('Exchange rate saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       }
     } catch (err) {
@@ -63,6 +147,74 @@ export default function SettingsPage() {
       setError(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handle add rule
+  const handleAddRule = () => {
+    setEditingRule(null);
+    setIsModalOpen(true);
+  };
+
+  // Handle edit rule
+  const handleEditRule = (rule: PricingRule) => {
+    setEditingRule(rule);
+    setIsModalOpen(true);
+  };
+
+  // Handle delete click
+  const handleDeleteClick = (rule: PricingRule) => {
+    setDeletingRule(rule);
+  };
+
+  // Handle confirm delete
+  const handleConfirmDelete = async () => {
+    if (!deletingRule) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      await api.deletePricingRule(deletingRule.id);
+      setSuccess('Pricing rule deleted');
+      setTimeout(() => setSuccess(null), 3000);
+      setDeletingRule(null);
+      fetchRules();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to delete pricing rule';
+      setError(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle save pricing rule (create or update)
+  const handleSaveRule = async (
+    data: CreatePricingRuleData | UpdatePricingRuleData,
+    isEdit: boolean,
+    ruleId?: string
+  ) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      if (isEdit && ruleId) {
+        await api.updatePricingRule(ruleId, data as UpdatePricingRuleData);
+        setSuccess('Pricing rule updated');
+      } else {
+        await api.createPricingRule(data as CreatePricingRuleData);
+        setSuccess('Pricing rule created');
+      }
+
+      setTimeout(() => setSuccess(null), 3000);
+      setIsModalOpen(false);
+      setEditingRule(null);
+      fetchRules();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to save pricing rule';
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -78,28 +230,58 @@ export default function SettingsPage() {
   };
 
   // Check if rate has changed
-  const hasChanges = settings && parseFloat(eurZarRate) !== settings.eurZarRate;
+  const hasRateChanges = settings && parseFloat(eurZarRate) !== settings.eurZarRate;
+
+  const tabs = [
+    { id: 'exchange-rate' as const, label: 'Exchange Rate' },
+    { id: 'pricing-rules' as const, label: 'Pricing Rules' },
+  ];
 
   return (
     <>
       <PageHeader
-        title="Global Settings"
-        description="Configure system-wide settings for pricing and operations"
+        title="Settings"
+        description="Configure pricing and system settings"
+        actions={
+          activeTab === 'pricing-rules' ? (
+            <button
+              onClick={handleAddRule}
+              disabled={isLoadingRef}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add Rule
+            </button>
+          ) : undefined
+        }
       />
 
-      <div className="p-6 lg:p-8 max-w-2xl">
-        {/* Loading state */}
-        {isLoading && (
-          <div className="bg-white border border-slate-200 rounded-lg p-8">
-            <div className="flex items-center justify-center gap-3 text-slate-500">
-              <RefreshCw className="h-5 w-5 animate-spin" />
-              <span>Loading settings...</span>
-            </div>
-          </div>
-        )}
+      <div className="p-6 lg:p-8">
+        {/* Tabs */}
+        <div className="border-b border-slate-200 mb-6">
+          <nav className="-mb-px flex gap-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-        {/* Error state */}
-        {!isLoading && error && (
+        {/* Error message */}
+        {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex gap-3">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
@@ -121,93 +303,228 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Settings form */}
-        {!isLoading && (
-          <div className="bg-white border border-slate-200 rounded-lg">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">Exchange Rate</h2>
-              <p className="text-sm text-slate-500 mt-1">
-                Configure the EUR to ZAR exchange rate used for imported product pricing
-              </p>
+        {/* Exchange Rate Tab */}
+        {activeTab === 'exchange-rate' && (
+          <div className="max-w-2xl">
+            {/* Loading state */}
+            {isLoadingSettings && (
+              <div className="bg-white border border-slate-200 rounded-lg p-8">
+                <div className="flex items-center justify-center gap-3 text-slate-500">
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  <span>Loading settings...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Settings form */}
+            {!isLoadingSettings && (
+              <div className="bg-white border border-slate-200 rounded-lg">
+                <div className="px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-slate-900">EUR/ZAR Exchange Rate</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Configure the EUR to ZAR exchange rate used for imported product pricing
+                  </p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* EUR/ZAR Rate input */}
+                  <div>
+                    <label htmlFor="eurZarRate" className="block text-sm font-medium text-slate-700 mb-2">
+                      EUR/ZAR Rate
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1 max-w-xs">
+                        <input
+                          type="number"
+                          id="eurZarRate"
+                          value={eurZarRate}
+                          onChange={(e) => {
+                            setEurZarRate(e.target.value);
+                            setError(null);
+                          }}
+                          step="0.01"
+                          min="0"
+                          className="w-full px-4 py-2.5 border border-slate-300 rounded-md text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="20.50"
+                        />
+                      </div>
+                      <span className="text-sm text-slate-500">ZAR per EUR</span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-500">
+                      This rate is multiplied by the EUR price to get the base ZAR amount before margins
+                    </p>
+                  </div>
+
+                  {/* Last updated info */}
+                  {settings && (
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <p className="text-sm text-slate-600">
+                        <span className="font-medium">Last updated:</span>{' '}
+                        {formatDate(settings.rateUpdatedAt)}
+                        {settings.rateUpdatedBy && (
+                          <span className="text-slate-500"> by Admin</span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Pricing formula info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-blue-900 mb-2">Pricing Formula</h3>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p>Supplier Price (EUR) × EUR/ZAR Rate × (1 + Freight%) ÷ Margin Divisor × 1.40 = List Price</p>
+                      <p className="text-xs text-blue-600 mt-2">
+                        Note: Pricing rules for supplier/category combinations must also be configured in the Pricing Rules tab.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save button */}
+                <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                  <button
+                    onClick={handleSaveRate}
+                    disabled={isSaving || !hasRateChanges}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pricing Rules Tab */}
+        {activeTab === 'pricing-rules' && (
+          <>
+            {/* Filter bar */}
+            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-4">
+                <label htmlFor="supplierFilter" className="text-sm font-medium text-slate-700">
+                  Filter by Supplier:
+                </label>
+                <select
+                  id="supplierFilter"
+                  value={selectedSupplier}
+                  onChange={(e) => setSelectedSupplier(e.target.value)}
+                  className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">All Suppliers</option>
+                  {suppliers.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                {isLoadingRules && (
+                  <RefreshCw className="h-4 w-4 text-slate-400 animate-spin" />
+                )}
+              </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* EUR/ZAR Rate input */}
-              <div>
-                <label htmlFor="eurZarRate" className="block text-sm font-medium text-slate-700 mb-2">
-                  EUR/ZAR Rate
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1 max-w-xs">
-                    <input
-                      type="number"
-                      id="eurZarRate"
-                      value={eurZarRate}
-                      onChange={(e) => {
-                        setEurZarRate(e.target.value);
-                        setError(null);
-                      }}
-                      step="0.01"
-                      min="0"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-md text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="20.50"
-                    />
-                  </div>
-                  <span className="text-sm text-slate-500">ZAR per EUR</span>
-                </div>
-                <p className="mt-2 text-sm text-slate-500">
-                  This rate is multiplied by the EUR price to get the base ZAR amount before margins
+            {/* Rules table */}
+            <div className="bg-white border border-slate-200 rounded-lg">
+              <PricingRulesTable
+                rules={rules}
+                isLoading={isLoadingRules}
+                onEdit={handleEditRule}
+                onDelete={handleDeleteClick}
+              />
+            </div>
+
+            {/* Info box */}
+            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-blue-900 mb-2">How Pricing Rules Work</h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>
+                  Each rule defines how to calculate the list price for products from a specific supplier and category.
+                </p>
+                <p className="mt-2">
+                  <strong>Formula:</strong> Supplier Price × EUR/ZAR Rate × (1 + Freight%) ÷ Margin Divisor × 1.40
+                </p>
+                <p className="mt-2 text-xs text-blue-600">
+                  Products without a matching pricing rule will show &quot;Price on Request&quot;.
                 </p>
               </div>
-
-              {/* Last updated info */}
-              {settings && (
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium">Last updated:</span>{' '}
-                    {formatDate(settings.rateUpdatedAt)}
-                    {settings.rateUpdatedBy && (
-                      <span className="text-slate-500"> by Admin</span>
-                    )}
-                  </p>
-                </div>
-              )}
-
-              {/* Pricing formula info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">Pricing Formula</h3>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p>Supplier Price (EUR) × EUR/ZAR Rate × (1 + Freight%) ÷ Margin Divisor × 1.40 = List Price</p>
-                  <p className="text-xs text-blue-600 mt-2">
-                    Note: Pricing rules for supplier/category combinations must also be configured.
-                  </p>
-                </div>
-              </div>
             </div>
+          </>
+        )}
+      </div>
 
-            {/* Save button */}
-            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+      {/* Add/Edit Modal */}
+      <PricingRuleModal
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) setEditingRule(null);
+        }}
+        rule={editingRule}
+        suppliers={suppliers}
+        categories={categories}
+        onSave={handleSaveRule}
+        isSubmitting={isSubmitting}
+      />
+
+      {/* Delete confirmation dialog */}
+      {deletingRule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => !isDeleting && setDeletingRule(null)}
+          />
+          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Pricing Rule?</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Are you sure you want to delete the pricing rule for{' '}
+              <strong>{deletingRule.supplier.name}</strong> /{' '}
+              <strong>{deletingRule.category.name}</strong>
+              {deletingRule.subCategory && (
+                <>
+                  {' '}/ <strong>{deletingRule.subCategory.name}</strong>
+                </>
+              )}
+              ?
+            </p>
+            <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg mb-4">
+              Products using this rule will show &quot;Price on Request&quot; until a new rule is created.
+            </p>
+            <div className="flex justify-end gap-3">
               <button
-                onClick={handleSave}
-                disabled={isSaving || !hasChanges}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setDeletingRule(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                {isSaving ? (
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    Saving...
+                    Deleting...
                   </>
                 ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Settings
-                  </>
+                  'Delete Rule'
                 )}
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
