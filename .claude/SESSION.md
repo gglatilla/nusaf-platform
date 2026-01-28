@@ -1,47 +1,56 @@
 # Current Session
 
 ## Active Task
-[TASK-005] Add Nusaf Code to Import Preview
+[TASK-006] Update Unit of Measure Codes
 
 ## Status
 COMPLETED | 100% complete
 
 ## Completed Micro-tasks
-- [x] Read plan and understand requirements
-- [x] Read existing ColumnMapper.tsx, page.tsx, and sku-mapping.ts
-- [x] Import convertTecomSku from @nusaf/shared
-- [x] Add supplierCode prop to ColumnMapper component
-- [x] Add convertToNusafCode helper function
-- [x] Update Sample Data Preview table to show NUSAF CODE column
-- [x] Pass selectedSupplier to ColumnMapper in page.tsx
-- [x] Verified build passes
-- [x] Committed and pushed to GitHub
+- [x] Read plan for UoM standardization
+- [x] Read import.service.ts and schema.prisma
+- [x] Add normalizeUnitOfMeasure() function to import.service.ts
+- [x] Update validUMs list to new standard codes
+- [x] Apply normalization in validation
+- [x] Update type assertions for new enum values
+- [x] Update Prisma UnitOfMeasure enum in schema.prisma
+- [x] Create migration SQL for enum conversion
+- [x] Run prisma migrate deploy
+- [x] Regenerate Prisma client
+- [x] Verify typecheck passes
+- [x] Commit and push changes
 
 ## Files Modified
-- frontend/src/components/admin/imports/ColumnMapper.tsx
-  - Added import for convertTecomSku from @nusaf/shared
-  - Added supplierCode prop
-  - Added convertToNusafCode() helper function
-  - Updated preview table to show NUSAF CODE column (highlighted in primary color)
-- frontend/src/app/(portal)/imports/new/page.tsx
-  - Added supplierCode={selectedSupplier} prop to ColumnMapper
+- backend/src/services/import.service.ts
+  - Added normalizeUnitOfMeasure() function with mapping table
+  - Updated validUMs: ['EA', 'MTR', 'KG', 'SET', 'PR', 'ROL', 'BX']
+  - Applied normalization before validation
+  - Updated type assertions
+- backend/prisma/schema.prisma
+  - Changed UnitOfMeasure enum values: M→MTR, BOX→BX, PAIR→PR, ROLL→ROL
+- backend/prisma/migrations/20260128120000_update_unit_of_measure_codes/migration.sql
+  - Created migration to convert enum values safely
 
-## SKU Conversion Logic
-| Supplier | Conversion |
-|----------|------------|
-| TECOM | Uses convertTecomSku() - e.g., C020080271 → 1200-80271 |
-| CHIARAVALLI | Pass through unchanged |
-| REGINA | Pass through unchanged |
+## UoM Normalization Mapping
+| Input | Output | Meaning |
+|-------|--------|---------|
+| NR, PC, PCS | EA | Each |
+| MT, M | MTR | Metre |
+| KGM | KG | Kilogram |
+| PAIR | PR | Pair |
+| ROLL | ROL | Roll |
+| BOX | BX | Box |
 
 ## Commit
-`2967d7f` - TASK-005: Add Nusaf Code to import preview
+`608ac94` - Update unit of measure codes to standardized format
 
 ## Next Steps
-1. Test with actual Tecom price list to verify conversion displays correctly
-2. Continue with TASK-006 (Pricing engine) from TASKS.md
+1. Deploy to Railway (automatic via push)
+2. Re-run import validation to verify MT→MTR and NR→EA conversions
+3. Continue with next task from TASKS.md
 
 ## Context for Next Session
-- Nusaf Code now displays in import preview when CODE column is mapped
-- TECOM SKUs are converted using existing convertTecomSku() function
-- Other suppliers (Chiaravalli, Regina) pass SKU through unchanged
-- List Price column will be added with TASK-006 (pricing engine)
+- UoM codes are now standardized to industry-standard short codes
+- Import service normalizes common variations automatically
+- Migration applied successfully to local database
+- Railway will need to run migration on deploy
