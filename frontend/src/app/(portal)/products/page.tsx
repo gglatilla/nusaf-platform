@@ -8,6 +8,7 @@ import {
   CategoryFilter,
   ProductSearch,
   Pagination,
+  ProductDetailModal,
 } from '@/components/products';
 import { api, type CatalogCategory, type CatalogProduct, type ProductsResponse } from '@/lib/api';
 
@@ -42,6 +43,9 @@ export default function ProductsPage() {
   const [search, setSearch] = useState(urlSearch);
   const [page, setPage] = useState(urlPage);
   const [pageSize, setPageSize] = useState(urlPageSize);
+
+  // Modal state
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
 
   // Update URL when filters change
   const updateUrl = useCallback(
@@ -159,10 +163,9 @@ export default function ProductsPage() {
     router.push('/products', { scroll: false });
   };
 
-  // Handle view details (placeholder for now)
+  // Handle view details - open modal
   const handleViewDetails = (product: CatalogProduct) => {
-    // TODO: Open product detail modal or navigate to detail page
-    console.log('View details:', product);
+    setSelectedProduct(product);
   };
 
   return (
@@ -226,6 +229,13 @@ export default function ProductsPage() {
           </main>
         </div>
       </div>
+
+      {/* Product detail modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        open={selectedProduct !== null}
+        onOpenChange={(open) => !open && setSelectedProduct(null)}
+      />
     </>
   );
 }
