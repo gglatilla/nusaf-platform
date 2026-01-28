@@ -23,6 +23,48 @@ app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin/imports', importsRoutes);
 
+// Debug endpoint - check categories in database (no auth)
+app.get('/api/v1/debug/categories', async (_req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      include: {
+        subCategories: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    await prisma.$disconnect();
+
+    res.json({
+      success: true,
+      data: {
+        categoryCount: categories.length,
+        subCategoryCount: categories.reduce((sum, cat) => sum + cat.subCategories.length, 0),
+        categories: categories.map((cat) => ({
+          code: cat.code,
+          name: cat.name,
+          subCategories: cat.subCategories.map((sub) => ({
+            code: sub.code,
+            name: sub.name,
+          })),
+        })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'DATABASE_ERROR', message: error instanceof Error ? error.message : 'Failed' },
+    });
+  }
+});
+
 // Temporary seed endpoint - remove after first use
 app.post('/api/v1/admin/seed', async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
