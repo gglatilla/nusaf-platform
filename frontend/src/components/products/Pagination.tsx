@@ -3,28 +3,60 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
+
 interface PaginationProps {
   page: number;
   totalPages: number;
-  total: number;
-  limit: number;
+  totalItems: number;
+  pageSize: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
-export function Pagination({ page, totalPages, total, limit, onPageChange }: PaginationProps) {
-  const start = (page - 1) * limit + 1;
-  const end = Math.min(page * limit, total);
+export function Pagination({
+  page,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: PaginationProps) {
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
 
   if (totalPages <= 1) {
     return null;
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg">
-      <div className="text-sm text-slate-600">
-        Showing <span className="font-medium">{start}</span> to{' '}
-        <span className="font-medium">{end}</span> of <span className="font-medium">{total}</span>{' '}
-        products
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 bg-white border border-slate-200 rounded-lg">
+      <div className="flex items-center gap-4">
+        <div className="text-sm text-slate-600">
+          Showing <span className="font-medium">{start}</span> to{' '}
+          <span className="font-medium">{end}</span> of <span className="font-medium">{totalItems}</span>{' '}
+          products
+        </div>
+
+        {onPageSizeChange && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="pageSize" className="text-sm text-slate-600">
+              Show:
+            </label>
+            <select
+              id="pageSize"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="px-2 py-1 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

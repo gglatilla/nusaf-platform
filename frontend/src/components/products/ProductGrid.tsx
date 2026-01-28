@@ -1,5 +1,6 @@
 'use client';
 
+import { Package } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import type { CatalogProduct } from '@/lib/api';
 
@@ -7,9 +8,10 @@ interface ProductGridProps {
   products: CatalogProduct[];
   isLoading?: boolean;
   onViewDetails?: (product: CatalogProduct) => void;
+  onClearFilters?: () => void;
 }
 
-export function ProductGrid({ products, isLoading, onViewDetails }: ProductGridProps) {
+export function ProductGrid({ products, isLoading, onViewDetails, onClearFilters }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -22,9 +24,22 @@ export function ProductGrid({ products, isLoading, onViewDetails }: ProductGridP
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-slate-500">No products found</p>
-        <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or search</p>
+      <div className="flex flex-col items-center justify-center py-12 px-4">
+        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-4">
+          <Package className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900 mb-1">No products found</h3>
+        <p className="text-sm text-slate-500 text-center max-w-xs mb-4">
+          Try adjusting your filters or search terms to find what you&apos;re looking for.
+        </p>
+        {onClearFilters && (
+          <button
+            onClick={onClearFilters}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
     );
   }

@@ -20,15 +20,17 @@ export default function ProductsPage() {
   const urlSubCategoryId = searchParams.get('subCategoryId');
   const urlSearch = searchParams.get('search') || '';
   const urlPage = parseInt(searchParams.get('page') || '1', 10);
+  const urlPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
 
   // State
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
-    total: 0,
+    pageSize: 20,
+    totalItems: 0,
     totalPages: 0,
+    hasMore: false,
   });
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -39,6 +41,7 @@ export default function ProductsPage() {
   const [subCategoryId, setSubCategoryId] = useState<string | null>(urlSubCategoryId);
   const [search, setSearch] = useState(urlSearch);
   const [page, setPage] = useState(urlPage);
+  const [pageSize, setPageSize] = useState(urlPageSize);
 
   // Update URL when filters change
   const updateUrl = useCallback(
@@ -47,6 +50,7 @@ export default function ProductsPage() {
       subCategoryId?: string | null;
       search?: string;
       page?: number;
+      pageSize?: number;
     }) => {
       const newParams = new URLSearchParams();
 
@@ -54,16 +58,18 @@ export default function ProductsPage() {
       const newSubCategoryId = params.subCategoryId ?? subCategoryId;
       const newSearch = params.search ?? search;
       const newPage = params.page ?? page;
+      const newPageSize = params.pageSize ?? pageSize;
 
       if (newCategoryId) newParams.set('categoryId', newCategoryId);
       if (newSubCategoryId) newParams.set('subCategoryId', newSubCategoryId);
       if (newSearch) newParams.set('search', newSearch);
       if (newPage > 1) newParams.set('page', newPage.toString());
+      if (newPageSize !== 20) newParams.set('pageSize', newPageSize.toString());
 
       const queryString = newParams.toString();
       router.push(queryString ? `/products?${queryString}` : '/products', { scroll: false });
     },
-    [categoryId, subCategoryId, search, page, router]
+    [categoryId, subCategoryId, search, page, pageSize, router]
   );
 
   // Fetch categories
@@ -96,7 +102,7 @@ export default function ProductsPage() {
           subCategoryId: subCategoryId || undefined,
           search: search || undefined,
           page,
-          limit: 20,
+          pageSize,
         });
 
         if (response.success && response.data) {
@@ -112,7 +118,7 @@ export default function ProductsPage() {
     }
 
     fetchProducts();
-  }, [categoryId, subCategoryId, search, page]);
+  }, [categoryId, subCategoryId, search, page, pageSize]);
 
   // Handle category change
   const handleCategoryChange = (newCategoryId: string | null, newSubCategoryId: string | null) => {
@@ -135,6 +141,22 @@ export default function ProductsPage() {
     updateUrl({ page: newPage });
     // Scroll to top of product grid
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page when changing page size
+    updateUrl({ pageSize: newPageSize, page: 1 });
+  };
+
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setCategoryId(null);
+    setSubCategoryId(null);
+    setSearch('');
+    setPage(1);
+    router.push('/products', { scroll: false });
   };
 
   // Handle view details (placeholder for now)
@@ -183,6 +205,7 @@ export default function ProductsPage() {
                   products={products}
                   isLoading={isLoadingProducts}
                   onViewDetails={handleViewDetails}
+                  onClearFilters={handleClearFilters}
                 />
 
                 {/* Pagination */}
@@ -191,9 +214,10 @@ export default function ProductsPage() {
                     <Pagination
                       page={pagination.page}
                       totalPages={pagination.totalPages}
-                      total={pagination.total}
-                      limit={pagination.limit}
+                      totalItems={pagination.totalItems}
+                      pageSize={pagination.pageSize}
                       onPageChange={handlePageChange}
+                      onPageSizeChange={handlePageSizeChange}
                     />
                   </div>
                 )}

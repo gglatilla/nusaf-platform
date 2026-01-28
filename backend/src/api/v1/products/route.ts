@@ -23,12 +23,13 @@ router.get('/', authenticate, async (req, res) => {
       supplierId,
       search,
       page = '1',
-      limit = '20',
+      pageSize = '20',
+      sort,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize as string, 10) || 20));
+    const skip = (pageNum - 1) * pageSizeNum;
 
     // Build where clause
     const where: Prisma.ProductWhereInput = {
@@ -56,6 +57,28 @@ router.get('/', authenticate, async (req, res) => {
         { supplierSku: { contains: searchTerm, mode: 'insensitive' } },
         { description: { contains: searchTerm, mode: 'insensitive' } },
       ];
+    }
+
+    // Build orderBy clause
+    let orderBy: Prisma.ProductOrderByWithRelationInput[] = [
+      { category: { sortOrder: 'asc' } },
+      { nusafSku: 'asc' },
+    ];
+
+    if (sort && typeof sort === 'string') {
+      const [field, direction] = sort.split(':');
+      const sortDir = direction === 'desc' ? 'desc' : 'asc';
+
+      // Map allowed sort fields
+      const sortableFields: Record<string, Prisma.ProductOrderByWithRelationInput> = {
+        nusafSku: { nusafSku: sortDir },
+        description: { description: sortDir },
+        price: { listPrice: sortDir },
+      };
+
+      if (sortableFields[field]) {
+        orderBy = [sortableFields[field]];
+      }
     }
 
     // Get total count and products in parallel
@@ -86,9 +109,9 @@ router.get('/', authenticate, async (req, res) => {
             },
           },
         },
-        orderBy: [{ category: { sortOrder: 'asc' } }, { nusafSku: 'asc' }],
+        orderBy,
         skip,
-        take: limitNum,
+        take: pageSizeNum,
       }),
     ]);
 
@@ -136,15 +159,18 @@ router.get('/', authenticate, async (req, res) => {
       };
     });
 
+    const totalPages = Math.ceil(total / pageSizeNum);
+
     return res.json({
       success: true,
       data: {
         products: transformedProducts,
         pagination: {
           page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
+          pageSize: pageSizeNum,
+          totalItems: total,
+          totalPages,
+          hasMore: pageNum < totalPages,
         },
       },
     });

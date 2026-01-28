@@ -121,9 +121,10 @@ export interface ProductsResponse {
   products: CatalogProduct[];
   pagination: {
     page: number;
-    limit: number;
-    total: number;
+    pageSize: number;
+    totalItems: number;
     totalPages: number;
+    hasMore: boolean;
   };
 }
 
@@ -133,7 +134,8 @@ export interface ProductsQueryParams {
   supplierId?: string;
   search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
+  sort?: string;
 }
 
 class ApiClient {
@@ -280,7 +282,8 @@ class ApiClient {
     if (params.supplierId) searchParams.set('supplierId', params.supplierId);
     if (params.search) searchParams.set('search', params.search);
     if (params.page) searchParams.set('page', params.page.toString());
-    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+    if (params.sort) searchParams.set('sort', params.sort);
 
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/products?${queryString}` : '/products';
