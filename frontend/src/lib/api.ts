@@ -78,6 +78,64 @@ export interface ImportCategory {
   subcategories: Array<{ code: string; name: string }>;
 }
 
+// Product catalog types
+export interface CatalogCategory {
+  id: string;
+  code: string;
+  name: string;
+  productCount: number;
+  subCategories: Array<{
+    id: string;
+    code: string;
+    name: string;
+  }>;
+}
+
+export interface CatalogProduct {
+  id: string;
+  nusafSku: string;
+  supplierSku: string;
+  description: string;
+  unitOfMeasure: string;
+  supplier: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  category: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  subCategory: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  price: number | null;
+  priceLabel: string;
+  hasPrice: boolean;
+}
+
+export interface ProductsResponse {
+  products: CatalogProduct[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ProductsQueryParams {
+  categoryId?: string;
+  subCategoryId?: string;
+  supplierId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -208,6 +266,29 @@ class ApiClient {
 
   async getImportCategories(): Promise<ApiResponse<ImportCategory[]>> {
     return this.request<ApiResponse<ImportCategory[]>>('/admin/imports/categories');
+  }
+
+  // Product catalog endpoints
+  async getCategories(): Promise<ApiResponse<CatalogCategory[]>> {
+    return this.request<ApiResponse<CatalogCategory[]>>('/categories');
+  }
+
+  async getProducts(params: ProductsQueryParams = {}): Promise<ApiResponse<ProductsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params.subCategoryId) searchParams.set('subCategoryId', params.subCategoryId);
+    if (params.supplierId) searchParams.set('supplierId', params.supplierId);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/products?${queryString}` : '/products';
+    return this.request<ApiResponse<ProductsResponse>>(endpoint);
+  }
+
+  async getProductById(id: string): Promise<ApiResponse<CatalogProduct>> {
+    return this.request<ApiResponse<CatalogProduct>>(`/products/${id}`);
   }
 }
 
