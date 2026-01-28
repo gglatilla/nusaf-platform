@@ -4,8 +4,8 @@
 (none - ready for new task)
 
 ## Up Next
-- [TASK-008] Product detail modal
-- [TASK-009] Admin pricing rules UI
+- [TASK-008] Product detail modal [UI/Frontend]
+- [TASK-009] Admin pricing rules UI [UI/Frontend, Pricing]
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
@@ -17,12 +17,12 @@
 - [TASK-007] Product catalog — Display products with categories ✓
 
 ## Backlog
-- [TASK-011] Quote creation flow
-- [TASK-012] Order management
-- [TASK-013] Inventory tracking
-- [TASK-014] Modular chain configurator
-- [TASK-015] Public website — Homepage
-- [TASK-016] Public website — Product pages
+- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
+- [TASK-012] Order management [Orders/Quotes, API/Backend]
+- [TASK-013] Inventory tracking [Inventory, API/Backend]
+- [TASK-014] Modular chain configurator [Configurator, UI/Frontend]
+- [TASK-015] Public website — Homepage [Public Website]
+- [TASK-016] Public website — Product pages [Public Website, UI/Frontend]
 
 ## Blocked
 (none)

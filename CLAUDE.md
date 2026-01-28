@@ -62,6 +62,28 @@ This applies to NEW tasks only, not to continuing micro-tasks within an already-
 
 ---
 
+## Task Type → Skills Mapping
+
+**MANDATORY**: When starting a task, identify its type(s) and read ALL corresponding skills.
+
+| Task Type | Required Skills |
+|-----------|-----------------|
+| **UI/Frontend** | `domain/ui-ux-webapp`, `foundation/ui-component-system`, `domain/brand-identity` |
+| **API/Backend** | `foundation/api-design-patterns`, `foundation/error-handling-logging` |
+| **Database** | `foundation/database-design-b2b` |
+| **Pricing** | `domain/pricing-product-domain` |
+| **Auth/Security** | `foundation/authentication-authorization`, `foundation/security-best-practices` |
+| **Orders/Quotes** | `domain/order-fulfillment-operations` |
+| **Inventory** | `domain/inventory-management` |
+| **Configurator** | `domain/product-configurator` |
+| **Public Website** | `domain/website-design`, `domain/brand-identity` |
+
+**Multiple types**: A task like "Product detail modal" is both UI/Frontend AND may touch API, so read skills for BOTH types.
+
+**RULE**: If you haven't read the skills for the task type, you CANNOT start implementation.
+
+---
+
 ## Context Compacting Protection
 
 **Problem**: Long Claude Code sessions can trigger "compacting" where context is summarized and details are lost.
@@ -414,28 +436,52 @@ When user says `lets begin` or `let's begin`:
 
 1. Read `.claude/SESSION.md` — understand current state
 2. Read `.claude/TASKS.md` — understand task queue
-3. Check which skills are relevant to the current task
-4. Provide summary to user:
+3. **Identify the current/next task and look up required skills in the Task Type → Skills mapping**
+4. **Read ALL required skill files for that task type**
+5. Provide summary to user:
    - What was completed last session
    - Current task and progress
+   - Skills that were read
    - Next micro-task to work on
-5. **Wait for user confirmation before starting any work**
+6. **IF this is a NEW task (not continuing micro-tasks):**
+   - **ENTER PLAN MODE**
+   - Explore codebase for relevant patterns
+   - Create plan with micro-tasks
+   - Wait for user approval before ANY code
+7. **IF continuing an existing task:**
+   - Wait for user to say "go" before continuing
 
-Example response:
+Example response (NEW task):
+```
+## Session Summary
+
+**Current task:** [TASK-008] Product detail modal (NEW)
+
+**Skills read:**
+- domain/ui-ux-webapp
+- foundation/ui-component-system
+- domain/brand-identity
+
+**Status:** Entering plan mode to create implementation plan.
+
+[Claude then explores codebase and creates plan]
+```
+
+Example response (CONTINUING task):
 ```
 ## Session Summary
 
 **Last session completed:**
-- Created users table migration
-- Built password hashing utility
+- Created ProductDetailModal component
+- Added API method for product details
 
-**Current task:** [TASK-003] Authentication system (40% complete)
+**Current task:** [TASK-008] Product detail modal (60% complete)
 
-**Next micro-task:** Create POST /api/auth/login endpoint
+**Next micro-task:** Wire up modal open/close in ProductCard
 
-**Relevant skills:** foundation/authentication-authorization, foundation/api-design-patterns
+**Skills already loaded:** ui-ux-webapp, ui-component-system
 
-Ready to continue? Say "go" to proceed or ask questions first.
+Ready to continue? Say "go" to proceed.
 ```
 
 ### Saving State (User says "please save")
