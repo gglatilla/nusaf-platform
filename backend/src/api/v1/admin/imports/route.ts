@@ -60,7 +60,7 @@ router.get('/debug/categories', async (_req, res) => {
         categories: categories.map((cat) => ({
           code: cat.code,
           name: cat.name,
-          subCategories: cat.subCategories.map((sub) => ({
+          subcategories: cat.subCategories.map((sub) => ({
             code: sub.code,
             name: sub.name,
           })),
@@ -462,7 +462,7 @@ router.get('/categories', async (_req, res) => {
         categories: categories.map((cat) => ({
           code: cat.code,
           name: cat.name,
-          subCategories: cat.subCategories.map((sub) => ({
+          subcategories: cat.subCategories.map((sub) => ({
             code: sub.code,
             name: sub.name,
           })),
