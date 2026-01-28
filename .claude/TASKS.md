@@ -1,7 +1,7 @@
 # Task Queue
 
 ## Current
-- [TASK-007] Product catalog — Display products with categories (IN_PROGRESS)
+(none - ready for new task)
 
 ## Up Next
 - [TASK-008] Product detail modal
@@ -14,6 +14,7 @@
 - [TASK-004] Customer portal layout (sidebar, header, main content) ✓
 - [TASK-005] Supplier price list import ✓
 - [TASK-006] Pricing engine — Calculate prices per customer tier ✓
+- [TASK-007] Product catalog — Display products with categories ✓
 
 ## Backlog
 - [TASK-011] Quote creation flow
@@ -28,37 +29,26 @@
 
 ---
 
-## TASK-006 Summary (COMPLETED)
+## TASK-007 Summary (COMPLETED)
 
 **What was added:**
 
 Backend:
-- GlobalSettings model with EUR/ZAR rate
-- PricingRule model with supplier/category pricing parameters
-- costPrice/listPrice fields on Product
-- Pricing service with calculateListPrice(), calculateCustomerPrice()
-- Settings service for EUR/ZAR rate management
-- Admin APIs: settings, pricing-rules
-- Product price API (GET /products/:id/price)
-- Import service integration for automatic price calculation
+- GET /api/v1/categories - List categories with subcategories and product counts
+- GET /api/v1/products - List products with filtering, search, pagination
+- GET /api/v1/products/:id - Get product detail with pricing
 
-Tests:
-- 25 unit tests for pricing service
+Frontend:
+- ProductCard component with supplier badge, SKU, description, price
+- ProductGrid component with loading skeletons
+- CategoryFilter component with collapsible tree
+- ProductSearch component with debounced input
+- Pagination component with page numbers
+- Products page at /products with full filtering
 
-Pricing Formula:
-```
-Supplier Price (Gross/Net)
--> Apply discount % (if Gross)
--> x EUR/ZAR rate
--> x (1 + Freight %)
--> / Margin Divisor
--> x 1.40 (always)
-= List Price (ZAR)
-```
-
-Customer Tier Discounts:
-| Tier | Discount |
-|------|----------|
-| END_USER | 30% off list |
-| OEM_RESELLER | 40% off list |
-| DISTRIBUTOR | 50% off list |
+Features:
+- Role-based pricing (customers see tier price, staff see list price)
+- URL-based filter state (categoryId, subCategoryId, search, page)
+- Search by SKU or description
+- Category/subcategory filtering
+- Pagination with 20 items per page
