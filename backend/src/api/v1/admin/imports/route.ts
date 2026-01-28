@@ -27,7 +27,58 @@ import type { ParseResult } from '../../../../services/excel-parser.service';
 
 const router = Router();
 
-// Apply authentication and admin role check to all routes
+/**
+ * GET /api/v1/admin/imports/debug/categories
+ * Public debug endpoint - no auth required
+ * Use to diagnose category validation failures
+ */
+router.get('/debug/categories', async (_req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      include: {
+        subCategories: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    await prisma.$disconnect();
+
+    const totalSubCategories = categories.reduce((sum, cat) => sum + cat.subCategories.length, 0);
+
+    res.json({
+      success: true,
+      data: {
+        categoryCount: categories.length,
+        subCategoryCount: totalSubCategories,
+        categories: categories.map((cat) => ({
+          code: cat.code,
+          name: cat.name,
+          subCategories: cat.subCategories.map((sub) => ({
+            code: sub.code,
+            name: sub.name,
+          })),
+        })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'DATABASE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to get categories'
+      },
+    });
+  }
+});
+
+// Apply authentication and admin role check to all routes below
 router.use(authenticate);
 router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
 
