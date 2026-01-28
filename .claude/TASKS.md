@@ -1,11 +1,11 @@
 # Task Queue
 
 ## Current
-(none - ready for new task)
+- [TASK-007] Product catalog — Display products with categories (IN_PROGRESS)
 
 ## Up Next
-- [TASK-006] Pricing engine — Calculate prices per customer tier
-- [TASK-007] Product catalog — Display products with categories
+- [TASK-008] Product detail modal
+- [TASK-009] Admin pricing rules UI
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
@@ -13,6 +13,7 @@
 - [TASK-003] Authentication system (login, logout, sessions) ✓
 - [TASK-004] Customer portal layout (sidebar, header, main content) ✓
 - [TASK-005] Supplier price list import ✓
+- [TASK-006] Pricing engine — Calculate prices per customer tier ✓
 
 ## Backlog
 - [TASK-011] Quote creation flow
@@ -27,30 +28,37 @@
 
 ---
 
-## TASK-005 Summary (COMPLETED)
+## TASK-006 Summary (COMPLETED)
 
 **What was added:**
 
 Backend:
-- Import validation schemas (Zod)
-- Excel parser service (xlsx package)
-- Import service (validation, SKU conversion, batch operations)
-- Import API routes (upload, validate, execute, suppliers, categories)
-- ImportBatch and ImportRow database tables
-
-Frontend:
-- FileUpload component (drag & drop)
-- ColumnMapper component (map Excel columns to fields)
-- ValidationResults component (errors/warnings display)
-- ImportReview component (preview before import)
-- ImportHistory component (list past imports)
-- Import wizard page (multi-step flow at /imports/new)
-- Import history page (at /imports)
-- Admin navigation section (role-based visibility)
+- GlobalSettings model with EUR/ZAR rate
+- PricingRule model with supplier/category pricing parameters
+- costPrice/listPrice fields on Product
+- Pricing service with calculateListPrice(), calculateCustomerPrice()
+- Settings service for EUR/ZAR rate management
+- Admin APIs: settings, pricing-rules
+- Product price API (GET /products/:id/price)
+- Import service integration for automatic price calculation
 
 Tests:
-- Import service unit tests (Tecom SKU conversion, validation rules)
+- 25 unit tests for pricing service
 
-Category Codes Updated:
-- Categories: C, L, B, T, M, P, S, V, D, W, G
-- Subcategories: C-001, B-001, etc.
+Pricing Formula:
+```
+Supplier Price (Gross/Net)
+-> Apply discount % (if Gross)
+-> x EUR/ZAR rate
+-> x (1 + Freight %)
+-> / Margin Divisor
+-> x 1.40 (always)
+= List Price (ZAR)
+```
+
+Customer Tier Discounts:
+| Tier | Discount |
+|------|----------|
+| END_USER | 30% off list |
+| OEM_RESELLER | 40% off list |
+| DISTRIBUTOR | 50% off list |

@@ -1,4 +1,4 @@
-// Build: 2026-01-28-v1 - Pricing Engine
+// Build: 2026-01-28-v2 - Product Catalog
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -10,6 +10,7 @@ import importsRoutes from './api/v1/admin/imports/route';
 import settingsRoutes from './api/v1/admin/settings/route';
 import pricingRulesRoutes from './api/v1/admin/pricing-rules/route';
 import productsRoutes from './api/v1/products/route';
+import categoriesRoutes from './api/v1/categories/route';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/v1/admin/imports', importsRoutes);
 app.use('/api/v1/admin/settings', settingsRoutes);
 app.use('/api/v1/admin/pricing-rules', pricingRulesRoutes);
 app.use('/api/v1/products', productsRoutes);
+app.use('/api/v1/categories', categoriesRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {
