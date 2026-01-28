@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { authenticate, requireRole, type AuthenticatedRequest } from '../../../../middleware/auth';
+import { recalculateProductPrices } from '../../../../services/pricing.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -236,6 +237,18 @@ router.post('/', async (req, res) => {
       },
     });
 
+    // Trigger price recalculation for affected products
+    try {
+      await recalculateProductPrices({
+        supplierId: supplier.id,
+        categoryId: category.id,
+        userId: authReq.user.id,
+      });
+    } catch (recalcError) {
+      // Log but don't fail the request - rule was created successfully
+      console.error('Price recalculation failed:', recalcError);
+    }
+
     return res.status(201).json({
       success: true,
       data: {
@@ -312,6 +325,18 @@ router.patch('/:id', async (req, res) => {
         subCategory: { select: { id: true, code: true, name: true } },
       },
     });
+
+    // Trigger price recalculation for affected products
+    try {
+      await recalculateProductPrices({
+        supplierId: existing.supplierId,
+        categoryId: existing.categoryId,
+        userId: authReq.user.id,
+      });
+    } catch (recalcError) {
+      // Log but don't fail the request - rule was updated successfully
+      console.error('Price recalculation failed:', recalcError);
+    }
 
     return res.json({
       success: true,
