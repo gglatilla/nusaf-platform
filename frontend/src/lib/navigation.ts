@@ -6,6 +6,7 @@ import {
   Receipt,
   Settings,
   Upload,
+  Calculator,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,8 @@ export const mainNavigation: NavItem[] = [
  */
 export const adminNavigation: NavItem[] = [
   { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
+  { name: 'Pricing Rules', href: '/admin/pricing-rules', icon: Calculator, roles: ['ADMIN', 'MANAGER'] },
+  { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['ADMIN', 'MANAGER'] },
 ];
 
 /**

@@ -78,6 +78,56 @@ export interface ImportCategory {
   subcategories: Array<{ code: string; name: string }>;
 }
 
+// Global settings types
+export interface GlobalSettings {
+  eurZarRate: number;
+  rateUpdatedAt: string;
+  rateUpdatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateSettingsData {
+  eurZarRate: number;
+}
+
+// Pricing rule types
+export interface PricingRuleRef {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface PricingRule {
+  id: string;
+  supplier: PricingRuleRef;
+  category: PricingRuleRef;
+  subCategory: PricingRuleRef | null;
+  isGross: boolean;
+  discountPercent: number | null;
+  freightPercent: number;
+  marginDivisor: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePricingRuleData {
+  supplierId: string;
+  categoryId: string;
+  subCategoryId?: string | null;
+  isGross: boolean;
+  discountPercent?: number | null;
+  freightPercent: number;
+  marginDivisor: number;
+}
+
+export interface UpdatePricingRuleData {
+  isGross?: boolean;
+  discountPercent?: number | null;
+  freightPercent?: number;
+  marginDivisor?: number;
+}
+
 // Product catalog types
 export interface CatalogCategory {
   id: string;
@@ -292,6 +342,46 @@ class ApiClient {
 
   async getProductById(id: string): Promise<ApiResponse<CatalogProduct>> {
     return this.request<ApiResponse<CatalogProduct>>(`/products/${id}`);
+  }
+
+  // Admin settings endpoints
+  async getSettings(): Promise<ApiResponse<GlobalSettings>> {
+    return this.request<ApiResponse<GlobalSettings>>('/admin/settings');
+  }
+
+  async updateSettings(data: UpdateSettingsData): Promise<ApiResponse<GlobalSettings>> {
+    return this.request<ApiResponse<GlobalSettings>>('/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Pricing rules endpoints
+  async getPricingRules(supplierId?: string): Promise<ApiResponse<PricingRule[]>> {
+    const endpoint = supplierId
+      ? `/admin/pricing-rules?supplierId=${encodeURIComponent(supplierId)}`
+      : '/admin/pricing-rules';
+    return this.request<ApiResponse<PricingRule[]>>(endpoint);
+  }
+
+  async createPricingRule(data: CreatePricingRuleData): Promise<ApiResponse<PricingRule>> {
+    return this.request<ApiResponse<PricingRule>>('/admin/pricing-rules', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePricingRule(id: string, data: UpdatePricingRuleData): Promise<ApiResponse<PricingRule>> {
+    return this.request<ApiResponse<PricingRule>>(`/admin/pricing-rules/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePricingRule(id: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/admin/pricing-rules/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 
