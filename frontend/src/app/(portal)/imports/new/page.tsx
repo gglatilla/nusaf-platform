@@ -17,6 +17,7 @@ import {
   type ImportSupplier,
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
 
 type WizardStep = 'upload' | 'map' | 'validate' | 'review' | 'complete';
 
@@ -29,6 +30,7 @@ const STEPS: { key: WizardStep; label: string }[] = [
 
 export default function NewImportPage() {
   const router = useRouter();
+  const { accessToken } = useAuthStore();
 
   // State
   const [currentStep, setCurrentStep] = useState<WizardStep>('upload');
@@ -46,8 +48,10 @@ export default function NewImportPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load suppliers on mount
+  // Load suppliers when access token is available
   useEffect(() => {
+    if (!accessToken) return;
+
     async function loadSuppliers() {
       try {
         const response = await api.getImportSuppliers();
@@ -59,7 +63,7 @@ export default function NewImportPage() {
       }
     }
     loadSuppliers();
-  }, []);
+  }, [accessToken]);
 
   // Handle file selection
   const handleFileSelect = useCallback((file: File) => {

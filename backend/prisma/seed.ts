@@ -99,9 +99,10 @@ async function main() {
         { code: 'C-017', name: 'Hinges', sortOrder: 17 },
         { code: 'C-018', name: 'Process control', sortOrder: 18 },
         { code: 'C-019', name: 'Modular transfer plates', sortOrder: 19 },
-        { code: 'C-020', name: 'Product guides', sortOrder: 20 },
+        { code: 'C-020', name: 'Product guides and accessories', sortOrder: 20 },
         { code: 'C-021', name: 'Guide rail clamps', sortOrder: 21 },
-        { code: 'C-022', name: 'Chain guides', sortOrder: 22 },
+        { code: 'C-022', name: 'Product / chain guides and accessories', sortOrder: 22 },
+        { code: 'C-023', name: 'Chain guides and accessories', sortOrder: 23 },
       ],
     },
     {
