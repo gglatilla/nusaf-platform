@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole, type AuthenticatedRequest } from '../../../../middleware/auth';
 import { getSettings, updateEurZarRate } from '../../../../services/settings.service';
+import { recalculateProductPrices } from '../../../../services/pricing.service';
 
 const router = Router();
 
@@ -60,6 +61,15 @@ router.patch('/', async (req, res) => {
 
     const { eurZarRate } = parseResult.data;
     const settings = await updateEurZarRate(eurZarRate, authReq.user.id);
+
+    // Auto-recalculate all product prices with the new EUR/ZAR rate
+    try {
+      const result = await recalculateProductPrices({ userId: authReq.user.id });
+      console.log(`EUR/ZAR rate updated: recalculated ${result.updated}/${result.total} products`);
+    } catch (recalcError) {
+      console.error('Price recalculation failed after EUR/ZAR rate update:', recalcError);
+      // Don't fail the request - the rate was updated successfully
+    }
 
     return res.json({
       success: true,
