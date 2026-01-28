@@ -381,7 +381,7 @@ router.get('/history', async (_req, res) => {
 
 /**
  * GET /api/v1/admin/imports/categories
- * Get list of categories for mapping reference
+ * Debug endpoint to list categories in database - useful for diagnosing validation failures
  */
 router.get('/categories', async (_req, res) => {
   try {
@@ -401,21 +401,30 @@ router.get('/categories', async (_req, res) => {
 
     await prisma.$disconnect();
 
+    const totalSubCategories = categories.reduce((sum, cat) => sum + cat.subCategories.length, 0);
+
     res.json({
       success: true,
-      data: categories.map((cat) => ({
-        code: cat.code,
-        name: cat.name,
-        subcategories: cat.subCategories.map((sub) => ({
-          code: sub.code,
-          name: sub.name,
+      data: {
+        categoryCount: categories.length,
+        subCategoryCount: totalSubCategories,
+        categories: categories.map((cat) => ({
+          code: cat.code,
+          name: cat.name,
+          subCategories: cat.subCategories.map((sub) => ({
+            code: sub.code,
+            name: sub.name,
+          })),
         })),
-      })),
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: { code: 'ERROR', message: 'Failed to get categories' },
+      error: {
+        code: 'DATABASE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to get categories'
+      },
     });
   }
 });
