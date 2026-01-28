@@ -1,45 +1,47 @@
 # Current Session
 
 ## Active Task
-[TASK-006] Fix Auth Endpoint 404 on Railway
+[TASK-005] Add Nusaf Code to Import Preview
 
 ## Status
 COMPLETED | 100% complete
 
 ## Completed Micro-tasks
-- [x] Diagnosed auth endpoint returning 404 on Railway
-- [x] Added build version comment to force Railway rebuild (didn't fix it)
-- [x] Added route logging to index.ts for debugging
-- [x] Added diagnostic GET /api/v1/auth endpoint
-- [x] Identified root cause: Frontend NEXT_PUBLIC_API_URL missing /api/v1 suffix
-- [x] User fixed Vercel env var to include /api/v1
-- [x] Verified login endpoint now works (returns "Invalid credentials" instead of 404)
-
-## Root Cause
-The frontend's `NEXT_PUBLIC_API_URL` environment variable in Vercel was set to `https://api.nusaf.net` but should be `https://api.nusaf.net/api/v1`.
-
-The frontend API client (frontend/src/lib/api.ts) appends endpoints like `/auth/login` to `API_URL`, so:
-- Wrong: `https://api.nusaf.net/auth/login` (404)
-- Correct: `https://api.nusaf.net/api/v1/auth/login` (works)
+- [x] Read plan and understand requirements
+- [x] Read existing ColumnMapper.tsx, page.tsx, and sku-mapping.ts
+- [x] Import convertTecomSku from @nusaf/shared
+- [x] Add supplierCode prop to ColumnMapper component
+- [x] Add convertToNusafCode helper function
+- [x] Update Sample Data Preview table to show NUSAF CODE column
+- [x] Pass selectedSupplier to ColumnMapper in page.tsx
+- [x] Verified build passes
+- [x] Committed and pushed to GitHub
 
 ## Files Modified
-- backend/src/index.ts (added build comment and route logging)
-- backend/src/api/v1/auth/route.ts (added diagnostic GET / endpoint)
+- frontend/src/components/admin/imports/ColumnMapper.tsx
+  - Added import for convertTecomSku from @nusaf/shared
+  - Added supplierCode prop
+  - Added convertToNusafCode() helper function
+  - Updated preview table to show NUSAF CODE column (highlighted in primary color)
+- frontend/src/app/(portal)/imports/new/page.tsx
+  - Added supplierCode={selectedSupplier} prop to ColumnMapper
 
-## Test Credentials (from seed)
-- **Admin:** admin@nusaf.co.za / admin123
-- **Test User:** test@example.com / password123
+## SKU Conversion Logic
+| Supplier | Conversion |
+|----------|------------|
+| TECOM | Uses convertTecomSku() - e.g., C020080271 → 1200-80271 |
+| CHIARAVALLI | Pass through unchanged |
+| REGINA | Pass through unchanged |
 
-## Previous Task Context
-TASK-005 (Supplier Price List Import) was completed. All import functionality is in place.
+## Commit
+`2967d7f` - TASK-005: Add Nusaf Code to import preview
 
 ## Next Steps
-1. Test full login flow with correct credentials
-2. Remove diagnostic code from backend (optional cleanup)
-3. Address Next.js security vulnerability warning (npm warned about next@14.1.0)
-4. Continue with next task from TASKS.md
+1. Test with actual Tecom price list to verify conversion displays correctly
+2. Continue with TASK-006 (Pricing engine) from TASKS.md
 
 ## Context for Next Session
-- Auth endpoint 404 was caused by incorrect Vercel env var (missing /api/v1)
-- Diagnostic code was added to backend (route logging, GET /api/v1/auth endpoint)
-- Login now works - user needs to use "admin123" not "admin" as password
+- Nusaf Code now displays in import preview when CODE column is mapped
+- TECOM SKUs are converted using existing convertTecomSku() function
+- Other suppliers (Chiaravalli, Regina) pass SKU through unchanged
+- List Price column will be added with TASK-006 (pricing engine)
