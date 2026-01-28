@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { convertTecomSku } from '@nusaf/shared';
 import type { ParsedRow } from './excel-parser.service';
 import type {
@@ -7,6 +8,7 @@ import type {
   RowWarning,
   ImportValidationResult,
 } from '../utils/validation/imports';
+import { calculateListPrice, getPricingRule, getGlobalSettings } from './pricing.service';
 
 const prisma = new PrismaClient();
 
@@ -254,6 +256,7 @@ export async function executeImport(
   created: number;
   updated: number;
   skipped: number;
+  pricesCalculated: number;
   errors: Array<{ rowNumber: number; message: string }>;
 }> {
   const supplier = await prisma.supplier.findUnique({
@@ -266,6 +269,7 @@ export async function executeImport(
       created: 0,
       updated: 0,
       skipped: 0,
+      pricesCalculated: 0,
       errors: [{ rowNumber: 0, message: `Unknown supplier: ${supplierCode}` }],
     };
   }
@@ -277,9 +281,21 @@ export async function executeImport(
   const categoryMap = new Map(categories.map((c) => [c.code, c.id]));
   const subcategoryMap = new Map(subcategories.map((s) => [s.code, s.id]));
 
+  // Get global settings for pricing
+  let globalSettings: { eurZarRate: number } | null = null;
+  try {
+    globalSettings = await getGlobalSettings();
+  } catch {
+    // Settings not available, prices won't be calculated
+  }
+
+  // Cache pricing rules to avoid repeated DB queries
+  const ruleCache = new Map<string, Awaited<ReturnType<typeof getPricingRule>>>();
+
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let pricesCalculated = 0;
   const errors: Array<{ rowNumber: number; message: string }> = [];
 
   // Process rows in batches
@@ -305,6 +321,35 @@ export async function executeImport(
     }
 
     try {
+      // Get pricing rule for this product (if available)
+      let listPrice: Decimal | null = null;
+      if (globalSettings && data.price > 0) {
+        const cacheKey = `${supplier.id}:${categoryId}:${subcategoryId ?? 'null'}`;
+
+        if (!ruleCache.has(cacheKey)) {
+          ruleCache.set(cacheKey, await getPricingRule(supplier.id, categoryId, subcategoryId ?? null));
+        }
+
+        const rule = ruleCache.get(cacheKey);
+        if (rule) {
+          try {
+            const priceResult = calculateListPrice({
+              costPrice: data.price,
+              isGross: rule.isGross,
+              discountPercent: rule.discountPercent ?? undefined,
+              eurZarRate: globalSettings.eurZarRate,
+              freightPercent: rule.freightPercent,
+              marginDivisor: rule.marginDivisor,
+              isLocal: supplier.isLocal,
+            });
+            listPrice = new Decimal(priceResult.listPrice);
+            pricesCalculated++;
+          } catch {
+            // Price calculation failed, continue without list price
+          }
+        }
+      }
+
       // Check if product exists
       const existingProduct = await prisma.product.findFirst({
         where: {
@@ -322,6 +367,8 @@ export async function executeImport(
             unitOfMeasure: data.unitOfMeasure as 'EA' | 'MTR' | 'KG' | 'SET' | 'PR' | 'ROL' | 'BX',
             categoryId,
             subCategoryId: subcategoryId,
+            costPrice: new Decimal(data.price),
+            ...(listPrice && { listPrice, priceUpdatedAt: new Date() }),
             updatedBy: userId,
           },
         });
@@ -337,6 +384,8 @@ export async function executeImport(
             supplierId: supplier.id,
             categoryId,
             subCategoryId: subcategoryId,
+            costPrice: new Decimal(data.price),
+            ...(listPrice && { listPrice, priceUpdatedAt: new Date() }),
             createdBy: userId,
           },
         });
@@ -356,6 +405,7 @@ export async function executeImport(
     created,
     updated,
     skipped,
+    pricesCalculated,
     errors,
   };
 }
