@@ -24,11 +24,12 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin/imports', importsRoutes);
 
 // Temporary seed endpoint - remove after first use
-app.post('/api/v1/admin/seed', async (req, res) => {
+app.post('/api/v1/admin/seed', async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
   // Simple protection - require a secret
   if (authHeader !== 'Bearer seed-nusaf-2026') {
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -40,7 +41,8 @@ app.post('/api/v1/admin/seed', async (req, res) => {
     const existingCategories = await prisma.category.count();
     if (existingCategories > 0) {
       await prisma.$disconnect();
-      return res.json({ success: true, message: 'Already seeded', categories: existingCategories });
+      res.json({ success: true, message: 'Already seeded', categories: existingCategories });
+      return;
     }
 
     // Seed suppliers
