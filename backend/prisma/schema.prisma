@@ -176,8 +176,9 @@ model Supplier {
   isActive    Boolean          @default(true) @map("is_active")
 
   // Relations
-  products    Product[]
-  skuMappings SkuMapping[]
+  products     Product[]
+  skuMappings  SkuMapping[]
+  pricingRules PricingRule[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -199,6 +200,7 @@ model Category {
   // Relations
   subCategories SubCategory[]
   products      Product[]
+  pricingRules  PricingRule[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -222,7 +224,8 @@ model SubCategory {
   category   Category @relation(fields: [categoryId], references: [id])
 
   // Relations
-  products Product[]
+  products     Product[]
+  pricingRules PricingRule[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -241,6 +244,11 @@ model Product {
   description   String
   unitOfMeasure UnitOfMeasure @default(EA) @map("unit_of_measure")
   isActive      Boolean       @default(true) @map("is_active")
+
+  // Pricing
+  costPrice      Decimal?  @db.Decimal(10, 4) @map("cost_price")
+  listPrice      Decimal?  @db.Decimal(10, 2) @map("list_price")
+  priceUpdatedAt DateTime? @map("price_updated_at")
 
   // Supplier
   supplierId String   @map("supplier_id")
@@ -402,4 +410,47 @@ enum ImportRowStatus {
   SUCCESS
   ERROR
   SKIPPED
+}
+
+// ============================================
+// PRICING ENTITIES
+// ============================================
+
+model GlobalSettings {
+  id            String   @id @default("global")
+  eurZarRate    Decimal  @db.Decimal(10, 4) @map("eur_zar_rate")
+  rateUpdatedAt DateTime @map("rate_updated_at")
+  rateUpdatedBy String?  @map("rate_updated_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("global_settings")
+}
+
+model PricingRule {
+  id              String       @id @default(cuid())
+  supplierId      String       @map("supplier_id")
+  supplier        Supplier     @relation(fields: [supplierId], references: [id])
+  categoryId      String       @map("category_id")
+  category        Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId   String?      @map("sub_category_id")
+  subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  // Pricing parameters
+  isGross         Boolean  @default(false) @map("is_gross")
+  discountPercent Decimal? @db.Decimal(5, 2) @map("discount_percent")
+  freightPercent  Decimal  @db.Decimal(5, 2) @map("freight_percent")
+  marginDivisor   Decimal  @db.Decimal(5, 4) @map("margin_divisor")
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([supplierId, categoryId, subCategoryId])
+  @@index([supplierId])
+  @@index([categoryId])
+  @@map("pricing_rules")
 }
