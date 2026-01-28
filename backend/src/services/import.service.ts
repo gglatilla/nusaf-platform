@@ -11,6 +11,29 @@ import type {
 const prisma = new PrismaClient();
 
 /**
+ * Normalizes unit of measure codes to standard codes
+ * Accepts common variations and converts to canonical form
+ */
+function normalizeUnitOfMeasure(um: string): string {
+  const normalized = um.toUpperCase().trim();
+  const mapping: Record<string, string> = {
+    // Each
+    'NR': 'EA', 'PC': 'EA', 'PCS': 'EA',
+    // Metre
+    'MT': 'MTR', 'M': 'MTR',
+    // Kilogram
+    'KGM': 'KG',
+    // Pair
+    'PAIR': 'PR',
+    // Roll
+    'ROLL': 'ROL',
+    // Box
+    'BOX': 'BX',
+  };
+  return mapping[normalized] || normalized;
+}
+
+/**
  * Validates a single row of import data
  */
 export async function validateRow(
@@ -67,8 +90,8 @@ export async function validateRow(
   }
 
   // Validate unit of measure
-  const validUMs = ['EA', 'M', 'KG', 'BOX', 'SET', 'PAIR', 'ROLL'];
-  const um = (mapped.um || 'EA').toUpperCase();
+  const validUMs = ['EA', 'MTR', 'KG', 'SET', 'PR', 'ROL', 'BX'];
+  const um = normalizeUnitOfMeasure(mapped.um || 'EA');
   if (!validUMs.includes(um)) {
     warnings.push({ field: 'UM', message: `Unknown unit of measure: ${um}, defaulting to EA` });
   }
@@ -296,7 +319,7 @@ export async function executeImport(
           where: { id: existingProduct.id },
           data: {
             description: data.description,
-            unitOfMeasure: data.unitOfMeasure as 'EA' | 'M' | 'KG' | 'BOX' | 'SET' | 'PAIR' | 'ROLL',
+            unitOfMeasure: data.unitOfMeasure as 'EA' | 'MTR' | 'KG' | 'SET' | 'PR' | 'ROL' | 'BX',
             categoryId,
             subCategoryId: subcategoryId,
             updatedBy: userId,
@@ -310,7 +333,7 @@ export async function executeImport(
             supplierSku: data.supplierSku,
             nusafSku: data.nusafSku,
             description: data.description,
-            unitOfMeasure: data.unitOfMeasure as 'EA' | 'M' | 'KG' | 'BOX' | 'SET' | 'PAIR' | 'ROLL',
+            unitOfMeasure: data.unitOfMeasure as 'EA' | 'MTR' | 'KG' | 'SET' | 'PR' | 'ROL' | 'BX',
             supplierId: supplier.id,
             categoryId,
             subCategoryId: subcategoryId,

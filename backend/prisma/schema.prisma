@@ -153,12 +153,12 @@ enum SkuHandling {
 
 enum UnitOfMeasure {
   EA
-  M
+  MTR
   KG
-  BOX
   SET
-  PAIR
-  ROLL
+  PR
+  ROL
+  BX
 }
 
 // ============================================
