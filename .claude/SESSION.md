@@ -1,79 +1,94 @@
 # Current Session
 
 ## Active Task
-[TASK-007] Product Catalog
+[TASK-007] Product Catalog - Review Remediation
 
 ## Status
 COMPLETED | 100% complete
 
 ## Micro-tasks
 
-### Phase 1: Backend APIs (3 tasks) - COMPLETE
-- [x] MT-1: Create categories API (GET /api/v1/categories)
-- [x] MT-2: Add product list endpoint (GET /api/v1/products)
-- [x] MT-3: Enhance product detail endpoint (GET /api/v1/products/:id)
+### Phase 1: Backend Fixes - COMPLETE
+- [x] MT-R1: Update pagination response format (pageSize, hasMore, totalItems)
+- [x] MT-R2: Add sorting support (sort=field:asc|desc)
 
-### Phase 2: Frontend API Integration (1 task) - COMPLETE
-- [x] MT-4: Add API methods (getCategories, getProducts, getProductById)
+### Phase 2: Frontend Fixes - COMPLETE
+- [x] MT-R3: Update API client (pageSize, hasMore, totalItems)
+- [x] MT-R4: Add page size selector (20, 50, 100)
+- [x] MT-R5: Improve empty state (icon + heading + description + action)
+- [x] MT-R6: Wire up page size in products page
 
-### Phase 3: Frontend Components (5 tasks) - COMPLETE
-- [x] MT-5: Create ProductCard component
-- [x] MT-6: Create ProductGrid component
-- [x] MT-7: Create CategoryFilter component
-- [x] MT-8: Create ProductSearch component
-- [x] MT-8b: Create Pagination component
+## Files Modified
 
-### Phase 4: Products Page (2 tasks) - COMPLETE
-- [x] MT-9: Create products page with layout
-- [x] MT-10: Wire up filtering, search, and pagination
-
-## Files Created/Modified
 ### Backend
-- backend/src/api/v1/categories/route.ts (created - categories list API)
-- backend/src/api/v1/products/route.ts (updated - list, detail, pricing endpoints)
-- backend/src/index.ts (updated - registered categories route)
+- backend/src/api/v1/products/route.ts
+  - Changed `limit` param to `pageSize`
+  - Changed response `limit` to `pageSize`
+  - Changed response `total` to `totalItems`
+  - Added `hasMore` boolean to pagination response
+  - Added `sort` query param support (field:asc or field:desc)
+  - Sortable fields: nusafSku, description, price
 
 ### Frontend
-- frontend/src/lib/api.ts (updated - catalog types and API methods)
-- frontend/src/components/products/ProductCard.tsx (created)
-- frontend/src/components/products/ProductGrid.tsx (created)
-- frontend/src/components/products/CategoryFilter.tsx (created)
-- frontend/src/components/products/ProductSearch.tsx (created)
-- frontend/src/components/products/Pagination.tsx (created)
-- frontend/src/components/products/index.ts (created - barrel export)
-- frontend/src/app/(portal)/products/page.tsx (created)
+- frontend/src/lib/api.ts
+  - Changed ProductsQueryParams `limit` to `pageSize`
+  - Added `sort` param to ProductsQueryParams
+  - Changed ProductsResponse pagination to use `pageSize`, `totalItems`, `hasMore`
+  - Updated getProducts to use `pageSize` and `sort`
 
-## Decisions Made
-- Role-based pricing display:
-  - CUSTOMER sees "Your Price" (tier-discounted price)
-  - SALES/MANAGER/ADMIN see "List Price" (official published price)
-- Pagination default 20 items per page, max 100
-- Search debounced at 300ms
-- URL params preserved for filtering state
-- Category filter auto-expands when category selected
+- frontend/src/components/products/Pagination.tsx
+  - Changed props: `limit` to `pageSize`, `total` to `totalItems`
+  - Added `onPageSizeChange` callback prop
+  - Added page size selector dropdown (20, 50, 100)
 
-## API Endpoints Created
-- GET /api/v1/categories - List categories with subcategories and product counts
-- GET /api/v1/products - List products with filtering, search, pagination
-- GET /api/v1/products/:id - Get product detail
+- frontend/src/components/products/ProductGrid.tsx
+  - Added `onClearFilters` callback prop
+  - Improved empty state with icon (Package), heading, description, and action button
 
-## Query Parameters for Products API
-- categoryId - Filter by category
-- subCategoryId - Filter by subcategory
-- supplierId - Filter by supplier
-- search - Search by SKU or description
-- page - Page number (default: 1)
-- limit - Items per page (default: 20, max: 100)
+- frontend/src/app/(portal)/products/page.tsx
+  - Added `pageSize` state synced from URL
+  - Updated pagination state to match new API response format
+  - Added `handlePageSizeChange` function
+  - Added `handleClearFilters` function
+  - Wired up page size selector and clear filters button
+
+## API Changes Summary
+
+### GET /api/v1/products
+Query params:
+- `page` - Page number (default: 1)
+- `pageSize` - Items per page (default: 20, max: 100)
+- `sort` - Sort field and direction (e.g., `nusafSku:asc`, `price:desc`)
+- `categoryId` - Filter by category
+- `subCategoryId` - Filter by subcategory
+- `supplierId` - Filter by supplier
+- `search` - Search by SKU or description
+
+Response pagination:
+```json
+{
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 150,
+    "totalPages": 8,
+    "hasMore": true
+  }
+}
+```
+
+## Skills Referenced
+- foundation/api-design-patterns - pagination format, sorting
+- domain/ui-ux-webapp - empty state pattern, page size selector
 
 ## Next Steps
-1. Push to remote
-2. Update TASKS.md to mark TASK-007 as complete
-3. Start next task from backlog
+1. Commit all changes
+2. Push to remote
+3. Mark TASK-007 as fully complete in TASKS.md
+4. Start next task from backlog
 
 ## Context for Next Session
-- Product catalog is fully implemented
-- Products are displayed with role-appropriate pricing
-- Filtering by category/subcategory works
-- Search by SKU/description works
-- Pagination works with URL state
-- "View Details" button placeholder ready for future product detail modal
+- Product catalog review remediation is complete
+- API now follows api-design-patterns skill conventions
+- UI now follows ui-ux-webapp skill conventions
+- All TypeScript checks pass
