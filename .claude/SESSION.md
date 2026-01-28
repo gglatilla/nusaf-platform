@@ -1,56 +1,105 @@
 # Current Session
 
 ## Active Task
-[TASK-006] Update Unit of Measure Codes
+[TASK-006] Pricing Engine
 
 ## Status
 COMPLETED | 100% complete
 
+## Micro-tasks
+
+### Phase 1: Database (3 tasks) - COMPLETE
+- [x] MT-1: Create GlobalSettings migration + seed default EUR/ZAR rate
+- [x] MT-2: Create PricingRule migration + relations
+- [x] MT-3: Add costPrice/listPrice fields to Product
+
+### Phase 2: Services (4 tasks) - COMPLETE
+- [x] MT-4: Create pricing.service.ts with calculateListPrice() + unit tests
+- [x] MT-5: Create settings.service.ts for EUR/ZAR rate
+- [x] MT-6: Add getPricingRuleForProduct() with category fallback
+- [x] MT-7: Add recalculateProductPrice() for batch operations
+
+### Phase 3: APIs (4 tasks) - COMPLETE
+- [x] MT-8: Settings API (GET/PATCH /admin/settings)
+- [x] MT-9: Pricing rules CRUD API (/admin/pricing-rules)
+- [x] MT-10: Product price API (GET /products/:id/price)
+- [x] MT-11: Admin recalculate endpoint
+
+### Phase 4: Import Integration (2 tasks) - COMPLETE
+- [x] MT-12: Update import to store cost prices
+- [x] MT-13: Update import to calculate list prices on import
+
 ## Completed Micro-tasks
-- [x] Read plan for UoM standardization
-- [x] Read import.service.ts and schema.prisma
-- [x] Add normalizeUnitOfMeasure() function to import.service.ts
-- [x] Update validUMs list to new standard codes
-- [x] Apply normalization in validation
-- [x] Update type assertions for new enum values
-- [x] Update Prisma UnitOfMeasure enum in schema.prisma
-- [x] Create migration SQL for enum conversion
-- [x] Run prisma migrate deploy
-- [x] Regenerate Prisma client
-- [x] Verify typecheck passes
-- [x] Commit and push changes
+- [x] MT-1: Create GlobalSettings migration + seed default EUR/ZAR rate
+- [x] MT-2: Create PricingRule migration + relations
+- [x] MT-3: Add costPrice/listPrice fields to Product
+- [x] MT-4: Create pricing.service.ts with calculateListPrice() + unit tests
+- [x] MT-5: Create settings.service.ts for EUR/ZAR rate
+- [x] MT-6: Add getPricingRuleForProduct() with category fallback
+- [x] MT-7: Add recalculateProductPrice() for batch operations
+- [x] MT-8: Settings API (GET/PATCH /admin/settings)
+- [x] MT-9: Pricing rules CRUD API (/admin/pricing-rules)
+- [x] MT-10: Product price API (GET /products/:id/price)
+- [x] MT-11: Admin recalculate endpoint
+- [x] MT-12: Update import to store cost prices
+- [x] MT-13: Update import to calculate list prices on import
 
 ## Files Modified
-- backend/src/services/import.service.ts
-  - Added normalizeUnitOfMeasure() function with mapping table
-  - Updated validUMs: ['EA', 'MTR', 'KG', 'SET', 'PR', 'ROL', 'BX']
-  - Applied normalization before validation
-  - Updated type assertions
-- backend/prisma/schema.prisma
-  - Changed UnitOfMeasure enum values: M→MTR, BOX→BX, PAIR→PR, ROLL→ROL
-- backend/prisma/migrations/20260128120000_update_unit_of_measure_codes/migration.sql
-  - Created migration to convert enum values safely
+- backend/prisma/schema.prisma (added GlobalSettings, PricingRule, Product pricing fields)
+- backend/prisma/migrations/20260128140000_add_pricing_engine/migration.sql (created)
+- backend/src/services/pricing.service.ts (created)
+- backend/src/services/settings.service.ts (created)
+- backend/src/services/import.service.ts (updated for pricing integration)
+- backend/src/api/v1/admin/settings/route.ts (created)
+- backend/src/api/v1/admin/pricing-rules/route.ts (created)
+- backend/src/api/v1/products/route.ts (created)
+- backend/src/index.ts (added new routes)
+- tests/unit/services/pricing.service.test.ts (created - 25 tests)
 
-## UoM Normalization Mapping
-| Input | Output | Meaning |
-|-------|--------|---------|
-| NR, PC, PCS | EA | Each |
-| MT, M | MTR | Metre |
-| KGM | KG | Kilogram |
-| PAIR | PR | Pair |
-| ROLL | ROL | Roll |
-| BOX | BX | Box |
+## Decisions Made
+- Cost price stored on Product model (not separate table) - simpler, 1:1 with supplier
+- Pricing rule fallback: subcategory -> category level
+- Testing is CRITICAL - pricing directly impacts revenue
+- List prices calculated during import for efficiency
+- Graceful degradation: products import even without pricing rules
 
-## Commit
-`608ac94` - Update unit of measure codes to standardized format
+## Pricing Formula Reference
+```
+Supplier Price (Gross/Net)
+-> Apply discount % (if Gross)
+-> x EUR/ZAR rate
+-> x (1 + Freight %)
+-> / Margin Divisor
+-> x 1.40 (always)
+= List Price (ZAR)
+```
+
+## Customer Tier Discounts
+| Tier | Discount |
+|------|----------|
+| END_USER | 30% off list |
+| OEM_RESELLER | 40% off list |
+| DISTRIBUTOR | 50% off list |
+
+## API Endpoints Created
+- GET /api/v1/admin/settings - Get EUR/ZAR rate and settings
+- PATCH /api/v1/admin/settings - Update EUR/ZAR rate
+- GET /api/v1/admin/pricing-rules - List pricing rules (filter by supplier/category)
+- GET /api/v1/admin/pricing-rules/:id - Get single pricing rule
+- POST /api/v1/admin/pricing-rules - Create pricing rule
+- PATCH /api/v1/admin/pricing-rules/:id - Update pricing rule
+- DELETE /api/v1/admin/pricing-rules/:id - Delete pricing rule
+- GET /api/v1/products/:id/price - Get product price for authenticated user
+- POST /api/v1/products/recalculate - Batch recalculate prices (admin)
 
 ## Next Steps
 1. Deploy to Railway (automatic via push)
-2. Re-run import validation to verify MT→MTR and NR→EA conversions
-3. Continue with next task from TASKS.md
+2. Seed pricing rules via API or admin UI
+3. Re-run product import to populate prices
+4. Continue with next task from TASKS.md
 
 ## Context for Next Session
-- UoM codes are now standardized to industry-standard short codes
-- Import service normalizes common variations automatically
-- Migration applied successfully to local database
-- Railway will need to run migration on deploy
+- Pricing engine is fully implemented and tested
+- EUR/ZAR rate seeded at 20.50
+- Import service now calculates prices during import
+- Pricing rules need to be created via API before prices can be calculated
