@@ -1,4 +1,4 @@
-// Build: 2026-01-27-v2
+// Build: 2026-01-28-v1 - Pricing Engine
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,6 +7,9 @@ import { connectDatabase } from './config/database';
 import healthRoutes from './api/v1/health/route';
 import authRoutes from './api/v1/auth/route';
 import importsRoutes from './api/v1/admin/imports/route';
+import settingsRoutes from './api/v1/admin/settings/route';
+import pricingRulesRoutes from './api/v1/admin/pricing-rules/route';
+import productsRoutes from './api/v1/products/route';
 
 const app = express();
 
@@ -22,6 +25,9 @@ app.use(express.json());
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin/imports', importsRoutes);
+app.use('/api/v1/admin/settings', settingsRoutes);
+app.use('/api/v1/admin/pricing-rules', pricingRulesRoutes);
+app.use('/api/v1/products', productsRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {
