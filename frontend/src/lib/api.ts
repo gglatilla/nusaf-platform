@@ -78,6 +78,12 @@ export interface ImportCategory {
   subcategories: Array<{ code: string; name: string }>;
 }
 
+export interface ImportCategoriesResponse {
+  categoryCount: number;
+  subCategoryCount: number;
+  categories: ImportCategory[];
+}
+
 // Global settings types
 export interface GlobalSettings {
   eurZarRate: number;
@@ -316,8 +322,8 @@ class ApiClient {
     return this.request<ApiResponse<ImportSupplier[]>>('/admin/imports/suppliers');
   }
 
-  async getImportCategories(): Promise<ApiResponse<ImportCategory[]>> {
-    return this.request<ApiResponse<ImportCategory[]>>('/admin/imports/categories');
+  async getImportCategories(): Promise<ApiResponse<ImportCategoriesResponse>> {
+    return this.request<ApiResponse<ImportCategoriesResponse>>('/admin/imports/categories');
   }
 
   // Product catalog endpoints

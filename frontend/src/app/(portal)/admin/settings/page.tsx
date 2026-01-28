@@ -81,7 +81,7 @@ export default function SettingsPage() {
           setSuppliers(suppliersRes.data);
         }
         if (categoriesRes.success && categoriesRes.data) {
-          setCategories(categoriesRes.data);
+          setCategories(categoriesRes.data.categories || []);
         }
       } catch (err) {
         console.error('Failed to load reference data:', err);
