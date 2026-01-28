@@ -4,7 +4,6 @@
 (none - ready for new task)
 
 ## Up Next
-- [TASK-008] Product detail modal [UI/Frontend]
 - [TASK-009] Admin pricing rules UI [UI/Frontend, Pricing]
 
 ## Completed
@@ -15,6 +14,7 @@
 - [TASK-005] Supplier price list import ✓
 - [TASK-006] Pricing engine — Calculate prices per customer tier ✓
 - [TASK-007] Product catalog — Display products with categories ✓
+- [TASK-008] Product detail modal ✓
 
 ## Backlog
 - [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
@@ -26,6 +26,25 @@
 
 ## Blocked
 (none)
+
+---
+
+## TASK-008 Summary (COMPLETED)
+
+**What was added:**
+
+Components:
+- Dialog component (`/components/ui/dialog.tsx`) - Radix-based modal with Nusaf styling
+- ProductDetailModal (`/components/products/ProductDetailModal.tsx`) - Full product details view
+
+Features:
+- Click "View Details" on ProductCard to open modal
+- Displays: Nusaf SKU, Supplier SKU, Description, Supplier (with color badge), Category/Subcategory, Unit of Measure, Price
+- Close via X button, clicking overlay, or pressing Escape
+- "Add to Quote" button (placeholder for TASK-011)
+
+Dependencies added:
+- @radix-ui/react-dialog
 
 ---
 

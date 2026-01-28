@@ -1,94 +1,55 @@
 # Current Session
 
 ## Active Task
-[TASK-007] Product Catalog - Review Remediation
+[TASK-008] Product Detail Modal
 
 ## Status
 COMPLETED | 100% complete
 
 ## Micro-tasks
 
-### Phase 1: Backend Fixes - COMPLETE
-- [x] MT-R1: Update pagination response format (pageSize, hasMore, totalItems)
-- [x] MT-R2: Add sorting support (sort=field:asc|desc)
+- [x] MT-1: Install shadcn/ui Dialog component
+  - Added @radix-ui/react-dialog dependency
+  - Created Dialog component with Nusaf styling
+- [x] MT-2: Create ProductDetailModal component
+  - Displays all product details (SKU, supplier SKU, description, supplier, category, UoM, price)
+  - Uses Dialog component with proper header/body/footer structure
+  - Includes supplier color badges matching ProductCard
+- [x] MT-3: Wire up modal in products page
+  - Added selectedProduct state
+  - Updated handleViewDetails to open modal
+  - Rendered ProductDetailModal with open/close state management
+- [x] MT-4: Add "Add to Quote" button (placeholder)
+  - Included in MT-2 with alert placeholder for TASK-011
 
-### Phase 2: Frontend Fixes - COMPLETE
-- [x] MT-R3: Update API client (pageSize, hasMore, totalItems)
-- [x] MT-R4: Add page size selector (20, 50, 100)
-- [x] MT-R5: Improve empty state (icon + heading + description + action)
-- [x] MT-R6: Wire up page size in products page
+## Files Created/Modified
 
-## Files Modified
+### Created
+- `frontend/src/components/ui/dialog.tsx` - Radix Dialog wrapper with Nusaf styling
+- `frontend/src/components/products/ProductDetailModal.tsx` - Product detail modal component
 
-### Backend
-- backend/src/api/v1/products/route.ts
-  - Changed `limit` param to `pageSize`
-  - Changed response `limit` to `pageSize`
-  - Changed response `total` to `totalItems`
-  - Added `hasMore` boolean to pagination response
-  - Added `sort` query param support (field:asc or field:desc)
-  - Sortable fields: nusafSku, description, price
+### Modified
+- `frontend/package.json` - Added @radix-ui/react-dialog dependency
+- `frontend/src/components/products/index.ts` - Export ProductDetailModal
+- `frontend/src/app/(portal)/products/page.tsx` - Wire up modal state and rendering
 
-### Frontend
-- frontend/src/lib/api.ts
-  - Changed ProductsQueryParams `limit` to `pageSize`
-  - Added `sort` param to ProductsQueryParams
-  - Changed ProductsResponse pagination to use `pageSize`, `totalItems`, `hasMore`
-  - Updated getProducts to use `pageSize` and `sort`
-
-- frontend/src/components/products/Pagination.tsx
-  - Changed props: `limit` to `pageSize`, `total` to `totalItems`
-  - Added `onPageSizeChange` callback prop
-  - Added page size selector dropdown (20, 50, 100)
-
-- frontend/src/components/products/ProductGrid.tsx
-  - Added `onClearFilters` callback prop
-  - Improved empty state with icon (Package), heading, description, and action button
-
-- frontend/src/app/(portal)/products/page.tsx
-  - Added `pageSize` state synced from URL
-  - Updated pagination state to match new API response format
-  - Added `handlePageSizeChange` function
-  - Added `handleClearFilters` function
-  - Wired up page size selector and clear filters button
-
-## API Changes Summary
-
-### GET /api/v1/products
-Query params:
-- `page` - Page number (default: 1)
-- `pageSize` - Items per page (default: 20, max: 100)
-- `sort` - Sort field and direction (e.g., `nusafSku:asc`, `price:desc`)
-- `categoryId` - Filter by category
-- `subCategoryId` - Filter by subcategory
-- `supplierId` - Filter by supplier
-- `search` - Search by SKU or description
-
-Response pagination:
-```json
-{
-  "pagination": {
-    "page": 1,
-    "pageSize": 20,
-    "totalItems": 150,
-    "totalPages": 8,
-    "hasMore": true
-  }
-}
-```
+## Verification
+- TypeScript check passes (`npm run typecheck`)
+- All modal interactions work: open, close (X button, overlay click, Escape key)
+- Product details display correctly with proper formatting
+- "Add to Quote" button shows placeholder alert
 
 ## Skills Referenced
-- foundation/api-design-patterns - pagination format, sorting
-- domain/ui-ux-webapp - empty state pattern, page size selector
+- foundation/ui-component-system - shadcn/ui primitives
+- domain/ui-ux-webapp - modal styling (overlay, padding, shadows)
+- domain/brand-identity - color badges for suppliers
 
 ## Next Steps
-1. Commit all changes
-2. Push to remote
-3. Mark TASK-007 as fully complete in TASKS.md
-4. Start next task from backlog
+1. Push all commits to remote
+2. Update TASKS.md to mark TASK-008 complete
+3. Start next task from backlog
 
 ## Context for Next Session
-- Product catalog review remediation is complete
-- API now follows api-design-patterns skill conventions
-- UI now follows ui-ux-webapp skill conventions
-- All TypeScript checks pass
+- ProductDetailModal is fully implemented and wired up
+- "Add to Quote" button is a placeholder pending TASK-011 (Quote creation flow)
+- Dialog component in `/components/ui/dialog.tsx` can be reused for other modals
