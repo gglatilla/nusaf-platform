@@ -27,6 +27,10 @@ export default function SettingsPage() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Recalculate prices state
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [recalcMessage, setRecalcMessage] = useState<string | null>(null);
+
   // Pricing rules state
   const [rules, setRules] = useState<PricingRule[]>([]);
   const [suppliers, setSuppliers] = useState<ImportSupplier[]>([]);
@@ -147,6 +151,28 @@ export default function SettingsPage() {
       setError(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handle recalculate all prices
+  const handleRecalculateAll = async () => {
+    setIsRecalculating(true);
+    setRecalcMessage(null);
+    setError(null);
+
+    try {
+      const response = await api.recalculatePrices();
+      if (response.success && response.data) {
+        setRecalcMessage(`Recalculated ${response.data.updated}/${response.data.total} products`);
+        setTimeout(() => setRecalcMessage(null), 5000);
+      } else {
+        setError('Failed to recalculate prices');
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to recalculate prices';
+      setError(message);
+    } finally {
+      setIsRecalculating(false);
     }
   };
 
@@ -399,6 +425,52 @@ export default function SettingsPage() {
                       </>
                     )}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Recalculate Prices Section */}
+            {!isLoadingSettings && (
+              <div className="bg-white border border-slate-200 rounded-lg mt-6">
+                <div className="px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-slate-900">Recalculate Product Prices</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Recalculate list prices for all products using current pricing rules and exchange rate
+                  </p>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-sm text-slate-600 mb-4">
+                    Use this to update all product prices after changing the exchange rate or pricing rules.
+                    Products without matching pricing rules will remain as &quot;Price on Request&quot;.
+                  </p>
+
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={handleRecalculateAll}
+                      disabled={isRecalculating}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-md border border-slate-300 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRecalculating ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Recalculating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4" />
+                          Recalculate All Prices
+                        </>
+                      )}
+                    </button>
+
+                    {recalcMessage && (
+                      <div className="flex items-center gap-2 text-sm text-emerald-600">
+                        <CheckCircle className="h-4 w-4" />
+                        {recalcMessage}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

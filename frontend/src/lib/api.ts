@@ -194,6 +194,12 @@ export interface ProductsQueryParams {
   sort?: string;
 }
 
+// Recalculate prices response
+export interface RecalculatePricesResult {
+  updated: number;
+  total: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -387,6 +393,14 @@ class ApiClient {
   async deletePricingRule(id: string): Promise<ApiResponse<void>> {
     return this.request<ApiResponse<void>>(`/admin/pricing-rules/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Recalculate prices endpoint
+  async recalculatePrices(): Promise<ApiResponse<RecalculatePricesResult>> {
+    return this.request<ApiResponse<RecalculatePricesResult>>('/products/recalculate', {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
   }
 }
