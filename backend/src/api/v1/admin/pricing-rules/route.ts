@@ -150,12 +150,58 @@ router.post('/', async (req, res) => {
 
     const data = parseResult.data;
 
+    // Lookup supplier by code (frontend sends code, database expects CUID)
+    const supplier = await prisma.supplier.findUnique({
+      where: { code: data.supplierId },
+    });
+    if (!supplier) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_SUPPLIER',
+          message: `Supplier not found: ${data.supplierId}`,
+        },
+      });
+    }
+
+    // Lookup category by code
+    const category = await prisma.category.findUnique({
+      where: { code: data.categoryId },
+    });
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_CATEGORY',
+          message: `Category not found: ${data.categoryId}`,
+        },
+      });
+    }
+
+    // Lookup subCategory by code (optional)
+    let subCategoryId: string | null = null;
+    if (data.subCategoryId) {
+      const subCategory = await prisma.subCategory.findUnique({
+        where: { code: data.subCategoryId },
+      });
+      if (!subCategory) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_SUBCATEGORY',
+            message: `SubCategory not found: ${data.subCategoryId}`,
+          },
+        });
+      }
+      subCategoryId = subCategory.id;
+    }
+
     // Check if rule already exists for this combination
     const existing = await prisma.pricingRule.findFirst({
       where: {
-        supplierId: data.supplierId,
-        categoryId: data.categoryId,
-        subCategoryId: data.subCategoryId ?? null,
+        supplierId: supplier.id,
+        categoryId: category.id,
+        subCategoryId: subCategoryId,
       },
     });
 
@@ -171,9 +217,9 @@ router.post('/', async (req, res) => {
 
     const rule = await prisma.pricingRule.create({
       data: {
-        supplierId: data.supplierId,
-        categoryId: data.categoryId,
-        subCategoryId: data.subCategoryId ?? null,
+        supplierId: supplier.id,
+        categoryId: category.id,
+        subCategoryId: subCategoryId,
         isGross: data.isGross,
         discountPercent: data.discountPercent != null ? new Decimal(data.discountPercent) : null,
         freightPercent: new Decimal(data.freightPercent),
