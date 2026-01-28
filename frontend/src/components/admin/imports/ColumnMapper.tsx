@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, Check, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { convertTecomSku } from '@nusaf/shared';
 
 export interface ColumnMapping {
   CODE: string;
@@ -19,6 +20,7 @@ interface ColumnMapperProps {
   initialMapping?: Partial<ColumnMapping>;
   onMappingChange: (mapping: ColumnMapping) => void;
   onValidationChange: (isValid: boolean) => void;
+  supplierCode?: string;
 }
 
 const REQUIRED_FIELDS: Array<keyof ColumnMapping> = ['CODE', 'DESCRIPTION', 'PRICE', 'CATEGORY'];
@@ -39,6 +41,7 @@ export function ColumnMapper({
   initialMapping,
   onMappingChange,
   onValidationChange,
+  supplierCode,
 }: ColumnMapperProps) {
   const [mapping, setMapping] = useState<Partial<ColumnMapping>>(initialMapping || {});
   const [showPreview, setShowPreview] = useState(true);
@@ -71,6 +74,26 @@ export function ColumnMapper({
   const isMapped = (field: keyof ColumnMapping): boolean => {
     return !!mapping[field] && mapping[field] !== '';
   };
+
+  // Convert supplier SKU to Nusaf code based on supplier
+  const convertToNusafCode = (supplierSku: string): string => {
+    if (!supplierCode) return supplierSku;
+
+    // Tecom requires SKU conversion
+    if (supplierCode === 'TECOM') {
+      try {
+        return convertTecomSku(supplierSku);
+      } catch {
+        return supplierSku; // Return original if conversion fails
+      }
+    }
+
+    // Chiaravalli, Regina: use supplier SKU directly
+    return supplierSku;
+  };
+
+  // Get the mapped CODE column name
+  const codeColumnName = mapping.CODE;
 
   return (
     <div className="space-y-6">
@@ -150,7 +173,13 @@ export function ColumnMapper({
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  {headers.slice(0, 6).map((header) => (
+                  {/* Show NUSAF CODE as first column if CODE is mapped */}
+                  {codeColumnName && (
+                    <th className="px-3 py-2 text-left text-xs font-medium text-primary-600 uppercase tracking-wider">
+                      NUSAF CODE
+                    </th>
+                  )}
+                  {headers.slice(0, codeColumnName ? 5 : 6).map((header) => (
                     <th
                       key={header}
                       className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
@@ -163,7 +192,13 @@ export function ColumnMapper({
               <tbody className="bg-white divide-y divide-slate-200">
                 {sampleData.slice(0, 3).map((row, idx) => (
                   <tr key={idx}>
-                    {headers.slice(0, 6).map((header) => (
+                    {/* Show converted Nusaf code as first column */}
+                    {codeColumnName && (
+                      <td className="px-3 py-2 text-sm font-medium text-primary-700 whitespace-nowrap">
+                        {convertToNusafCode(String(row[codeColumnName] ?? ''))}
+                      </td>
+                    )}
+                    {headers.slice(0, codeColumnName ? 5 : 6).map((header) => (
                       <td key={header} className="px-3 py-2 text-sm text-slate-600 whitespace-nowrap">
                         {String(row[header] ?? '—').slice(0, 25)}
                       </td>

@@ -257,6 +257,7 @@ export default function NewImportPage() {
               initialMapping={uploadResult.detectedMapping}
               onMappingChange={setColumnMapping}
               onValidationChange={setMappingValid}
+              supplierCode={selectedSupplier}
             />
 
             {/* Error message */}
