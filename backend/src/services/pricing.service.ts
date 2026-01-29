@@ -291,8 +291,9 @@ export async function recalculateProductPrices(options: {
   const ruleCache = new Map<string, Awaited<ReturnType<typeof getPricingRule>>>();
 
   const errors: Array<{ productId: string; error: string }> = [];
-  let updated = 0;
+  const updates: Array<{ id: string; listPrice: Decimal; priceUpdatedAt: Date; updatedBy?: string }> = [];
 
+  // First pass: calculate all prices and collect updates
   for (const product of products) {
     const cacheKey = `${product.supplierId}:${product.categoryId}:${product.subCategoryId ?? 'null'}`;
 
@@ -321,16 +322,12 @@ export async function recalculateProductPrices(options: {
         isLocal: product.supplier.isLocal,
       });
 
-      await prisma.product.update({
-        where: { id: product.id },
-        data: {
-          listPrice: new Decimal(breakdown.listPrice),
-          priceUpdatedAt: new Date(),
-          updatedBy: userId,
-        },
+      updates.push({
+        id: product.id,
+        listPrice: new Decimal(breakdown.listPrice),
+        priceUpdatedAt: new Date(),
+        updatedBy: userId,
       });
-
-      updated++;
     } catch (e) {
       errors.push({
         productId: product.id,
@@ -339,9 +336,23 @@ export async function recalculateProductPrices(options: {
     }
   }
 
+  // Second pass: batch all updates in a single transaction
+  if (updates.length > 0) {
+    await prisma.$transaction(
+      updates.map(u => prisma.product.update({
+        where: { id: u.id },
+        data: {
+          listPrice: u.listPrice,
+          priceUpdatedAt: u.priceUpdatedAt,
+          updatedBy: u.updatedBy,
+        },
+      }))
+    );
+  }
+
   return {
     total: products.length,
-    updated,
+    updated: updates.length,
     failed: errors.length,
     errors,
   };
