@@ -200,6 +200,102 @@ export interface RecalculatePricesResult {
   total: number;
 }
 
+// Quote types
+export type QuoteStatus = 'DRAFT' | 'CREATED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED' | 'CONVERTED';
+
+export interface QuoteItem {
+  id: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface Quote {
+  id: string;
+  quoteNumber: string;
+  status: QuoteStatus;
+  customerTier: string;
+  company: {
+    id: string;
+    name: string;
+  };
+  items: QuoteItem[];
+  subtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  total: number;
+  customerNotes: string | null;
+  validUntil: string | null;
+  finalizedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuoteListItem {
+  id: string;
+  quoteNumber: string;
+  status: QuoteStatus;
+  itemCount: number;
+  total: number;
+  validUntil: string | null;
+  createdAt: string;
+}
+
+export interface QuotesListResponse {
+  quotes: QuoteListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface ActiveDraftQuote {
+  id: string;
+  quoteNumber: string;
+  itemCount: number;
+  items: QuoteItem[];
+  subtotal: number;
+  vatAmount: number;
+  total: number;
+}
+
+export interface CreateQuoteResponse {
+  id: string;
+  quoteNumber: string;
+  isNew: boolean;
+}
+
+export interface AddQuoteItemData {
+  productId: string;
+  quantity: number;
+}
+
+export interface AddQuoteItemResponse {
+  id: string;
+  lineNumber: number;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface FinalizeQuoteResponse {
+  id: string;
+  quoteNumber: string;
+  validUntil: string;
+}
+
+export interface QuotesQueryParams {
+  status?: QuoteStatus;
+  page?: number;
+  pageSize?: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -399,6 +495,81 @@ class ApiClient {
   // Recalculate prices endpoint
   async recalculatePrices(): Promise<ApiResponse<RecalculatePricesResult>> {
     return this.request<ApiResponse<RecalculatePricesResult>>('/products/recalculate', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Quote endpoints
+  async createQuote(): Promise<ApiResponse<CreateQuoteResponse>> {
+    return this.request<ApiResponse<CreateQuoteResponse>>('/quotes', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getQuotes(params: QuotesQueryParams = {}): Promise<ApiResponse<QuotesListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/quotes?${queryString}` : '/quotes';
+    return this.request<ApiResponse<QuotesListResponse>>(endpoint);
+  }
+
+  async getQuoteById(id: string): Promise<ApiResponse<Quote>> {
+    return this.request<ApiResponse<Quote>>(`/quotes/${id}`);
+  }
+
+  async getActiveQuote(): Promise<ApiResponse<ActiveDraftQuote | null>> {
+    return this.request<ApiResponse<ActiveDraftQuote | null>>('/quotes/active');
+  }
+
+  async updateQuoteNotes(id: string, customerNotes: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ customerNotes }),
+    });
+  }
+
+  async addQuoteItem(quoteId: string, data: AddQuoteItemData): Promise<ApiResponse<AddQuoteItemResponse>> {
+    return this.request<ApiResponse<AddQuoteItemResponse>>(`/quotes/${quoteId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateQuoteItemQuantity(quoteId: string, itemId: string, quantity: number): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${quoteId}/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    });
+  }
+
+  async removeQuoteItem(quoteId: string, itemId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${quoteId}/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async finalizeQuote(id: string): Promise<ApiResponse<FinalizeQuoteResponse>> {
+    return this.request<ApiResponse<FinalizeQuoteResponse>>(`/quotes/${id}/finalize`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async acceptQuote(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async rejectQuote(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({}),
     });

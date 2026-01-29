@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { QuoteCart } from '@/components/quotes/QuoteCart';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -31,8 +32,11 @@ export function Header({ onMenuClick, isCollapsed }: HeaderProps) {
         Nusaf
       </span>
 
-      {/* Spacer - can add breadcrumbs or search here later */}
+      {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Quote Cart */}
+      <QuoteCart />
     </header>
   );
 }
