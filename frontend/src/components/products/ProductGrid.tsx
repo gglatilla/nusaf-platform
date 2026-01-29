@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Package } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import type { CatalogProduct } from '@/lib/api';
@@ -11,7 +12,7 @@ interface ProductGridProps {
   onClearFilters?: () => void;
 }
 
-export function ProductGrid({ products, isLoading, onViewDetails, onClearFilters }: ProductGridProps) {
+export const ProductGrid = memo(function ProductGrid({ products, isLoading, onViewDetails, onClearFilters }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -51,7 +52,7 @@ export function ProductGrid({ products, isLoading, onViewDetails, onClearFilters
       ))}
     </div>
   );
-}
+});
 
 function ProductCardSkeleton() {
   return (

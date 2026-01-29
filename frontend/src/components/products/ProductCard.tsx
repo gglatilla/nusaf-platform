@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import type { CatalogProduct } from '@/lib/api';
 
@@ -8,7 +9,7 @@ interface ProductCardProps {
   onViewDetails?: (product: CatalogProduct) => void;
 }
 
-export function ProductCard({ product, onViewDetails }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const formattedPrice = product.price
     ? new Intl.NumberFormat('en-ZA', {
         style: 'currency',
@@ -64,4 +65,4 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
       </button>
     </div>
   );
-}
+});
