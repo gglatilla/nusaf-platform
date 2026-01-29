@@ -3,7 +3,6 @@ import {
   api,
   type QuotesQueryParams,
   type AddQuoteItemData,
-  type RejectQuoteData,
 } from '@/lib/api';
 
 /**
@@ -175,18 +174,18 @@ export function useAcceptQuote() {
 }
 
 /**
- * Hook for rejecting a quote (CREATED -> REJECTED) with optional feedback
+ * Hook for rejecting a quote (CREATED -> REJECTED)
  */
 export function useRejectQuote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ quoteId, data }: { quoteId: string; data?: RejectQuoteData }) => {
-      const response = await api.rejectQuote(quoteId, data);
+    mutationFn: async (quoteId: string) => {
+      const response = await api.rejectQuote(quoteId);
       return response.data;
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['quote', variables.quoteId] });
+    onSuccess: (_data, quoteId) => {
+      queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
     },
   });

@@ -203,19 +203,6 @@ export interface RecalculatePricesResult {
 // Quote types
 export type QuoteStatus = 'DRAFT' | 'CREATED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED' | 'CONVERTED';
 
-export type RejectionReason =
-  | 'PRICE_TOO_HIGH'
-  | 'LEAD_TIME'
-  | 'WENT_ELSEWHERE'
-  | 'PROJECT_CHANGED'
-  | 'SPECS_MISMATCH'
-  | 'OTHER';
-
-export interface RejectQuoteData {
-  reason?: RejectionReason;
-  notes?: string;
-}
-
 export interface QuoteItem {
   id: string;
   lineNumber: number;
@@ -581,10 +568,10 @@ class ApiClient {
     });
   }
 
-  async rejectQuote(id: string, data?: RejectQuoteData): Promise<ApiResponse<{ message: string }>> {
+  async rejectQuote(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}/reject`, {
       method: 'POST',
-      body: JSON.stringify(data || {}),
+      body: JSON.stringify({}),
     });
   }
 

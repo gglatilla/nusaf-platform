@@ -4,11 +4,10 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Check, X, Send, Calendar, Building, Trash2 } from 'lucide-react';
-import { useQuote, useFinalizeQuote, useAcceptQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
+import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
-import { RejectQuoteModal } from '@/components/quotes/RejectQuoteModal';
 
 function formatDate(dateString: string): string {
   return new Intl.DateTimeFormat('en-ZA', {
@@ -67,12 +66,12 @@ export default function QuoteDetailPage() {
   const { data: quote, isLoading, error } = useQuote(quoteId);
   const finalize = useFinalizeQuote();
   const accept = useAcceptQuote();
+  const reject = useRejectQuote();
   const deleteQuote = useDeleteQuote();
   const updateNotes = useUpdateQuoteNotes();
 
   const [notes, setNotes] = useState('');
   const [notesEditing, setNotesEditing] = useState(false);
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -106,8 +105,10 @@ export default function QuoteDetailPage() {
     }
   };
 
-  const handleReject = () => {
-    setRejectModalOpen(true);
+  const handleReject = async () => {
+    if (confirm('Reject this quote?')) {
+      await reject.mutateAsync(quoteId);
+    }
   };
 
   const handleDelete = async () => {
@@ -177,10 +178,11 @@ export default function QuoteDetailPage() {
               </button>
               <button
                 onClick={handleReject}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+                disabled={reject.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
-                Reject
+                {reject.isPending ? 'Rejecting...' : 'Reject'}
               </button>
             </>
           )}
@@ -313,13 +315,6 @@ export default function QuoteDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Reject Quote Modal */}
-      <RejectQuoteModal
-        quoteId={quoteId}
-        isOpen={rejectModalOpen}
-        onClose={() => setRejectModalOpen(false)}
-      />
     </div>
   );
 }

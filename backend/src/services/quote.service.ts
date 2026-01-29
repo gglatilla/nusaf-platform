@@ -1,4 +1,4 @@
-import { Prisma, QuoteStatus, CustomerTier, RejectionReason } from '@prisma/client';
+import { Prisma, QuoteStatus, CustomerTier } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { calculateCustomerPrice } from './pricing.service';
@@ -439,8 +439,7 @@ export async function acceptQuote(
  */
 export async function rejectQuote(
   quoteId: string,
-  userId: string,
-  feedback?: { reason?: RejectionReason; notes?: string }
+  userId: string
 ): Promise<{ success: boolean; error?: string }> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
@@ -458,9 +457,6 @@ export async function rejectQuote(
     where: { id: quoteId },
     data: {
       status: 'REJECTED',
-      rejectionReason: feedback?.reason || null,
-      rejectionNotes: feedback?.notes || null,
-      rejectedAt: new Date(),
       lastActivityAt: new Date(),
       updatedBy: userId,
     },
