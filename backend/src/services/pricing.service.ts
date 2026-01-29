@@ -287,21 +287,44 @@ export async function recalculateProductPrices(options: {
   // Get global settings once
   const settings = await getGlobalSettings();
 
-  // Cache pricing rules to avoid repeated DB queries
-  const ruleCache = new Map<string, Awaited<ReturnType<typeof getPricingRule>>>();
+  // Pre-fetch ALL pricing rules in a single query (instead of sequential queries per combo)
+  const allRules = await prisma.pricingRule.findMany({
+    where: supplierId ? { supplierId } : undefined,
+  });
+
+  // Build cache from the result - one entry per unique combo
+  const ruleCache = new Map<string, {
+    id: string;
+    isGross: boolean;
+    discountPercent: number | null;
+    freightPercent: number;
+    marginDivisor: number;
+  }>();
+  for (const rule of allRules) {
+    const key = `${rule.supplierId}:${rule.categoryId}:${rule.subCategoryId ?? 'null'}`;
+    ruleCache.set(key, {
+      id: rule.id,
+      isGross: rule.isGross,
+      discountPercent: rule.discountPercent ? Number(rule.discountPercent) : null,
+      freightPercent: Number(rule.freightPercent),
+      marginDivisor: Number(rule.marginDivisor),
+    });
+  }
 
   const errors: Array<{ productId: string; error: string }> = [];
   const updates: Array<{ id: string; listPrice: Decimal; priceUpdatedAt: Date; updatedBy?: string }> = [];
 
-  // First pass: calculate all prices and collect updates
+  // Process products - NO DB queries in the loop
   for (const product of products) {
-    const cacheKey = `${product.supplierId}:${product.categoryId}:${product.subCategoryId ?? 'null'}`;
+    // First try exact match (with subcategory)
+    let cacheKey = `${product.supplierId}:${product.categoryId}:${product.subCategoryId ?? 'null'}`;
+    let rule = ruleCache.get(cacheKey);
 
-    if (!ruleCache.has(cacheKey)) {
-      ruleCache.set(cacheKey, await getPricingRule(product.supplierId, product.categoryId, product.subCategoryId));
+    // Fall back to category-level rule if no exact match
+    if (!rule && product.subCategoryId) {
+      cacheKey = `${product.supplierId}:${product.categoryId}:null`;
+      rule = ruleCache.get(cacheKey);
     }
-
-    const rule = ruleCache.get(cacheKey);
 
     if (!rule) {
       errors.push({
