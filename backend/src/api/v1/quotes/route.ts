@@ -6,6 +6,7 @@ import {
   updateQuoteItemSchema,
   updateQuoteNotesSchema,
   quoteListQuerySchema,
+  rejectQuoteSchema,
 } from '../../../utils/validation/quotes';
 import {
   getOrCreateDraftQuote,
@@ -530,12 +531,25 @@ router.post('/:id/accept', authenticate, async (req, res) => {
 
 /**
  * POST /api/v1/quotes/:id/reject
- * Reject quote (CREATED -> REJECTED)
+ * Reject quote (CREATED -> REJECTED) with optional feedback
  */
 router.post('/:id/reject', authenticate, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params;
+
+    // Validate request body (optional feedback)
+    const bodyResult = rejectQuoteSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
 
     // Verify quote belongs to company
     const quote = await getQuoteById(id, authReq.user.companyId);
@@ -546,7 +560,11 @@ router.post('/:id/reject', authenticate, async (req, res) => {
       });
     }
 
-    const result = await rejectQuote(id, authReq.user.id);
+    const feedback = bodyResult.data.reason || bodyResult.data.notes
+      ? { reason: bodyResult.data.reason, notes: bodyResult.data.notes }
+      : undefined;
+
+    const result = await rejectQuote(id, authReq.user.id, feedback);
 
     if (!result.success) {
       return res.status(400).json({

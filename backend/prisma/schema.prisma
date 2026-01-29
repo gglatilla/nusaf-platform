@@ -428,6 +428,15 @@ enum QuoteStatus {
   CONVERTED
 }
 
+enum RejectionReason {
+  PRICE_TOO_HIGH
+  LEAD_TIME
+  WENT_ELSEWHERE
+  PROJECT_CHANGED
+  SPECS_MISMATCH
+  OTHER
+}
+
 // ============================================
 // PRICING ENTITIES
 // ============================================
@@ -496,6 +505,11 @@ model Quote {
 
   // Notes
   customerNotes String? @map("customer_notes")
+
+  // Rejection feedback
+  rejectionReason RejectionReason? @map("rejection_reason")
+  rejectionNotes  String?          @map("rejection_notes")
+  rejectedAt      DateTime?        @map("rejected_at")
 
   // Document
   pdfUrl String? @map("pdf_url")
