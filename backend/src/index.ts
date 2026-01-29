@@ -12,6 +12,7 @@ import settingsRoutes from './api/v1/admin/settings/route';
 import pricingRulesRoutes from './api/v1/admin/pricing-rules/route';
 import productsRoutes from './api/v1/products/route';
 import categoriesRoutes from './api/v1/categories/route';
+import quotesRoutes from './api/v1/quotes/route';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/v1/admin/settings', settingsRoutes);
 app.use('/api/v1/admin/pricing-rules', pricingRulesRoutes);
 app.use('/api/v1/products', productsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
+app.use('/api/v1/quotes', quotesRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {
