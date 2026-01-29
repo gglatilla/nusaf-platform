@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import { config } from './config';
 import { connectDatabase } from './config/database';
 import healthRoutes from './api/v1/health/route';
@@ -16,6 +17,7 @@ const app = express();
 
 // Middleware
 app.use(helmet());
+app.use(compression());
 app.use(cors({
   origin: config.corsOrigins,
   credentials: true,
