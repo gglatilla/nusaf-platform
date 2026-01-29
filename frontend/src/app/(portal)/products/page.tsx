@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/layout/PageHeader';
 import {
@@ -10,7 +10,8 @@ import {
   Pagination,
   ProductDetailModal,
 } from '@/components/products';
-import { api, type CatalogCategory, type CatalogProduct, type ProductsResponse } from '@/lib/api';
+import { useProducts, useCategories } from '@/hooks/useProducts';
+import type { CatalogProduct } from '@/lib/api';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -23,20 +24,6 @@ export default function ProductsPage() {
   const urlPage = parseInt(searchParams.get('page') || '1', 10);
   const urlPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
 
-  // State
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 20,
-    totalItems: 0,
-    totalPages: 0,
-    hasMore: false,
-  });
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Local state for filters (synced from URL)
   const [categoryId, setCategoryId] = useState<string | null>(urlCategoryId);
   const [subCategoryId, setSubCategoryId] = useState<string | null>(urlSubCategoryId);
@@ -46,6 +33,29 @@ export default function ProductsPage() {
 
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+
+  // React Query hooks
+  const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
+  const {
+    data: productsData,
+    isLoading: isLoadingProducts,
+    error: productsError,
+  } = useProducts({
+    categoryId: categoryId || undefined,
+    subCategoryId: subCategoryId || undefined,
+    search: search || undefined,
+    page,
+    pageSize,
+  });
+
+  const products = productsData?.products ?? [];
+  const pagination = productsData?.pagination ?? {
+    page: 1,
+    pageSize: 20,
+    totalItems: 0,
+    totalPages: 0,
+    hasMore: false,
+  };
 
   // Update URL when filters change
   const updateUrl = useCallback(
@@ -75,54 +85,6 @@ export default function ProductsPage() {
     },
     [categoryId, subCategoryId, search, page, pageSize, router]
   );
-
-  // Fetch categories
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const response = await api.getCategories();
-        if (response.success && response.data) {
-          setCategories(response.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch categories:', err);
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    }
-
-    fetchCategories();
-  }, []);
-
-  // Fetch products when filters change
-  useEffect(() => {
-    async function fetchProducts() {
-      setIsLoadingProducts(true);
-      setError(null);
-
-      try {
-        const response = await api.getProducts({
-          categoryId: categoryId || undefined,
-          subCategoryId: subCategoryId || undefined,
-          search: search || undefined,
-          page,
-          pageSize,
-        });
-
-        if (response.success && response.data) {
-          setProducts(response.data.products);
-          setPagination(response.data.pagination);
-        }
-      } catch (err) {
-        console.error('Failed to fetch products:', err);
-        setError('Failed to load products. Please try again.');
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    }
-
-    fetchProducts();
-  }, [categoryId, subCategoryId, search, page, pageSize]);
 
   // Handle category change
   const handleCategoryChange = (newCategoryId: string | null, newSubCategoryId: string | null) => {
@@ -167,6 +129,8 @@ export default function ProductsPage() {
   const handleViewDetails = (product: CatalogProduct) => {
     setSelectedProduct(product);
   };
+
+  const error = productsError ? 'Failed to load products. Please try again.' : null;
 
   return (
     <>
