@@ -260,17 +260,14 @@ router.post('/', async (req, res) => {
       },
     });
 
-    // Trigger price recalculation for affected products
-    try {
-      await recalculateProductPrices({
-        supplierId: supplier.id,
-        categoryId: category.id,
-        userId: authReq.user.id,
-      });
-    } catch (recalcError) {
-      // Log but don't fail the request - rule was created successfully
+    // Fire-and-forget: trigger price recalculation in background (don't block response)
+    recalculateProductPrices({
+      supplierId: supplier.id,
+      categoryId: category.id,
+      userId: authReq.user.id,
+    }).catch((recalcError) => {
       console.error('Price recalculation failed:', recalcError);
-    }
+    });
 
     return res.status(201).json({
       success: true,
@@ -349,17 +346,14 @@ router.patch('/:id', async (req, res) => {
       },
     });
 
-    // Trigger price recalculation for affected products
-    try {
-      await recalculateProductPrices({
-        supplierId: existing.supplierId,
-        categoryId: existing.categoryId,
-        userId: authReq.user.id,
-      });
-    } catch (recalcError) {
-      // Log but don't fail the request - rule was updated successfully
+    // Fire-and-forget: trigger price recalculation in background (don't block response)
+    recalculateProductPrices({
+      supplierId: existing.supplierId,
+      categoryId: existing.categoryId,
+      userId: authReq.user.id,
+    }).catch((recalcError) => {
       console.error('Price recalculation failed:', recalcError);
-    }
+    });
 
     return res.json({
       success: true,
