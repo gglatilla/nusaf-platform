@@ -1,43 +1,26 @@
 # Current Session
 
 ## Active Task
-Add Recalculate Prices Button to Settings UI
+(none - ready for new task)
 
 ## Status
-COMPLETED | 100% complete
+READY | No active task
 
-## Completed Work This Session
+## Session Notes
 
-### Recalculate Prices Button
-- Added `RecalculatePricesResult` type to `frontend/src/lib/api.ts`
-- Added `recalculatePrices()` method to API client (calls `POST /products/recalculate`)
-- Added state for recalculation: `isRecalculating`, `recalcMessage`
-- Added `handleRecalculateAll` function with loading/error handling
-- Added "Recalculate Product Prices" section to Exchange Rate tab:
-  - Explanatory text about what the button does
-  - Button with loading state (spinner + "Recalculating...")
-  - Success message showing "Recalculated X/Y products"
+Discovered that TASK-009 (Admin pricing rules UI) was already fully implemented:
+- Settings page at `/admin/settings` with two tabs
+- Exchange Rate tab: EUR/ZAR configuration + Recalculate Prices button
+- Pricing Rules tab: Full CRUD with table, filter by supplier, add/edit modal, delete confirmation
+- Backend API at `/api/v1/admin/pricing-rules` with all CRUD endpoints
+- Auto-recalculation triggered when rules change
 
-## Files Modified
+Updated TASKS.md to mark TASK-009 as complete.
 
-- `frontend/src/lib/api.ts` - Added RecalculatePricesResult type and recalculatePrices() method
-- `frontend/src/app/(portal)/admin/settings/page.tsx` - Added recalculate prices section to Exchange Rate tab
-
-## Commits
-- `afb0cba` - Fix: Add Recalculate Prices button to Settings UI (pushed to origin/master)
-
-## Verification
-- TypeScript check passes
-- Code pushed to GitHub (origin/master at afb0cba)
-- User noted deployment shows fc9cde9b (not in repo history - may be deployment service delay or different deployment ID)
-
-## Next Steps
-1. Verify deployment picks up the new commit
-2. Test the Recalculate All Prices button in the deployed environment
-3. Check Products page to confirm prices are visible after recalculation
+## Next Available Task
+[TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
 
 ## Context for Next Session
-- Backend already has auto-recalculation on EUR/ZAR rate change (commit e8afbdf)
-- This UI addition provides manual trigger for recalculating all product prices
-- Button is in Settings > Exchange Rate tab, below the rate input
-- Calls existing `POST /api/v1/products/recalculate` endpoint
+- All pricing infrastructure is complete (rules, recalculation, EUR/ZAR rate)
+- Product catalog with categories and detail modal is working
+- Ready to start quote creation flow

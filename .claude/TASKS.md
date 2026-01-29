@@ -4,7 +4,7 @@
 (none - ready for new task)
 
 ## Up Next
-- [TASK-009] Admin pricing rules UI [UI/Frontend, Pricing]
+- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
@@ -15,6 +15,7 @@
 - [TASK-006] Pricing engine — Calculate prices per customer tier ✓
 - [TASK-007] Product catalog — Display products with categories ✓
 - [TASK-008] Product detail modal ✓
+- [TASK-009] Admin pricing rules UI ✓ (already implemented - two tabs in Settings: Exchange Rate + Pricing Rules)
 
 ## Backlog
 - [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
