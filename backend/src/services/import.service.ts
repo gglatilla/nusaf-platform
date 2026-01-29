@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { convertTecomSku } from '@nusaf/shared';
+import { prisma } from '../config/database';
 import type { ParsedRow } from './excel-parser.service';
 import type {
   RowValidationResult,
@@ -9,8 +9,6 @@ import type {
   ImportValidationResult,
 } from '../utils/validation/imports';
 import { calculateListPrice, getPricingRule, getGlobalSettings } from './pricing.service';
-
-const prisma = new PrismaClient();
 
 /**
  * Normalizes unit of measure codes to standard codes

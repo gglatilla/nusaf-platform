@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../../config/database';
 import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   calculateProductPrice,
@@ -8,7 +9,6 @@ import {
 } from '../../../services/pricing.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/v1/products
