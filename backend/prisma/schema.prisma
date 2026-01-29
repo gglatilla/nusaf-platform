@@ -36,6 +36,7 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("users")
 }
 
@@ -98,6 +99,7 @@ model CompanyAddress {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("company_addresses")
 }
 
@@ -115,6 +117,7 @@ model CompanyContact {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("company_contacts")
 }
 
@@ -234,6 +237,7 @@ model SubCategory {
   updatedBy String?  @map("updated_by")
 
   @@unique([categoryId, code])
+  @@index([categoryId])
   @@map("sub_categories")
 }
 
@@ -274,6 +278,7 @@ model Product {
   @@unique([supplierId, supplierSku])
   @@index([supplierId])
   @@index([categoryId])
+  @@index([subCategoryId])
   @@index([nusafSku])
   @@map("products")
 }
@@ -452,5 +457,6 @@ model PricingRule {
   @@unique([supplierId, categoryId, subCategoryId])
   @@index([supplierId])
   @@index([categoryId])
+  @@index([subCategoryId])
   @@map("pricing_rules")
 }
