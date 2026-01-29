@@ -1,10 +1,10 @@
 # Task Queue
 
 ## Current
-(none - ready for new task)
+- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend] (IN_PROGRESS)
 
 ## Up Next
-- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
+- [TASK-012] Order management [Orders/Quotes, API/Backend]
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
@@ -18,7 +18,6 @@
 - [TASK-009] Admin pricing rules UI ✓ (already implemented - two tabs in Settings: Exchange Rate + Pricing Rules)
 
 ## Backlog
-- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
 - [TASK-012] Order management [Orders/Quotes, API/Backend]
 - [TASK-013] Inventory tracking [Inventory, API/Backend]
 - [TASK-014] Modular chain configurator [Configurator, UI/Frontend]
@@ -27,6 +26,47 @@
 
 ## Blocked
 (none)
+
+---
+
+## TASK-011 Implementation Plan
+
+### Phase 1: Database (3 tasks)
+1. [ ] Create migration for Quote and QuoteItem models
+2. [ ] Create QuoteRequest model for guest flow
+3. [ ] Implement quote number generator (QUO-YYYY-NNNNN)
+
+### Phase 2: Backend Core (7 tasks)
+4. [ ] Create Zod validation schemas for quotes
+5. [ ] Create quote.service.ts (CRUD, totals calculation)
+6. [ ] Create routes: POST /quotes, GET /quotes, GET /quotes/:id
+7. [ ] Create item routes: POST/PATCH/DELETE items
+8. [ ] Create action routes: finalize, accept, reject
+9. [ ] Add company isolation middleware
+10. [ ] Write unit tests for quote totals calculation
+
+### Phase 3: Frontend - Quote Management (8 tasks)
+11. [ ] Create useQuotes.ts React Query hooks
+12. [ ] Add quote API methods to lib/api.ts
+13. [ ] Create QuoteStatusBadge component
+14. [ ] Create QuoteTotals component
+15. [ ] Create QuoteListTable component
+16. [ ] Create /quotes page
+17. [ ] Create QuoteItemsTable component
+18. [ ] Create /quotes/[id] page
+
+### Phase 4: Frontend - Add to Quote (6 tasks)
+19. [ ] Create AddToQuoteModal component
+20. [ ] Create QuoteCart component
+21. [ ] Create QuoteCartDropdown component
+22. [ ] Update Header.tsx to include QuoteCart
+23. [ ] Update ProductDetailModal (replace TODO)
+24. [ ] Add quotes navigation to sidebar
+
+### Phase 5: Testing (3 tasks)
+25. [ ] Write integration tests for quote API
+26. [ ] Test full flow end-to-end
+27. [ ] Add loading states and error handling
 
 ---
 

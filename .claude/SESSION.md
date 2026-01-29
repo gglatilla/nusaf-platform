@@ -1,26 +1,50 @@
 # Current Session
 
 ## Active Task
-(none - ready for new task)
+[TASK-011] Quote Creation Flow [UI/Frontend, Orders/Quotes, API/Backend]
 
 ## Status
-READY | No active task
+IN_PROGRESS | 0% complete (starting Phase 1)
 
-## Session Notes
+## Task Overview
+Implement full quote lifecycle for customer self-service: create quotes from product catalog, manage line items, finalize, and accept/reject.
 
-Discovered that TASK-009 (Admin pricing rules UI) was already fully implemented:
-- Settings page at `/admin/settings` with two tabs
-- Exchange Rate tab: EUR/ZAR configuration + Recalculate Prices button
-- Pricing Rules tab: Full CRUD with table, filter by supplier, add/edit modal, delete confirmation
-- Backend API at `/api/v1/admin/pricing-rules` with all CRUD endpoints
-- Auto-recalculation triggered when rules change
+## Phases
+1. Database (3 tasks) - IN PROGRESS
+2. Backend Core (7 tasks) - PENDING
+3. Frontend - Quote Management (8 tasks) - PENDING
+4. Frontend - Add to Quote (6 tasks) - PENDING
+5. Testing (3 tasks) - PENDING
 
-Updated TASKS.md to mark TASK-009 as complete.
+## Completed Micro-tasks
+(none yet)
 
-## Next Available Task
-[TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend]
+## Current Micro-task
+Phase 1, Task 1: Create migration for Quote and QuoteItem models
+
+## Files Modified
+(none yet)
+
+## Decisions Made
+- Using cuid() for IDs (consistent with existing schema)
+- Quote statuses: DRAFT, CREATED, ACCEPTED, REJECTED, EXPIRED, CANCELLED, CONVERTED
+- VAT rate = 15% (fixed for South Africa)
+- Quote validity = 30 days from finalization
+- Quote number format: QUO-YYYY-NNNNN
+- Company isolation enforced via companyId on quotes
+
+## Skills Read
+- domain/order-fulfillment-operations
+- foundation/database-design-b2b
+- foundation/api-design-patterns
+- domain/ui-ux-webapp
+
+## Next Steps (Exact)
+1. Add Quote, QuoteItem enums to schema.prisma
+2. Add Quote model with all required fields
+3. Add QuoteItem model with product snapshots
+4. Add QuoteRequest model for guest flow (deferred UI)
+5. Run migration
 
 ## Context for Next Session
-- All pricing infrastructure is complete (rules, recalculation, EUR/ZAR rate)
-- Product catalog with categories and detail modal is working
-- Ready to start quote creation flow
+Starting TASK-011 from scratch. Plan approved. Implementing Phase 1: Database models.
