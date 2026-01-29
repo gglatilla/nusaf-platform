@@ -18,7 +18,7 @@ function formatDate(dateString: string): string {
 }
 
 function getValidityInfo(validUntil: string | null, status: string): { text: string; className: string; urgent: boolean } | null {
-  if (!validUntil || status === 'DRAFT') return null;
+  if (!validUntil || status !== 'CREATED') return null;
 
   const now = new Date();
   const expiry = new Date(validUntil);

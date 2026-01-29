@@ -26,7 +26,7 @@ function formatDate(dateString: string): string {
 }
 
 function getExpiryInfo(validUntil: string | null, status: string): { text: string; className: string } | null {
-  if (!validUntil || status === 'DRAFT') return null;
+  if (!validUntil || status !== 'CREATED') return null;
 
   const now = new Date();
   const expiry = new Date(validUntil);
