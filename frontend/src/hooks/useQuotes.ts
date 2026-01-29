@@ -190,3 +190,22 @@ export function useRejectQuote() {
     },
   });
 }
+
+/**
+ * Hook for deleting a draft quote
+ */
+export function useDeleteQuote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const response = await api.deleteQuote(quoteId);
+      return response.data;
+    },
+    onSuccess: (_data, quoteId) => {
+      queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['activeQuote'] });
+    },
+  });
+}

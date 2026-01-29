@@ -19,6 +19,7 @@ import {
   finalizeQuote,
   acceptQuote,
   rejectQuote,
+  deleteQuote,
 } from '../../../services/quote.service';
 
 const router = Router();
@@ -233,6 +234,44 @@ router.patch('/:id', authenticate, async (req, res) => {
       error: {
         code: 'QUOTE_UPDATE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to update quote',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/quotes/:id
+ * Delete a DRAFT quote (soft delete)
+ */
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await deleteQuote(id, authReq.user.id, authReq.user.companyId);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Quote not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: {
+          code: result.error === 'Quote not found' ? 'NOT_FOUND' : 'DELETE_FAILED',
+          message: result.error,
+        },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Quote deleted' },
+    });
+  } catch (error) {
+    console.error('Delete quote error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete quote',
       },
     });
   }

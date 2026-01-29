@@ -669,6 +669,41 @@ export async function updateQuoteNotes(
   return { success: true };
 }
 
+/**
+ * Delete a quote (soft delete, DRAFT only)
+ */
+export async function deleteQuote(
+  quoteId: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!quote) {
+    return { success: false, error: 'Quote not found' };
+  }
+
+  if (quote.status !== 'DRAFT') {
+    return { success: false, error: 'Only DRAFT quotes can be deleted' };
+  }
+
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: {
+      deletedAt: new Date(),
+      deletedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
 // Utility function for rounding
 function roundTo2(value: number): number {
   return Math.round(value * 100) / 100;

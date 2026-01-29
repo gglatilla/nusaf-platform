@@ -1,10 +1,37 @@
 'use client';
 
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { useQuotes } from '@/hooks/useQuotes';
+import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+  }).format(amount);
+}
+
+function formatDate(dateString: string): string {
+  return new Intl.DateTimeFormat('en-ZA', {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(dateString));
+}
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+
+  // Fetch quotes data for dashboard stats
+  const { data: draftQuotes } = useQuotes({ status: 'DRAFT', pageSize: 5 });
+  const { data: createdQuotes } = useQuotes({ status: 'CREATED', pageSize: 5 });
+  const { data: allQuotes } = useQuotes({ pageSize: 5 });
+
+  const draftCount = draftQuotes?.pagination.totalItems ?? 0;
+  const pendingCount = createdQuotes?.pagination.totalItems ?? 0;
+  const recentQuotes = allQuotes?.quotes ?? [];
 
   return (
     <>
@@ -22,14 +49,14 @@ export default function DashboardPage() {
             change="No orders yet"
           />
           <StatCard
-            label="Pending Quotes"
-            value="0"
-            change="No quotes yet"
+            label="Draft Quotes"
+            value={draftCount.toString()}
+            change={draftCount > 0 ? `${draftCount} in progress` : 'No drafts'}
           />
           <StatCard
-            label="Open Invoices"
-            value="R 0.00"
-            change="No invoices"
+            label="Submitted Quotes"
+            value={pendingCount.toString()}
+            change={pendingCount > 0 ? `${pendingCount} awaiting response` : 'No pending quotes'}
           />
           <StatCard
             label="Last Order"
@@ -53,15 +80,50 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              Pending Quotes
-            </h2>
-            <div className="text-center py-8">
-              <p className="text-slate-500 text-sm">No pending quotes</p>
-              <p className="text-slate-400 text-xs mt-1">
-                Request a quote to get started
-              </p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Recent Quotes
+              </h2>
+              <Link href="/quotes" className="text-sm text-primary-600 hover:text-primary-700">
+                View all
+              </Link>
             </div>
+            {recentQuotes.length > 0 ? (
+              <div className="space-y-3">
+                {recentQuotes.map((quote) => (
+                  <Link
+                    key={quote.id}
+                    href={`/quotes/${quote.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{quote.quoteNumber}</p>
+                        <p className="text-xs text-slate-500">{formatDate(quote.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <QuoteStatusBadge status={quote.status} />
+                      <span className="text-sm font-medium text-slate-900">{formatCurrency(quote.total)}</span>
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-slate-500 text-sm">No quotes yet</p>
+                <p className="text-slate-400 text-xs mt-1">
+                  Browse products to request a quote
+                </p>
+                <Link
+                  href="/products"
+                  className="inline-block mt-4 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
+                >
+                  Browse Products
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

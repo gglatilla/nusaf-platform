@@ -574,6 +574,12 @@ class ApiClient {
       body: JSON.stringify({}),
     });
   }
+
+  async deleteQuote(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export class ApiError extends Error {

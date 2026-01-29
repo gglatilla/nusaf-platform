@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, X, Send, Calendar, Building } from 'lucide-react';
-import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes } from '@/hooks/useQuotes';
+import { ArrowLeft, Check, X, Send, Calendar, Building, Trash2 } from 'lucide-react';
+import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
@@ -15,6 +15,29 @@ function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   }).format(new Date(dateString));
+}
+
+function getValidityInfo(validUntil: string | null, status: string): { text: string; className: string; urgent: boolean } | null {
+  if (!validUntil || status === 'DRAFT') return null;
+
+  const now = new Date();
+  const expiry = new Date(validUntil);
+  const diffTime = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (status === 'EXPIRED' || diffDays < 0) {
+    return { text: 'This quote has expired', className: 'bg-red-50 border-red-200 text-red-700', urgent: true };
+  }
+
+  if (diffDays === 0) {
+    return { text: 'Quote expires today', className: 'bg-amber-50 border-amber-200 text-amber-700', urgent: true };
+  }
+
+  if (diffDays <= 7) {
+    return { text: `Quote expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`, className: 'bg-amber-50 border-amber-200 text-amber-700', urgent: true };
+  }
+
+  return { text: `Valid for ${diffDays} days`, className: 'bg-green-50 border-green-200 text-green-700', urgent: false };
 }
 
 function LoadingSkeleton() {
@@ -44,6 +67,7 @@ export default function QuoteDetailPage() {
   const finalize = useFinalizeQuote();
   const accept = useAcceptQuote();
   const reject = useRejectQuote();
+  const deleteQuote = useDeleteQuote();
   const updateNotes = useUpdateQuoteNotes();
 
   const [notes, setNotes] = useState('');
@@ -67,6 +91,7 @@ export default function QuoteDetailPage() {
   const isEditable = quote.status === 'DRAFT';
   const canFinalize = quote.status === 'DRAFT' && quote.items.length > 0;
   const canAcceptReject = quote.status === 'CREATED';
+  const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
   const handleFinalize = async () => {
     if (confirm('Finalize this quote? It will be locked for editing and valid for 30 days.')) {
@@ -83,6 +108,13 @@ export default function QuoteDetailPage() {
   const handleReject = async () => {
     if (confirm('Reject this quote?')) {
       await reject.mutateAsync(quoteId);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm('Delete this draft quote? This action cannot be undone.')) {
+      await deleteQuote.mutateAsync(quoteId);
+      router.push('/quotes');
     }
   };
 
@@ -112,6 +144,17 @@ export default function QuoteDetailPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
+          {isEditable && (
+            <button
+              onClick={handleDelete}
+              disabled={deleteQuote.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-md hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteQuote.isPending ? 'Deleting...' : 'Delete'}
+            </button>
+          )}
+
           {canFinalize && (
             <button
               onClick={handleFinalize}
@@ -145,6 +188,19 @@ export default function QuoteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Validity Banner */}
+      {validityInfo && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${validityInfo.className}`}>
+          <Calendar className="h-5 w-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{validityInfo.text}</p>
+            {quote.validUntil && (
+              <p className="text-xs opacity-75">Expires on {formatDate(quote.validUntil)}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

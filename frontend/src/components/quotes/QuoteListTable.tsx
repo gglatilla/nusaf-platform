@@ -25,6 +25,29 @@ function formatDate(dateString: string): string {
   }).format(new Date(dateString));
 }
 
+function getExpiryInfo(validUntil: string | null, status: string): { text: string; className: string } | null {
+  if (!validUntil || status === 'DRAFT') return null;
+
+  const now = new Date();
+  const expiry = new Date(validUntil);
+  const diffTime = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (status === 'EXPIRED' || diffDays < 0) {
+    return { text: 'Expired', className: 'text-red-600 bg-red-50' };
+  }
+
+  if (diffDays === 0) {
+    return { text: 'Expires today', className: 'text-amber-600 bg-amber-50' };
+  }
+
+  if (diffDays <= 7) {
+    return { text: `${diffDays}d left`, className: 'text-amber-600 bg-amber-50' };
+  }
+
+  return { text: `${diffDays}d left`, className: 'text-slate-600 bg-slate-50' };
+}
+
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
@@ -39,6 +62,9 @@ function SkeletonRow() {
       </td>
       <td className="px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-24" />
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-slate-200 rounded w-16" />
       </td>
       <td className="px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-20" />
@@ -68,6 +94,9 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Valid Until
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Date
@@ -123,6 +152,9 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
               Total
             </th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              Valid Until
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Date
             </th>
             <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -131,38 +163,50 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {quotes.map((quote) => (
-            <tr key={quote.id} className="hover:bg-slate-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <Link
-                  href={`/quotes/${quote.id}`}
-                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                >
-                  {quote.quoteNumber}
-                </Link>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <QuoteStatusBadge status={quote.status} />
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {quote.itemCount}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                {formatCurrency(quote.total)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {formatDate(quote.createdAt)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right">
-                <Link
-                  href={`/quotes/${quote.id}`}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </td>
-            </tr>
-          ))}
+          {quotes.map((quote) => {
+            const expiryInfo = getExpiryInfo(quote.validUntil, quote.status);
+            return (
+              <tr key={quote.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Link
+                    href={`/quotes/${quote.id}`}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    {quote.quoteNumber}
+                  </Link>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <QuoteStatusBadge status={quote.status} />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                  {quote.itemCount}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                  {formatCurrency(quote.total)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {expiryInfo ? (
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${expiryInfo.className}`}>
+                      {expiryInfo.text}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-400">—</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                  {formatDate(quote.createdAt)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right">
+                  <Link
+                    href={`/quotes/${quote.id}`}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
