@@ -38,8 +38,31 @@ router.get('/', async (req, res) => {
     const { supplierId, categoryId } = req.query;
 
     const where: { supplierId?: string; categoryId?: string } = {};
-    if (typeof supplierId === 'string') where.supplierId = supplierId;
-    if (typeof categoryId === 'string') where.categoryId = categoryId;
+
+    // Lookup supplier by code if provided (frontend sends code, not CUID)
+    if (typeof supplierId === 'string') {
+      const supplier = await prisma.supplier.findUnique({
+        where: { code: supplierId },
+      });
+      if (supplier) {
+        where.supplierId = supplier.id;
+      } else {
+        // Code not found - return empty array instead of all rules
+        return res.json({ success: true, data: [] });
+      }
+    }
+
+    // Lookup category by code if provided
+    if (typeof categoryId === 'string') {
+      const category = await prisma.category.findUnique({
+        where: { code: categoryId },
+      });
+      if (category) {
+        where.categoryId = category.id;
+      } else {
+        return res.json({ success: true, data: [] });
+      }
+    }
 
     const rules = await prisma.pricingRule.findMany({
       where,
