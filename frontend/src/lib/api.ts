@@ -830,6 +830,9 @@ export interface DocumentsListResponse {
 export interface DocumentsQueryParams {
   orderId?: string;
   type?: DocumentType;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   pageSize?: number;
 }
@@ -1451,6 +1454,9 @@ class ApiClient {
     const searchParams = new URLSearchParams();
     if (params.orderId) searchParams.set('orderId', params.orderId);
     if (params.type) searchParams.set('type', params.type);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.startDate) searchParams.set('startDate', params.startDate);
+    if (params.endDate) searchParams.set('endDate', params.endDate);
     if (params.page) searchParams.set('page', params.page.toString());
     if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
 

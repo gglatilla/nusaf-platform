@@ -11,6 +11,7 @@ import {
   Wrench,
   Truck,
   AlertTriangle,
+  Archive,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -39,6 +40,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Job Cards', href: '/job-cards', icon: Wrench },
   { name: 'Transfers', href: '/transfer-requests', icon: Truck },
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
+  { name: 'Documents', href: '/documents', icon: Archive },
   { name: 'Invoices', href: '/invoices', icon: Receipt },
 ];
 

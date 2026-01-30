@@ -55,12 +55,15 @@ router.get('/', authenticate, async (req, res) => {
       });
     }
 
-    const { orderId, type, page, pageSize } = queryResult.data;
+    const { orderId, type, search, startDate, endDate, page, pageSize } = queryResult.data;
 
     const result = await getDocuments({
       companyId: authReq.user.companyId,
       orderId,
       type,
+      search,
+      startDate,
+      endDate,
       page,
       pageSize,
     });

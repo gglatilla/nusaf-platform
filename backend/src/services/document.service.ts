@@ -171,6 +171,9 @@ export async function getDocuments(options: {
   companyId: string;
   orderId?: string;
   type?: DocumentType;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   pageSize?: number;
 }): Promise<{
@@ -193,7 +196,7 @@ export async function getDocuments(options: {
     totalPages: number;
   };
 }> {
-  const { companyId, orderId, type, page = 1, pageSize = 20 } = options;
+  const { companyId, orderId, type, search, startDate, endDate, page = 1, pageSize = 20 } = options;
 
   const where: Prisma.DocumentWhereInput = {
     companyId,
@@ -205,6 +208,28 @@ export async function getDocuments(options: {
 
   if (type) {
     where.type = type;
+  }
+
+  // Search by filename or order number
+  if (search) {
+    where.OR = [
+      { filename: { contains: search, mode: 'insensitive' } },
+      { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+    ];
+  }
+
+  // Date range filter
+  if (startDate || endDate) {
+    where.uploadedAt = {};
+    if (startDate) {
+      where.uploadedAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+      // End of day for the end date
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.uploadedAt.lte = end;
+    }
   }
 
   const [total, documents] = await Promise.all([

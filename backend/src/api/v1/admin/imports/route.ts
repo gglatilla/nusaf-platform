@@ -272,6 +272,10 @@ router.post('/validate', async (req, res) => {
  * Execute the import after validation
  */
 router.post('/execute', async (req, res) => {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  let batchId: string | null = null;
+
   try {
     const authReq = req as AuthenticatedRequest;
     const parseResult = executeImportSchema.safeParse(req.body);
@@ -300,6 +304,7 @@ router.post('/execute', async (req, res) => {
     }
 
     const storedParseResult = r2Metadata?.parseResult || memoryStored?.parseResult;
+    const fileName = r2Metadata?.fileName || memoryStored?.fileName || 'unknown';
 
     // Apply column mapping
     const mappedRows = applyColumnMapping(storedParseResult!.rows, columnMapping);
@@ -321,6 +326,22 @@ router.post('/execute', async (req, res) => {
       });
     }
 
+    // Create ImportBatch record before executing import
+    const batch = await prisma.importBatch.create({
+      data: {
+        fileName,
+        supplierCode,
+        status: 'IMPORTING',
+        totalRows: validationResult.rows.length,
+        processedRows: 0,
+        successRows: 0,
+        errorRows: 0,
+        columnMapping: columnMapping as Record<string, string>,
+        createdBy: authReq.user.id,
+      },
+    });
+    batchId = batch.id;
+
     // Execute import
     const result = await executeImport(
       validationResult.rows,
@@ -328,6 +349,18 @@ router.post('/execute', async (req, res) => {
       authReq.user.id,
       skipErrors
     );
+
+    // Update batch with final results
+    await prisma.importBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: 'COMPLETED',
+        processedRows: result.created + result.updated + result.skipped,
+        successRows: result.created + result.updated,
+        errorRows: result.errors.length,
+        completedAt: new Date(),
+      },
+    });
 
     // Clean up stored file
     if (r2Metadata) {
@@ -337,6 +370,8 @@ router.post('/execute', async (req, res) => {
       fileStore.delete(fileId);
     }
 
+    await prisma.$disconnect();
+
     return res.json({
       success: true,
       data: {
@@ -345,10 +380,29 @@ router.post('/execute', async (req, res) => {
         skipped: result.skipped,
         errors: result.errors,
         total: result.created + result.updated + result.skipped,
+        batchId: batch.id,
       },
     });
   } catch (error) {
     console.error('Execute error:', error);
+
+    // Mark batch as failed if it was created
+    if (batchId) {
+      try {
+        await prisma.importBatch.update({
+          where: { id: batchId },
+          data: {
+            status: 'FAILED',
+            completedAt: new Date(),
+          },
+        });
+      } catch (updateError) {
+        console.error('Failed to update batch status:', updateError);
+      }
+    }
+
+    await prisma.$disconnect();
+
     return res.status(500).json({
       success: false,
       error: {
