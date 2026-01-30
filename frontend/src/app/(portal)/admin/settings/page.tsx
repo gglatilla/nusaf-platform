@@ -16,7 +16,7 @@ import {
   ApiError,
 } from '@/lib/api';
 
-type SettingsTab = 'exchange-rate' | 'pricing-rules';
+type SettingsTab = 'exchange-rate' | 'pricing-rules' | 'categories';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('exchange-rate');
@@ -261,6 +261,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'exchange-rate' as const, label: 'Exchange Rate' },
     { id: 'pricing-rules' as const, label: 'Pricing Rules' },
+    { id: 'categories' as const, label: 'Categories' },
   ];
 
   return (
@@ -531,6 +532,116 @@ export default function SettingsPage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Categories Tab */}
+        {activeTab === 'categories' && (
+          <div className="max-w-4xl">
+            <div className="bg-white border border-slate-200 rounded-lg">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">Product Categories</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  View all product categories and their codes used for pricing rules
+                </p>
+              </div>
+
+              {/* Loading state */}
+              {isLoadingRef && (
+                <div className="p-8">
+                  <div className="flex items-center justify-center gap-3 text-slate-500">
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                    <span>Loading categories...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!isLoadingRef && categories.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-slate-500">No categories found</p>
+                </div>
+              )}
+
+              {/* Categories table */}
+              {!isLoadingRef && categories.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                          Code
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Category Name
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-32">
+                          Subcategories
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {categories.map((category) => (
+                        <tr key={category.code} className="hover:bg-slate-50">
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded font-mono text-sm bg-slate-100 text-slate-700">
+                              {category.code}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="font-medium text-slate-900">{category.name}</p>
+                              {category.subcategories.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {category.subcategories.map((sub) => (
+                                    <div key={sub.code} className="flex items-center gap-2 text-sm text-slate-600">
+                                      <span className="text-slate-400">└</span>
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs bg-slate-100 text-slate-600">
+                                        {sub.code}
+                                      </span>
+                                      <span>{sub.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm text-slate-500">
+                            {category.subcategories.length}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Summary footer */}
+              {!isLoadingRef && categories.length > 0 && (
+                <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium">{categories.length}</span> categories with{' '}
+                    <span className="font-medium">
+                      {categories.reduce((acc, cat) => acc + cat.subcategories.length, 0)}
+                    </span>{' '}
+                    subcategories
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Info box */}
+            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-blue-900 mb-2">About Category Codes</h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>
+                  Category codes are used to match products with pricing rules during import.
+                </p>
+                <p className="mt-2">
+                  Subcategory codes follow the pattern <code className="font-mono bg-blue-100 px-1 rounded">X-NNN</code> where X is the category code and NNN is the subcategory number.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
