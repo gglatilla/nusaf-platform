@@ -1,103 +1,103 @@
 # Current Session
 
 ## Active Task
-[TASK-012] Phase 2: Order Fulfillment - Warehouse Operations (Phase 2A: Picking Slips)
+[TASK-012] Phase 2B: Job Cards for Manufacturing/Assembly
 
 ## Status
 COMPLETE | 100%
 
 ## Plan
-Build Picking Slips system for warehouse operations:
-- Database: PickingSlip, PickingSlipLine, PickingSlipCounter models with status enum
-- Backend: picking-slip.service.ts with CRUD + status transitions
-- API: /picking-slips routes following order pattern
-- Frontend: Picking slips list page, detail page, components
-- Integration: Generate picking slips from confirmed orders
+Build Job Cards system for manufacturing/assembly tracking:
+- Database: JobCard, JobCardCounter models with JobCardStatus and JobType enums
+- Backend: job-card.service.ts with CRUD + status transitions (start, hold, resume, complete)
+- API: /job-cards routes following picking slip pattern
+- Frontend: Job cards list page, detail page, components
+- Integration: Create job cards from confirmed orders, show on order detail
 
-## Micro-tasks (Phase 2A - 14 total)
+## Micro-tasks (Phase 2B - 11 total)
 
 ### Phase A: Database
-- [x] 1. Add PickingSlipStatus enum and PickingSlip, PickingSlipLine, PickingSlipCounter models to schema.prisma
-- [x] 2. Create and run database migration (via SQL, db push had issues)
+- [x] 1. Add JobCardStatus, JobType enums and JobCard, JobCardCounter models to schema.prisma
+- [x] 2. Create migration file
 
 ### Phase B: Backend Service
-- [x] 3. Create picking-slip.service.ts with generateNumber + createPickingSlip
-- [x] 4. Add getPickingSlips, getPickingSlipById functions
-- [x] 5. Add assignPickingSlip, startPicking functions
-- [x] 6. Add updateLinePicked, completePicking functions
+- [x] 3. Create job-card.service.ts with generateNumber, create, list, get functions
+- [x] 4. Add status transition functions (assign, start, hold, resume, complete, updateNotes)
 
 ### Phase C: Validation & Routes
-- [x] 7. Create validation/picking-slips.ts (Zod schemas)
-- [x] 8. Create api/v1/picking-slips/route.ts (all endpoints)
+- [x] 5. Create validation/job-cards.ts Zod schemas
+- [x] 6. Create api/v1/job-cards/route.ts endpoints
 
 ### Phase D: Frontend Types & API
-- [x] 9. Add PickingSlip types to frontend/src/lib/api.ts
-- [x] 10. Add API client methods
+- [x] 7. Add JobCard types and API methods to lib/api.ts
 
 ### Phase E: Frontend Hooks
-- [x] 11. Create usePickingSlips.ts hooks
+- [x] 8. Create useJobCards.ts hooks
 
 ### Phase F: Frontend Components
-- [x] 12. Create PickingSlipStatusBadge, PickingSlipListTable, PickingSlipLineTable, GeneratePickingSlipModal components
+- [x] 9. Create JobCardStatusBadge, JobTypeBadge, JobCardListTable, CreateJobCardModal
 
 ### Phase G: Frontend Pages
-- [x] 13. Create /picking-slips list page
-- [x] 14. Create /picking-slips/[id] detail page
+- [x] 10. Create /job-cards list page
+- [x] 11. Create /job-cards/[id] detail page
 
 ### Phase H: Integration
-- [x] 15. Update order detail page: add Generate button, show linked picking slips, add sidebar nav
+- [x] 12. Update order detail page with Job Cards section + Create button
 
 ## Files Created
 
 ### Backend
-- `backend/src/services/picking-slip.service.ts`
-- `backend/src/utils/validation/picking-slips.ts`
-- `backend/src/api/v1/picking-slips/route.ts`
+- `backend/prisma/migrations/20260130000004_add_job_cards/migration.sql`
+- `backend/src/services/job-card.service.ts`
+- `backend/src/utils/validation/job-cards.ts`
+- `backend/src/api/v1/job-cards/route.ts`
 
 ### Frontend
-- `frontend/src/hooks/usePickingSlips.ts`
-- `frontend/src/components/picking-slips/PickingSlipStatusBadge.tsx`
-- `frontend/src/components/picking-slips/PickingSlipListTable.tsx`
-- `frontend/src/components/picking-slips/PickingSlipLineTable.tsx`
-- `frontend/src/components/picking-slips/GeneratePickingSlipModal.tsx`
-- `frontend/src/app/(portal)/picking-slips/page.tsx`
-- `frontend/src/app/(portal)/picking-slips/[id]/page.tsx`
+- `frontend/src/hooks/useJobCards.ts`
+- `frontend/src/components/job-cards/JobCardStatusBadge.tsx`
+- `frontend/src/components/job-cards/JobTypeBadge.tsx`
+- `frontend/src/components/job-cards/JobCardListTable.tsx`
+- `frontend/src/components/job-cards/CreateJobCardModal.tsx`
+- `frontend/src/app/(portal)/job-cards/page.tsx`
+- `frontend/src/app/(portal)/job-cards/[id]/page.tsx`
 
 ## Files Modified
-- `backend/prisma/schema.prisma` - Added PickingSlipStatus enum, PickingSlip, PickingSlipLine, PickingSlipCounter models
-- `backend/src/index.ts` - Added picking-slips route
-- `frontend/src/lib/api.ts` - Added picking slip types and API methods
-- `frontend/src/lib/navigation.ts` - Added Picking Slips to sidebar navigation
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added Generate Picking Slips button and picking slips section
+- `backend/prisma/schema.prisma` - Added JobCardStatus, JobType enums, JobCard, JobCardCounter models
+- `backend/src/index.ts` - Added job-cards route
+- `frontend/src/lib/api.ts` - Added job card types and API methods
+- `frontend/src/lib/navigation.ts` - Added Job Cards to sidebar navigation
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added Create Job Card button and job cards section
 
 ## Skills Read
 - domain/order-fulfillment-operations
 - foundation/api-design-patterns
+- foundation/database-design-b2b
+- domain/ui-ux-webapp
 
 ## Decisions Made
-- Picking slip number format: PS-YYYY-NNNNN (consistent with order pattern)
-- Manual warehouse selection (auto-allocation comes after TASK-013 Inventory)
-- Lines are grouped by location when generating (creates 1-2 slips max)
-- Status workflow: PENDING → IN_PROGRESS → COMPLETE (simple 3-state)
+- Job card number format: JC-YYYY-NNNNN (consistent with order/picking slip pattern)
+- Link directly to SalesOrder + SalesOrderLine (not to Picking Slips)
+- Created manually from Order detail page (no product flag)
+- Always JHB warehouse (only location with manufacturing)
+- Status workflow: PENDING → IN_PROGRESS ↔ ON_HOLD → COMPLETE
+- ON_HOLD requires holdReason
+- Two job types: MACHINING and ASSEMBLY
+- Can only create job cards for CONFIRMED or PROCESSING orders
 - Company isolation: All queries filter by authenticated user's companyId
-- Can only generate picking slips for CONFIRMED orders
-- Can only complete picking when all lines are fully picked
 
 ## Verification Steps
 1. Start backend and frontend servers
-2. Navigate to /orders, confirm an order
-3. Click "Generate Picking Slips" on the confirmed order detail
-4. Select warehouse for each line (JHB or CT)
-5. Click "Generate Picking Slips"
-6. Verify the order detail shows linked picking slips
-7. Navigate to /picking-slips to see the new slip(s)
-8. Open a picking slip detail page
-9. Click "Start Picking" to begin
-10. Update line quantities (Edit or Pick All)
-11. Click "Complete Picking" when all lines are picked
-12. Verify status updates correctly
+2. Navigate to /orders, open a confirmed order
+3. Click "Create Job Card"
+4. Select an order line, choose job type (Machining or Assembly), add notes
+5. Click "Create"
+6. Verify job card appears in order detail's Job Cards section
+7. Navigate to /job-cards to see the new job card
+8. Open job card detail page
+9. Test workflow: Assign → Start → Hold (with reason) → Resume → Complete
+10. Verify status changes and timestamps update correctly
 
 ## Next Task
 Ready for:
-- [TASK-012 Phase 2B] Job Cards (manufacturing/assembly tracking)
 - [TASK-013] Inventory tracking
+- Transfer Requests (JHB→CT shipping)
