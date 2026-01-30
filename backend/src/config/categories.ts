@@ -213,6 +213,41 @@ export const CATEGORY_CODE_MIGRATION: Record<string, string> = {
 };
 
 /**
+ * Old subcategory code mappings for migration.
+ * Maps incorrect codes to correct X-NNN format codes.
+ * Used when name matching fails due to normalization differences.
+ */
+export const SUBCATEGORY_CODE_MIGRATION: Record<string, string> = {
+  // Conveyor Components
+  'SIDE_GUIDE_ACCESSORIES': 'C-013',
+
+  // Table Top Chain
+  'LBP': 'T-009',
+
+  // Modular Chain
+  '1IN_LIGHT': 'M-003',
+  '3QTR_MEDIUM': 'M-004',
+  '1IN_HEAVY': 'M-005',
+  '1IN_SIDEFLEX': 'M-006',
+  '1QTR_SIDEFLEX': 'M-007',
+  'FIXED_RADIUS': 'M-008',
+  '2IN_RIB': 'M-009',
+  '1HALF_UCC': 'M-010',
+
+  // Power Transmission
+  'CHAINS_RIDERS': 'P-002',
+  'TIMING_ACCESSORIES': 'P-008',
+
+  // V-belts
+  'WRAPPED_NARROW': 'V-002',
+  'COGGED_CLASSICAL': 'V-003',
+
+  // Gearbox & Motors
+  'CH_WORM': 'G-003',
+  'HYGIENIC_MOTORS': 'G-007',
+};
+
+/**
  * Normalize a subcategory name for matching.
  * Handles variations like "Fixed feet" vs "FIXED_FEET" or "fixed_feet".
  */

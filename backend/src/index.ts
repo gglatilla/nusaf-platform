@@ -8,6 +8,7 @@ import { connectDatabase } from './config/database';
 import {
   CATEGORY_DEFINITIONS,
   CATEGORY_CODE_MIGRATION,
+  SUBCATEGORY_CODE_MIGRATION,
   normalizeSubCategoryName,
 } from './config/categories';
 import healthRoutes from './api/v1/health/route';
@@ -101,6 +102,26 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
       subCategories: { updated: 0, skipped: 0, errors: [] as string[] },
     };
 
+    // Fix V-002 conflict: if it has wrong name (cogged/raw edge), change to V-004
+    const wrongV002 = await prisma.subCategory.findFirst({
+      where: {
+        code: 'V-002',
+        OR: [
+          { name: { contains: 'cogged', mode: 'insensitive' } },
+          { name: { contains: 'raw edge', mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (wrongV002) {
+      await prisma.subCategory.update({
+        where: { id: wrongV002.id },
+        data: { code: 'V-004' },
+      });
+      console.log(`Fixed V-002 conflict: renamed to V-004 (${wrongV002.name})`);
+      results.subCategories.updated++;
+    }
+
     // Get all existing categories
     const existingCategories = await prisma.category.findMany({
       include: { subCategories: true },
@@ -171,7 +192,26 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
           continue;
         }
 
-        // Try to find matching subcategory by name
+        // FIRST: Check direct code migration mapping
+        const directMappedCode = SUBCATEGORY_CODE_MIGRATION[existingSub.code];
+        if (directMappedCode) {
+          try {
+            await prisma.subCategory.update({
+              where: { id: existingSub.id },
+              data: { code: directMappedCode },
+            });
+            results.subCategories.updated++;
+            console.log(`Migrated subcategory (direct): ${existingSub.code} -> ${directMappedCode}`);
+            continue;
+          } catch (err) {
+            results.subCategories.errors.push(
+              `Failed to migrate subcategory ${existingSub.code}: ${err instanceof Error ? err.message : 'Unknown error'}`
+            );
+            continue;
+          }
+        }
+
+        // THEN: Try to find matching subcategory by name
         const normalizedName = normalizeSubCategoryName(existingSub.name);
         const matchingSub = categoryDef.subCategories.find(
           (s) => normalizeSubCategoryName(s.name) === normalizedName
