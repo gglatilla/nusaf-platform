@@ -19,11 +19,13 @@ export function CreateOrderModal({ quoteId, quoteNumber, isOpen, onClose }: Crea
   const [customerPoDate, setCustomerPoDate] = useState('');
   const [requiredDate, setRequiredDate] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
       const result = await createOrder.mutateAsync({
@@ -39,8 +41,10 @@ export function CreateOrderModal({ quoteId, quoteNumber, isOpen, onClose }: Crea
         router.push(`/orders/${result.id}`);
       }
       onClose();
-    } catch (error) {
-      console.error('Failed to create order:', error);
+    } catch (err) {
+      console.error('Failed to create order:', err);
+      const message = err instanceof Error ? err.message : 'Failed to create order. Please try again.';
+      setError(message);
     }
   };
 
@@ -127,6 +131,13 @@ export function CreateOrderModal({ quoteId, quoteNumber, isOpen, onClose }: Crea
                 />
               </div>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mx-4 mb-4 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
+                {error}
+              </div>
+            )}
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50 rounded-b-lg">
