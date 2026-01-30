@@ -2,7 +2,6 @@ import { Prisma, DocumentType } from '@prisma/client';
 import { prisma } from '../config/database';
 import {
   uploadToR2,
-  downloadFromR2,
   deleteFromR2,
   isR2Configured,
 } from './r2-storage.service';

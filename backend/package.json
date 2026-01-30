@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.975.0",
+    "@aws-sdk/s3-request-presigner": "^3.978.0",
     "@nusaf/shared": "*",
     "@prisma/client": "^5.8.0",
     "@types/compression": "^1.8.1",
