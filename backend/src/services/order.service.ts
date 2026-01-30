@@ -1,0 +1,591 @@
+import { Prisma, SalesOrderStatus } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from '../config/database';
+
+/**
+ * VAT rate for South Africa (%)
+ */
+export const VAT_RATE = 15;
+
+/**
+ * Valid status transitions for sales orders
+ */
+export const STATUS_TRANSITIONS: Record<SalesOrderStatus, SalesOrderStatus[]> = {
+  DRAFT: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'ON_HOLD', 'CANCELLED'],
+  PROCESSING: ['READY_TO_SHIP', 'ON_HOLD', 'CANCELLED'],
+  READY_TO_SHIP: ['SHIPPED', 'PARTIALLY_SHIPPED', 'ON_HOLD'],
+  PARTIALLY_SHIPPED: ['SHIPPED', 'ON_HOLD'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: ['INVOICED'],
+  INVOICED: ['CLOSED'],
+  CLOSED: [],
+  ON_HOLD: ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'CANCELLED'],
+  CANCELLED: [],
+};
+
+/**
+ * Generate the next order number in format SO-YYYY-NNNNN
+ */
+export async function generateOrderNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  // Use a transaction to safely increment the counter
+  const counter = await prisma.$transaction(async (tx) => {
+    // Get or create the counter record
+    let counter = await tx.salesOrderCounter.findUnique({
+      where: { id: 'order_counter' },
+    });
+
+    if (!counter) {
+      // Initialize counter for this year
+      counter = await tx.salesOrderCounter.create({
+        data: {
+          id: 'order_counter',
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    // If year changed, reset counter
+    if (counter.year !== currentYear) {
+      counter = await tx.salesOrderCounter.update({
+        where: { id: 'order_counter' },
+        data: {
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    // Increment counter for same year
+    counter = await tx.salesOrderCounter.update({
+      where: { id: 'order_counter' },
+      data: {
+        count: { increment: 1 },
+      },
+    });
+
+    return counter;
+  });
+
+  // Format: SO-2025-00001
+  const paddedCount = counter.count.toString().padStart(5, '0');
+  return `SO-${currentYear}-${paddedCount}`;
+}
+
+/**
+ * Calculate order totals from lines
+ */
+export function calculateOrderTotals(lines: Array<{ unitPrice: Decimal | number; quantityOrdered: number }>) {
+  let subtotal = 0;
+
+  for (const line of lines) {
+    const unitPrice = typeof line.unitPrice === 'number' ? line.unitPrice : Number(line.unitPrice);
+    subtotal += unitPrice * line.quantityOrdered;
+  }
+
+  const vatAmount = roundTo2(subtotal * (VAT_RATE / 100));
+  const total = roundTo2(subtotal + vatAmount);
+
+  return {
+    subtotal: roundTo2(subtotal),
+    vatRate: VAT_RATE,
+    vatAmount,
+    total,
+  };
+}
+
+/**
+ * Get orders for a company with pagination and filtering
+ */
+export async function getOrders(options: {
+  companyId: string;
+  status?: SalesOrderStatus;
+  page?: number;
+  pageSize?: number;
+}): Promise<{
+  orders: Array<{
+    id: string;
+    orderNumber: string;
+    status: SalesOrderStatus;
+    quoteNumber: string | null;
+    customerPoNumber: string | null;
+    lineCount: number;
+    total: number;
+    createdAt: Date;
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}> {
+  const { companyId, status, page = 1, pageSize = 20 } = options;
+
+  const where: Prisma.SalesOrderWhereInput = {
+    companyId,
+    deletedAt: null,
+  };
+
+  if (status) {
+    where.status = status;
+  }
+
+  const [total, orders] = await Promise.all([
+    prisma.salesOrder.count({ where }),
+    prisma.salesOrder.findMany({
+      where,
+      include: {
+        _count: { select: { lines: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return {
+    orders: orders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      status: o.status,
+      quoteNumber: o.quoteNumber,
+      customerPoNumber: o.customerPoNumber,
+      lineCount: o._count.lines,
+      total: Number(o.total),
+      createdAt: o.createdAt,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
+}
+
+/**
+ * Get order details
+ */
+export async function getOrderById(orderId: string, companyId: string) {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId, // Company isolation
+      deletedAt: null,
+    },
+    include: {
+      lines: {
+        orderBy: { lineNumber: 'asc' },
+      },
+      company: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+
+  if (!order) {
+    return null;
+  }
+
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    company: order.company,
+    quoteId: order.quoteId,
+    quoteNumber: order.quoteNumber,
+    customerPoNumber: order.customerPoNumber,
+    customerPoDate: order.customerPoDate,
+    fulfillmentType: order.fulfillmentType,
+    warehouse: order.warehouse,
+    requiredDate: order.requiredDate,
+    promisedDate: order.promisedDate,
+    shippedDate: order.shippedDate,
+    deliveredDate: order.deliveredDate,
+    lines: order.lines.map((line) => ({
+      id: line.id,
+      lineNumber: line.lineNumber,
+      status: line.status,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantityOrdered: line.quantityOrdered,
+      quantityPicked: line.quantityPicked,
+      quantityShipped: line.quantityShipped,
+      unitPrice: Number(line.unitPrice),
+      lineTotal: Number(line.lineTotal),
+      notes: line.notes,
+    })),
+    subtotal: Number(order.subtotal),
+    vatRate: Number(order.vatRate),
+    vatAmount: Number(order.vatAmount),
+    total: Number(order.total),
+    internalNotes: order.internalNotes,
+    customerNotes: order.customerNotes,
+    holdReason: order.holdReason,
+    cancelReason: order.cancelReason,
+    confirmedAt: order.confirmedAt,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
+
+/**
+ * Create order from an accepted quote
+ */
+export async function createOrderFromQuote(
+  quoteId: string,
+  userId: string,
+  companyId: string,
+  options?: {
+    customerPoNumber?: string;
+    customerPoDate?: Date;
+    requiredDate?: Date;
+    customerNotes?: string;
+  }
+): Promise<{ success: boolean; order?: { id: string; orderNumber: string }; error?: string }> {
+  // Get the quote with items
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      companyId,
+      deletedAt: null,
+    },
+    include: {
+      items: {
+        orderBy: { lineNumber: 'asc' },
+      },
+    },
+  });
+
+  if (!quote) {
+    return { success: false, error: 'Quote not found' };
+  }
+
+  if (quote.status !== 'ACCEPTED') {
+    return { success: false, error: 'Only ACCEPTED quotes can be converted to orders' };
+  }
+
+  if (quote.items.length === 0) {
+    return { success: false, error: 'Quote has no items' };
+  }
+
+  // Generate order number
+  const orderNumber = await generateOrderNumber();
+
+  // Create order with lines in a transaction
+  const order = await prisma.$transaction(async (tx) => {
+    // Create the order
+    const newOrder = await tx.salesOrder.create({
+      data: {
+        orderNumber,
+        companyId,
+        userId,
+        status: 'DRAFT',
+        quoteId: quote.id,
+        quoteNumber: quote.quoteNumber,
+        customerPoNumber: options?.customerPoNumber,
+        customerPoDate: options?.customerPoDate,
+        requiredDate: options?.requiredDate,
+        customerNotes: options?.customerNotes || quote.customerNotes,
+        subtotal: quote.subtotal,
+        vatRate: quote.vatRate,
+        vatAmount: quote.vatAmount,
+        total: quote.total,
+        createdBy: userId,
+      },
+    });
+
+    // Create order lines from quote items
+    const lineData = quote.items.map((item) => ({
+      orderId: newOrder.id,
+      lineNumber: item.lineNumber,
+      productId: item.productId,
+      productSku: item.productSku,
+      productDescription: item.productDescription,
+      quantityOrdered: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+    }));
+
+    await tx.salesOrderLine.createMany({
+      data: lineData,
+    });
+
+    // Update quote status to CONVERTED
+    await tx.quote.update({
+      where: { id: quoteId },
+      data: {
+        status: 'CONVERTED',
+        updatedBy: userId,
+      },
+    });
+
+    return newOrder;
+  });
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+    },
+  };
+}
+
+/**
+ * Check if a status transition is valid
+ */
+function isValidTransition(currentStatus: SalesOrderStatus, newStatus: SalesOrderStatus): boolean {
+  const validNextStatuses = STATUS_TRANSITIONS[currentStatus];
+  return validNextStatuses.includes(newStatus);
+}
+
+/**
+ * Confirm order - change status from DRAFT to CONFIRMED
+ */
+export async function confirmOrder(
+  orderId: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (!isValidTransition(order.status, 'CONFIRMED')) {
+    return { success: false, error: `Cannot confirm order with status ${order.status}` };
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+      confirmedBy: userId,
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Put order on hold
+ */
+export async function holdOrder(
+  orderId: string,
+  reason: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (!isValidTransition(order.status, 'ON_HOLD')) {
+    return { success: false, error: `Cannot put order on hold with status ${order.status}` };
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      status: 'ON_HOLD',
+      holdReason: reason,
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Release order from hold
+ */
+export async function releaseHold(
+  orderId: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (order.status !== 'ON_HOLD') {
+    return { success: false, error: 'Order is not on hold' };
+  }
+
+  // Determine the appropriate status to return to
+  // For now, return to CONFIRMED (safe default for processing)
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      status: 'CONFIRMED',
+      holdReason: null,
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Cancel order
+ */
+export async function cancelOrder(
+  orderId: string,
+  reason: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (!isValidTransition(order.status, 'CANCELLED')) {
+    return { success: false, error: `Cannot cancel order with status ${order.status}` };
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      status: 'CANCELLED',
+      cancelReason: reason,
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update order status (generic transition)
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  newStatus: SalesOrderStatus,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (!isValidTransition(order.status, newStatus)) {
+    return {
+      success: false,
+      error: `Invalid status transition from ${order.status} to ${newStatus}`,
+    };
+  }
+
+  const updateData: Prisma.SalesOrderUpdateInput = {
+    status: newStatus,
+    updatedBy: userId,
+  };
+
+  // Set additional timestamps based on status
+  if (newStatus === 'CONFIRMED') {
+    updateData.confirmedAt = new Date();
+    updateData.confirmedBy = userId;
+  } else if (newStatus === 'SHIPPED') {
+    updateData.shippedDate = new Date();
+  } else if (newStatus === 'DELIVERED') {
+    updateData.deliveredDate = new Date();
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: updateData,
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update order notes
+ */
+export async function updateOrderNotes(
+  orderId: string,
+  notes: { internalNotes?: string; customerNotes?: string },
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  // Only allow notes update on non-closed/non-cancelled orders
+  if (order.status === 'CLOSED' || order.status === 'CANCELLED') {
+    return { success: false, error: 'Cannot update notes on closed or cancelled orders' };
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      ...(notes.internalNotes !== undefined && { internalNotes: notes.internalNotes }),
+      ...(notes.customerNotes !== undefined && { customerNotes: notes.customerNotes }),
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+// Utility function for rounding
+function roundTo2(value: number): number {
+  return Math.round(value * 100) / 100;
+}

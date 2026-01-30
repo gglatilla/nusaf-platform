@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, X, Send, Calendar, Building, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, X, Send, Calendar, Building, Trash2, Package } from 'lucide-react';
 import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
+import { CreateOrderModal } from '@/components/orders/CreateOrderModal';
 
 function formatDate(dateString: string): string {
   return new Intl.DateTimeFormat('en-ZA', {
@@ -72,6 +73,7 @@ export default function QuoteDetailPage() {
 
   const [notes, setNotes] = useState('');
   const [notesEditing, setNotesEditing] = useState(false);
+  const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -91,6 +93,7 @@ export default function QuoteDetailPage() {
   const isEditable = quote.status === 'DRAFT';
   const canFinalize = quote.status === 'DRAFT' && quote.items.length > 0;
   const canAcceptReject = quote.status === 'CREATED';
+  const canCreateOrder = quote.status === 'ACCEPTED';
   const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
   const handleFinalize = async () => {
@@ -185,6 +188,16 @@ export default function QuoteDetailPage() {
                 {reject.isPending ? 'Rejecting...' : 'Reject'}
               </button>
             </>
+          )}
+
+          {canCreateOrder && (
+            <button
+              onClick={() => setShowCreateOrderModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
+            >
+              <Package className="h-4 w-4" />
+              Create Order
+            </button>
           )}
         </div>
       </div>
@@ -315,6 +328,14 @@ export default function QuoteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Create Order Modal */}
+      <CreateOrderModal
+        quoteId={quoteId}
+        quoteNumber={quote.quoteNumber}
+        isOpen={showCreateOrderModal}
+        onClose={() => setShowCreateOrderModal(false)}
+      />
     </div>
   );
 }

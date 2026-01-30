@@ -296,6 +296,111 @@ export interface QuotesQueryParams {
   pageSize?: number;
 }
 
+// Sales Order types
+export type SalesOrderStatus =
+  | 'DRAFT'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'READY_TO_SHIP'
+  | 'PARTIALLY_SHIPPED'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'INVOICED'
+  | 'CLOSED'
+  | 'ON_HOLD'
+  | 'CANCELLED';
+
+export type FulfillmentType = 'STOCK_ONLY' | 'ASSEMBLY_REQUIRED' | 'MIXED';
+export type Warehouse = 'JHB' | 'CT';
+export type SalesOrderLineStatus = 'PENDING' | 'PICKING' | 'PICKED' | 'SHIPPED' | 'DELIVERED';
+
+export interface SalesOrderLine {
+  id: string;
+  lineNumber: number;
+  status: SalesOrderLineStatus;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityOrdered: number;
+  quantityPicked: number;
+  quantityShipped: number;
+  unitPrice: number;
+  lineTotal: number;
+  notes: string | null;
+}
+
+export interface SalesOrder {
+  id: string;
+  orderNumber: string;
+  status: SalesOrderStatus;
+  company: {
+    id: string;
+    name: string;
+  };
+  quoteId: string | null;
+  quoteNumber: string | null;
+  customerPoNumber: string | null;
+  customerPoDate: string | null;
+  fulfillmentType: FulfillmentType;
+  warehouse: Warehouse;
+  requiredDate: string | null;
+  promisedDate: string | null;
+  shippedDate: string | null;
+  deliveredDate: string | null;
+  lines: SalesOrderLine[];
+  subtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  total: number;
+  internalNotes: string | null;
+  customerNotes: string | null;
+  holdReason: string | null;
+  cancelReason: string | null;
+  confirmedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesOrderListItem {
+  id: string;
+  orderNumber: string;
+  status: SalesOrderStatus;
+  quoteNumber: string | null;
+  customerPoNumber: string | null;
+  lineCount: number;
+  total: number;
+  createdAt: string;
+}
+
+export interface SalesOrdersListResponse {
+  orders: SalesOrderListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface CreateOrderFromQuoteData {
+  quoteId: string;
+  customerPoNumber?: string;
+  customerPoDate?: string;
+  requiredDate?: string;
+  customerNotes?: string;
+}
+
+export interface CreateOrderResponse {
+  id: string;
+  orderNumber: string;
+}
+
+export interface OrdersQueryParams {
+  status?: SalesOrderStatus;
+  page?: number;
+  pageSize?: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -578,6 +683,64 @@ class ApiClient {
   async deleteQuote(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Order endpoints
+  async createOrderFromQuote(data: CreateOrderFromQuoteData): Promise<ApiResponse<CreateOrderResponse>> {
+    return this.request<ApiResponse<CreateOrderResponse>>('/orders/from-quote', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOrders(params: OrdersQueryParams = {}): Promise<ApiResponse<SalesOrdersListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/orders?${queryString}` : '/orders';
+    return this.request<ApiResponse<SalesOrdersListResponse>>(endpoint);
+  }
+
+  async getOrderById(id: string): Promise<ApiResponse<SalesOrder>> {
+    return this.request<ApiResponse<SalesOrder>>(`/orders/${id}`);
+  }
+
+  async updateOrderNotes(id: string, notes: { internalNotes?: string; customerNotes?: string }): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(notes),
+    });
+  }
+
+  async confirmOrder(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async holdOrder(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/hold`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async releaseOrderHold(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/release`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async cancelOrder(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
   }
 }

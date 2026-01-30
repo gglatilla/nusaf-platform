@@ -1,10 +1,10 @@
 # Task Queue
 
 ## Current
-- [TASK-011] Quote creation flow [UI/Frontend, Orders/Quotes, API/Backend] (IN_PROGRESS - 90%)
+- [TASK-012] Order management - Phase 1: Foundation (COMPLETE)
 
 ## Up Next
-- [TASK-012] Order management [Orders/Quotes, API/Backend]
+- [TASK-013] Inventory tracking [Inventory, API/Backend]
 
 ## Completed
 - [TASK-001] Project initialization and setup ✓
@@ -16,6 +16,8 @@
 - [TASK-007] Product catalog — Display products with categories ✓
 - [TASK-008] Product detail modal ✓
 - [TASK-009] Admin pricing rules UI ✓
+- [TASK-010] Quote system implementation ✓
+- [TASK-011] Quote system bug fixes ✓
 
 ## Backlog
 - [TASK-012] Order management [Orders/Quotes, API/Backend]
