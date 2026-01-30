@@ -280,6 +280,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 /**
  * POST /api/v1/quotes/:id/items
  * Add item to quote
+ * Optimized: Company isolation check happens inside addQuoteItem service
  */
 router.post('/:id/items', authenticate, async (req, res) => {
   try {
@@ -299,26 +300,21 @@ router.post('/:id/items', authenticate, async (req, res) => {
       });
     }
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
-    if (!quote) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Quote not found' },
-      });
-    }
-
+    // addQuoteItem now handles company isolation internally
     const result = await addQuoteItem(
       id,
       bodyResult.data.productId,
       bodyResult.data.quantity,
-      authReq.user.id
+      authReq.user.id,
+      authReq.user.companyId // Pass companyId for isolation check
     );
 
     if (!result.success) {
-      return res.status(400).json({
+      // Check if it's a not found error
+      const statusCode = result.error === 'Quote not found' ? 404 : 400;
+      return res.status(statusCode).json({
         success: false,
-        error: { code: 'ADD_ITEM_FAILED', message: result.error },
+        error: { code: statusCode === 404 ? 'NOT_FOUND' : 'ADD_ITEM_FAILED', message: result.error },
       });
     }
 

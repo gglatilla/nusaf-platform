@@ -81,8 +81,8 @@ router.get('/', authenticate, async (req, res) => {
       }
     }
 
-    // Get total count and products in parallel
-    const [total, products] = await Promise.all([
+    // Get total count, products, and company tier in parallel
+    const [total, products, company] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
         where,
@@ -113,12 +113,11 @@ router.get('/', authenticate, async (req, res) => {
         skip,
         take: pageSizeNum,
       }),
+      prisma.company.findUnique({
+        where: { id: authReq.user.companyId },
+        select: { tier: true },
+      }),
     ]);
-
-    // Get company tier for pricing
-    const company = await prisma.company.findUnique({
-      where: { id: authReq.user.companyId },
-    });
 
     const userRole = authReq.user.role;
     const isCustomer = userRole === 'CUSTOMER';
@@ -203,32 +202,39 @@ router.get('/:id', authenticate, async (req, res) => {
       });
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        supplier: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
+    // Parallel fetch: product and company tier
+    const [product, company] = await Promise.all([
+      prisma.product.findUnique({
+        where: { id },
+        include: {
+          supplier: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          subCategory: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
           },
         },
-        category: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-          },
-        },
-        subCategory: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-          },
-        },
-      },
-    });
+      }),
+      prisma.company.findUnique({
+        where: { id: authReq.user.companyId },
+        select: { tier: true },
+      }),
+    ]);
 
     if (!product || !product.isActive || product.deletedAt) {
       return res.status(404).json({
@@ -236,11 +242,6 @@ router.get('/:id', authenticate, async (req, res) => {
         error: { code: 'NOT_FOUND', message: 'Product not found' },
       });
     }
-
-    // Get company tier for pricing
-    const company = await prisma.company.findUnique({
-      where: { id: authReq.user.companyId },
-    });
 
     const userRole = authReq.user.role;
     const isCustomer = userRole === 'CUSTOMER';

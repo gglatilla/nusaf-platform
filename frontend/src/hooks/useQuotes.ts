@@ -3,6 +3,8 @@ import {
   api,
   type QuotesQueryParams,
   type AddQuoteItemData,
+  type ActiveDraftQuote,
+  type CatalogProduct,
 } from '@/lib/api';
 
 /**
@@ -67,16 +69,87 @@ export function useCreateQuote() {
 
 /**
  * Hook for adding an item to a quote
+ * Optimized: Uses optimistic updates for instant UI feedback
  */
 export function useAddQuoteItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ quoteId, data }: { quoteId: string; data: AddQuoteItemData }) => {
+    mutationFn: async ({ quoteId, data, product }: {
+      quoteId: string;
+      data: AddQuoteItemData;
+      product?: CatalogProduct; // Optional: for optimistic update
+    }) => {
       const response = await api.addQuoteItem(quoteId, data);
       return response.data;
     },
-    onSuccess: (_data, variables) => {
+    onMutate: async ({ quoteId, data, product }) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['activeQuote'] });
+      await queryClient.cancelQueries({ queryKey: ['quote', quoteId] });
+
+      // Snapshot current value for rollback
+      const previousActiveQuote = queryClient.getQueryData<ActiveDraftQuote | null>(['activeQuote']);
+
+      // Optimistic update (only if we have product info)
+      if (previousActiveQuote && product && product.price) {
+        const existingItem = previousActiveQuote.items.find(
+          (item) => item.productId === data.productId
+        );
+
+        const lineTotal = product.price * data.quantity;
+
+        let updatedItems;
+        if (existingItem) {
+          // Update existing item quantity
+          updatedItems = previousActiveQuote.items.map((item) =>
+            item.productId === data.productId
+              ? {
+                  ...item,
+                  quantity: item.quantity + data.quantity,
+                  lineTotal: item.lineTotal + lineTotal,
+                }
+              : item
+          );
+        } else {
+          // Add new item
+          const newItem = {
+            id: `optimistic-${Date.now()}`,
+            lineNumber: previousActiveQuote.items.length + 1,
+            productId: data.productId,
+            productSku: product.nusafSku,
+            productDescription: product.description,
+            quantity: data.quantity,
+            unitPrice: product.price,
+            lineTotal,
+          };
+          updatedItems = [...previousActiveQuote.items, newItem];
+        }
+
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        const newVatAmount = Math.round(newSubtotal * 0.15 * 100) / 100;
+        const newTotal = Math.round((newSubtotal + newVatAmount) * 100) / 100;
+
+        queryClient.setQueryData<ActiveDraftQuote>(['activeQuote'], {
+          ...previousActiveQuote,
+          items: updatedItems,
+          itemCount: updatedItems.length,
+          subtotal: newSubtotal,
+          vatAmount: newVatAmount,
+          total: newTotal,
+        });
+      }
+
+      return { previousActiveQuote };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousActiveQuote !== undefined) {
+        queryClient.setQueryData(['activeQuote'], context.previousActiveQuote);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      // Always refetch to ensure consistency with server
       queryClient.invalidateQueries({ queryKey: ['quote', variables.quoteId] });
       queryClient.invalidateQueries({ queryKey: ['activeQuote'] });
     },

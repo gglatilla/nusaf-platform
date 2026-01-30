@@ -134,24 +134,50 @@ export async function getOrCreateDraftQuote(
 
 /**
  * Add item to quote
+ * Optimized: Fetches quote without items, checks for existing item directly via DB query
  */
 export async function addQuoteItem(
   quoteId: string,
   productId: string,
   quantity: number,
-  userId: string
+  userId: string,
+  companyId?: string
 ): Promise<{
   success: boolean;
   item?: { id: string; lineNumber: number; quantity: number; unitPrice: number; lineTotal: number };
   error?: string;
 }> {
-  // Get quote
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
-    include: { items: true, company: true },
-  });
+  // Parallel fetch: quote (without items) and product
+  const [quote, product] = await Promise.all([
+    prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: {
+        id: true,
+        status: true,
+        customerTier: true,
+        deletedAt: true,
+        companyId: true,
+      },
+    }),
+    prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        nusafSku: true,
+        description: true,
+        listPrice: true,
+        isActive: true,
+        deletedAt: true,
+      },
+    }),
+  ]);
 
   if (!quote) {
+    return { success: false, error: 'Quote not found' };
+  }
+
+  // Company isolation check (if companyId provided)
+  if (companyId && quote.companyId !== companyId) {
     return { success: false, error: 'Quote not found' };
   }
 
@@ -162,11 +188,6 @@ export async function addQuoteItem(
   if (quote.deletedAt) {
     return { success: false, error: 'Quote has been deleted' };
   }
-
-  // Get product
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
-  });
 
   if (!product || !product.isActive || product.deletedAt) {
     return { success: false, error: 'Product not found or inactive' };
@@ -181,8 +202,11 @@ export async function addQuoteItem(
   const unitPrice = calculateCustomerPrice(listPrice, quote.customerTier);
   const lineTotal = roundTo2(unitPrice * quantity);
 
-  // Check if product already in quote
-  const existingItem = quote.items.find((item) => item.productId === productId);
+  // Check if product already in quote (uses composite index)
+  const existingItem = await prisma.quoteItem.findFirst({
+    where: { quoteId, productId },
+    select: { id: true, lineNumber: true, quantity: true },
+  });
 
   if (existingItem) {
     // Update quantity
@@ -198,8 +222,8 @@ export async function addQuoteItem(
       },
     });
 
-    // Recalculate totals
-    await recalculateQuoteTotals(quoteId, userId);
+    // Recalculate totals using DB aggregation
+    await recalculateQuoteTotalsOptimized(quoteId, userId);
 
     return {
       success: true,
@@ -213,8 +237,12 @@ export async function addQuoteItem(
     };
   }
 
-  // Add new item
-  const maxLineNumber = quote.items.length > 0 ? Math.max(...quote.items.map((i) => i.lineNumber)) : 0;
+  // Get max line number (single aggregate query)
+  const maxLineResult = await prisma.quoteItem.aggregate({
+    where: { quoteId },
+    _max: { lineNumber: true },
+  });
+  const maxLineNumber = maxLineResult._max.lineNumber ?? 0;
 
   const newItem = await prisma.quoteItem.create({
     data: {
@@ -229,8 +257,8 @@ export async function addQuoteItem(
     },
   });
 
-  // Recalculate totals
-  await recalculateQuoteTotals(quoteId, userId);
+  // Recalculate totals using DB aggregation
+  await recalculateQuoteTotalsOptimized(quoteId, userId);
 
   return {
     success: true,
@@ -336,6 +364,34 @@ export async function recalculateQuoteTotals(quoteId: string, userId?: string): 
     data: {
       subtotal: new Decimal(subtotal),
       vatRate: new Decimal(vatRate),
+      vatAmount: new Decimal(vatAmount),
+      total: new Decimal(total),
+      lastActivityAt: new Date(),
+      updatedBy: userId,
+    },
+  });
+}
+
+/**
+ * Recalculate quote totals using DB aggregation (optimized)
+ * Uses SUM(line_total) instead of fetching all items
+ */
+export async function recalculateQuoteTotalsOptimized(quoteId: string, userId?: string): Promise<void> {
+  // Use DB aggregation to sum line totals directly
+  const result = await prisma.quoteItem.aggregate({
+    where: { quoteId },
+    _sum: { lineTotal: true },
+  });
+
+  const subtotal = result._sum.lineTotal ? Number(result._sum.lineTotal) : 0;
+  const vatAmount = roundTo2(subtotal * (VAT_RATE / 100));
+  const total = roundTo2(subtotal + vatAmount);
+
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: {
+      subtotal: new Decimal(subtotal),
+      vatRate: new Decimal(VAT_RATE),
       vatAmount: new Decimal(vatAmount),
       total: new Decimal(total),
       lastActivityAt: new Date(),
