@@ -25,7 +25,7 @@ function getValidityInfo(validUntil: string | null, status: string): { text: str
   const diffTime = expiry.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  if (status === 'EXPIRED' || diffDays < 0) {
+  if (diffDays < 0) {
     return { text: 'This quote has expired', className: 'bg-red-50 border-red-200 text-red-700', urgent: true };
   }
 

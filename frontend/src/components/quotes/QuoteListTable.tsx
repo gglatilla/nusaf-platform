@@ -33,7 +33,7 @@ function getExpiryInfo(validUntil: string | null, status: string): { text: strin
   const diffTime = expiry.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  if (status === 'EXPIRED' || diffDays < 0) {
+  if (diffDays < 0) {
     return { text: 'Expired', className: 'text-red-600 bg-red-50' };
   }
 
