@@ -85,9 +85,8 @@ export function CategoryFilter({
       {/* Categories */}
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id;
-        // Only auto-expand when category itself is selected (not when a subcategory is selected)
-        // This allows manual collapse via chevron when a subcategory is selected
-        const isExpanded = expandedCategories.has(category.id) || (isSelected && !selectedSubCategoryId);
+        // Use only the expandedCategories set - auto-expand on selection is handled in handleCategoryClick
+        const isExpanded = expandedCategories.has(category.id);
         const hasSubCategories = category.subCategories.length > 0;
 
         return (
