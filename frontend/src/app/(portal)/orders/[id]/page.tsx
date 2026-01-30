@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench, Truck } from 'lucide-react';
 import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
+import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -15,6 +16,8 @@ import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipSt
 import { CreateJobCardModal } from '@/components/job-cards/CreateJobCardModal';
 import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
 import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
+import { CreateTransferRequestModal } from '@/components/transfer-requests/CreateTransferRequestModal';
+import { TransferRequestStatusBadge } from '@/components/transfer-requests/TransferRequestStatusBadge';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -55,12 +58,14 @@ export default function OrderDetailPage() {
   const { data: order, isLoading, error } = useOrder(orderId);
   const { data: pickingSlips } = usePickingSlipsForOrder(orderId);
   const { data: jobCards } = useJobCardsForOrder(orderId);
+  const { data: transferRequests } = useTransferRequestsForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
   const cancel = useCancelOrder();
   const generatePickingSlips = useGeneratePickingSlips();
   const createJobCard = useCreateJobCard();
+  const generateTransferRequest = useGenerateTransferRequest();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -68,6 +73,7 @@ export default function OrderDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showGeneratePickingSlipModal, setShowGeneratePickingSlipModal] = useState(false);
   const [showCreateJobCardModal, setShowCreateJobCardModal] = useState(false);
+  const [showCreateTransferRequestModal, setShowCreateTransferRequestModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -96,6 +102,10 @@ export default function OrderDetailPage() {
   // Can create job cards if order is CONFIRMED or PROCESSING
   const hasJobCards = jobCards && jobCards.length > 0;
   const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
+
+  // Can create transfer requests if order is CONFIRMED or PROCESSING
+  const hasTransferRequests = transferRequests && transferRequests.length > 0;
+  const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -153,6 +163,21 @@ export default function OrderDetailPage() {
     setShowCreateJobCardModal(false);
   };
 
+  const handleCreateTransferRequest = async (lines: Array<{
+    orderLineId: string;
+    lineNumber: number;
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    quantity: number;
+  }>) => {
+    await generateTransferRequest.mutateAsync({
+      orderId,
+      data: { lines },
+    });
+    setShowCreateTransferRequestModal(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -191,6 +216,16 @@ export default function OrderDetailPage() {
             >
               <Wrench className="h-4 w-4" />
               Create Job Card
+            </button>
+          )}
+
+          {canCreateTransferRequest && (
+            <button
+              onClick={() => setShowCreateTransferRequestModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+            >
+              <Truck className="h-4 w-4" />
+              Create Transfer
             </button>
           )}
 
@@ -323,6 +358,32 @@ export default function OrderDetailPage() {
                       <span className="text-sm text-slate-600">{jc.productSku}</span>
                       <span className="text-sm text-slate-500">Qty: {jc.quantity}</span>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Transfer Requests Section */}
+          {hasTransferRequests && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Transfer Requests</h2>
+              <div className="space-y-3">
+                {transferRequests.map((tr) => (
+                  <div
+                    key={tr.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Link
+                        href={`/transfer-requests/${tr.id}`}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        {tr.transferNumber}
+                      </Link>
+                      <TransferRequestStatusBadge status={tr.status} />
+                    </div>
+                    <span className="text-sm text-slate-500">{tr.lineCount} line{tr.lineCount !== 1 ? 's' : ''}</span>
                   </div>
                 ))}
               </div>
@@ -543,6 +604,15 @@ export default function OrderDetailPage() {
         orderLines={order.lines}
         onCreateJobCard={handleCreateJobCard}
         isCreating={createJobCard.isPending}
+      />
+
+      {/* Create Transfer Request Modal */}
+      <CreateTransferRequestModal
+        isOpen={showCreateTransferRequestModal}
+        onClose={() => setShowCreateTransferRequestModal(false)}
+        orderLines={order.lines}
+        onCreateTransfer={handleCreateTransferRequest}
+        isCreating={generateTransferRequest.isPending}
       />
     </div>
   );

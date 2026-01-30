@@ -1,0 +1,557 @@
+import { Prisma, TransferRequestStatus, Warehouse } from '@prisma/client';
+import { prisma } from '../config/database';
+
+/**
+ * Valid status transitions for transfer requests
+ */
+export const TRANSFER_REQUEST_STATUS_TRANSITIONS: Record<TransferRequestStatus, TransferRequestStatus[]> = {
+  PENDING: ['IN_TRANSIT'],
+  IN_TRANSIT: ['RECEIVED'],
+  RECEIVED: [],
+};
+
+/**
+ * Generate the next transfer request number in format TR-YYYY-NNNNN
+ */
+export async function generateTransferRequestNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  const counter = await prisma.$transaction(async (tx) => {
+    let counter = await tx.transferRequestCounter.findUnique({
+      where: { id: 'transfer_request_counter' },
+    });
+
+    if (!counter) {
+      counter = await tx.transferRequestCounter.create({
+        data: {
+          id: 'transfer_request_counter',
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    if (counter.year !== currentYear) {
+      counter = await tx.transferRequestCounter.update({
+        where: { id: 'transfer_request_counter' },
+        data: {
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    counter = await tx.transferRequestCounter.update({
+      where: { id: 'transfer_request_counter' },
+      data: {
+        count: { increment: 1 },
+      },
+    });
+
+    return counter;
+  });
+
+  const paddedCount = counter.count.toString().padStart(5, '0');
+  return `TR-${currentYear}-${paddedCount}`;
+}
+
+/**
+ * Line item data for creating a transfer request from order
+ */
+export interface CreateTransferRequestLineInput {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+}
+
+/**
+ * Line item data for creating a standalone transfer request
+ */
+export interface CreateStandaloneTransferRequestLineInput {
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+}
+
+/**
+ * Create a transfer request from a confirmed order (CT customer fulfillment)
+ */
+export async function createTransferRequest(
+  orderId: string,
+  lines: CreateTransferRequestLineInput[],
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; transferRequest?: { id: string; transferNumber: string }; error?: string }> {
+  // Verify the order exists, is confirmed/processing, and belongs to the company
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (order.status !== 'CONFIRMED' && order.status !== 'PROCESSING') {
+    return { success: false, error: 'Transfer requests can only be created for CONFIRMED or PROCESSING orders' };
+  }
+
+  if (lines.length === 0) {
+    return { success: false, error: 'At least one line item is required' };
+  }
+
+  // Generate transfer request number
+  const transferNumber = await generateTransferRequestNumber();
+
+  // Create transfer request with lines in a transaction
+  const transferRequest = await prisma.$transaction(async (tx) => {
+    const newTransferRequest = await tx.transferRequest.create({
+      data: {
+        transferNumber,
+        companyId,
+        orderId,
+        orderNumber: order.orderNumber,
+        fromLocation: 'JHB',
+        toLocation: 'CT',
+        status: 'PENDING',
+        createdBy: userId,
+      },
+    });
+
+    // Create transfer request lines
+    const lineData = lines.map((line) => ({
+      transferRequestId: newTransferRequest.id,
+      orderLineId: line.orderLineId,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantity: line.quantity,
+    }));
+
+    await tx.transferRequestLine.createMany({
+      data: lineData,
+    });
+
+    return newTransferRequest;
+  });
+
+  return {
+    success: true,
+    transferRequest: {
+      id: transferRequest.id,
+      transferNumber: transferRequest.transferNumber,
+    },
+  };
+}
+
+/**
+ * Create a standalone transfer request (stock replenishment)
+ */
+export async function createStandaloneTransferRequest(
+  lines: CreateStandaloneTransferRequestLineInput[],
+  notes: string | null,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; transferRequest?: { id: string; transferNumber: string }; error?: string }> {
+  if (lines.length === 0) {
+    return { success: false, error: 'At least one line item is required' };
+  }
+
+  // Generate transfer request number
+  const transferNumber = await generateTransferRequestNumber();
+
+  // Create transfer request with lines in a transaction
+  const transferRequest = await prisma.$transaction(async (tx) => {
+    const newTransferRequest = await tx.transferRequest.create({
+      data: {
+        transferNumber,
+        companyId,
+        orderId: null,
+        orderNumber: null,
+        fromLocation: 'JHB',
+        toLocation: 'CT',
+        status: 'PENDING',
+        notes: notes || null,
+        createdBy: userId,
+      },
+    });
+
+    // Create transfer request lines
+    const lineData = lines.map((line) => ({
+      transferRequestId: newTransferRequest.id,
+      orderLineId: null,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantity: line.quantity,
+    }));
+
+    await tx.transferRequestLine.createMany({
+      data: lineData,
+    });
+
+    return newTransferRequest;
+  });
+
+  return {
+    success: true,
+    transferRequest: {
+      id: transferRequest.id,
+      transferNumber: transferRequest.transferNumber,
+    },
+  };
+}
+
+/**
+ * Get transfer requests with filtering and pagination
+ */
+export async function getTransferRequests(options: {
+  companyId: string;
+  orderId?: string;
+  status?: TransferRequestStatus;
+  page?: number;
+  pageSize?: number;
+}): Promise<{
+  transferRequests: Array<{
+    id: string;
+    transferNumber: string;
+    orderNumber: string | null;
+    orderId: string | null;
+    fromLocation: Warehouse;
+    toLocation: Warehouse;
+    status: TransferRequestStatus;
+    lineCount: number;
+    createdAt: Date;
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}> {
+  const { companyId, orderId, status, page = 1, pageSize = 20 } = options;
+
+  const where: Prisma.TransferRequestWhereInput = {
+    companyId,
+  };
+
+  if (orderId) {
+    where.orderId = orderId;
+  }
+
+  if (status) {
+    where.status = status;
+  }
+
+  const [total, transferRequests] = await Promise.all([
+    prisma.transferRequest.count({ where }),
+    prisma.transferRequest.findMany({
+      where,
+      include: {
+        _count: { select: { lines: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return {
+    transferRequests: transferRequests.map((tr) => ({
+      id: tr.id,
+      transferNumber: tr.transferNumber,
+      orderNumber: tr.orderNumber,
+      orderId: tr.orderId,
+      fromLocation: tr.fromLocation,
+      toLocation: tr.toLocation,
+      status: tr.status,
+      lineCount: tr._count.lines,
+      createdAt: tr.createdAt,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
+}
+
+/**
+ * Get transfer request by ID with lines
+ */
+export async function getTransferRequestById(id: string, companyId: string) {
+  const transferRequest = await prisma.transferRequest.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+    include: {
+      lines: {
+        orderBy: { lineNumber: 'asc' },
+      },
+    },
+  });
+
+  if (!transferRequest) {
+    return null;
+  }
+
+  return {
+    id: transferRequest.id,
+    transferNumber: transferRequest.transferNumber,
+    companyId: transferRequest.companyId,
+    orderId: transferRequest.orderId,
+    orderNumber: transferRequest.orderNumber,
+    fromLocation: transferRequest.fromLocation,
+    toLocation: transferRequest.toLocation,
+    status: transferRequest.status,
+    notes: transferRequest.notes,
+    shippedAt: transferRequest.shippedAt,
+    shippedBy: transferRequest.shippedBy,
+    shippedByName: transferRequest.shippedByName,
+    receivedAt: transferRequest.receivedAt,
+    receivedBy: transferRequest.receivedBy,
+    receivedByName: transferRequest.receivedByName,
+    lines: transferRequest.lines.map((line) => ({
+      id: line.id,
+      orderLineId: line.orderLineId,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantity: line.quantity,
+      receivedQuantity: line.receivedQuantity,
+    })),
+    createdAt: transferRequest.createdAt,
+    createdBy: transferRequest.createdBy,
+    updatedAt: transferRequest.updatedAt,
+  };
+}
+
+/**
+ * Get transfer requests for an order (summary)
+ */
+export async function getTransferRequestsForOrder(
+  orderId: string,
+  companyId: string
+): Promise<Array<{
+  id: string;
+  transferNumber: string;
+  status: TransferRequestStatus;
+  lineCount: number;
+}>> {
+  const transferRequests = await prisma.transferRequest.findMany({
+    where: {
+      orderId,
+      companyId,
+    },
+    include: {
+      _count: { select: { lines: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return transferRequests.map((tr) => ({
+    id: tr.id,
+    transferNumber: tr.transferNumber,
+    status: tr.status,
+    lineCount: tr._count.lines,
+  }));
+}
+
+/**
+ * Ship transfer - change status from PENDING to IN_TRANSIT
+ */
+export async function shipTransfer(
+  id: string,
+  userId: string,
+  userName: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const transferRequest = await prisma.transferRequest.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+  });
+
+  if (!transferRequest) {
+    return { success: false, error: 'Transfer request not found' };
+  }
+
+  if (transferRequest.status !== 'PENDING') {
+    return { success: false, error: `Cannot ship a transfer request with status ${transferRequest.status}` };
+  }
+
+  await prisma.transferRequest.update({
+    where: { id },
+    data: {
+      status: 'IN_TRANSIT',
+      shippedAt: new Date(),
+      shippedBy: userId,
+      shippedByName: userName,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update the received quantity for a line
+ */
+export async function updateLineReceived(
+  transferRequestId: string,
+  lineId: string,
+  receivedQuantity: number,
+  _userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const transferRequest = await prisma.transferRequest.findFirst({
+    where: {
+      id: transferRequestId,
+      companyId,
+    },
+    include: {
+      lines: {
+        where: { id: lineId },
+      },
+    },
+  });
+
+  if (!transferRequest) {
+    return { success: false, error: 'Transfer request not found' };
+  }
+
+  if (transferRequest.lines.length === 0) {
+    return { success: false, error: 'Line not found' };
+  }
+
+  const line = transferRequest.lines[0];
+
+  if (transferRequest.status !== 'IN_TRANSIT') {
+    return { success: false, error: 'Can only update received quantities for IN_TRANSIT transfers' };
+  }
+
+  if (receivedQuantity < 0) {
+    return { success: false, error: 'Received quantity cannot be negative' };
+  }
+
+  if (receivedQuantity > line.quantity) {
+    return { success: false, error: 'Received quantity cannot exceed transfer quantity' };
+  }
+
+  await prisma.transferRequestLine.update({
+    where: { id: lineId },
+    data: {
+      receivedQuantity,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Receive transfer - change status from IN_TRANSIT to RECEIVED
+ */
+export async function receiveTransfer(
+  id: string,
+  userId: string,
+  userName: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const transferRequest = await prisma.transferRequest.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+    include: {
+      lines: true,
+    },
+  });
+
+  if (!transferRequest) {
+    return { success: false, error: 'Transfer request not found' };
+  }
+
+  if (transferRequest.status !== 'IN_TRANSIT') {
+    return { success: false, error: `Cannot receive a transfer request with status ${transferRequest.status}` };
+  }
+
+  // Check if all lines have been received (allow partial for now, just require some input)
+  const unreceived = transferRequest.lines.find((line) => line.receivedQuantity === 0);
+  if (unreceived) {
+    return {
+      success: false,
+      error: `Line ${unreceived.lineNumber} (${unreceived.productSku}) has not been received. Please enter received quantities for all lines.`,
+    };
+  }
+
+  await prisma.transferRequest.update({
+    where: { id },
+    data: {
+      status: 'RECEIVED',
+      receivedAt: new Date(),
+      receivedBy: userId,
+      receivedByName: userName,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update notes on a transfer request
+ */
+export async function updateNotes(
+  id: string,
+  notes: string,
+  _userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const transferRequest = await prisma.transferRequest.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+  });
+
+  if (!transferRequest) {
+    return { success: false, error: 'Transfer request not found' };
+  }
+
+  await prisma.transferRequest.update({
+    where: { id },
+    data: {
+      notes: notes || null,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Check if transfer requests exist for an order
+ */
+export async function hasTransferRequests(orderId: string, companyId: string): Promise<boolean> {
+  const count = await prisma.transferRequest.count({
+    where: {
+      orderId,
+      companyId,
+    },
+  });
+  return count > 0;
+}

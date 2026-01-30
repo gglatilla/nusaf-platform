@@ -575,6 +575,109 @@ export interface OrderJobCardSummary {
   status: JobCardStatus;
 }
 
+// Transfer Request types
+export type TransferRequestStatus = 'PENDING' | 'IN_TRANSIT' | 'RECEIVED';
+
+export interface TransferRequestLine {
+  id: string;
+  orderLineId: string | null;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  receivedQuantity: number;
+}
+
+export interface TransferRequest {
+  id: string;
+  transferNumber: string;
+  companyId: string;
+  orderId: string | null;
+  orderNumber: string | null;
+  fromLocation: Warehouse;
+  toLocation: Warehouse;
+  status: TransferRequestStatus;
+  notes: string | null;
+  shippedAt: string | null;
+  shippedBy: string | null;
+  shippedByName: string | null;
+  receivedAt: string | null;
+  receivedBy: string | null;
+  receivedByName: string | null;
+  lines: TransferRequestLine[];
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface TransferRequestListItem {
+  id: string;
+  transferNumber: string;
+  orderNumber: string | null;
+  orderId: string | null;
+  fromLocation: Warehouse;
+  toLocation: Warehouse;
+  status: TransferRequestStatus;
+  lineCount: number;
+  createdAt: string;
+}
+
+export interface TransferRequestsListResponse {
+  transferRequests: TransferRequestListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface TransferRequestsQueryParams {
+  orderId?: string;
+  status?: TransferRequestStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateTransferRequestFromOrderLineInput {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+}
+
+export interface CreateTransferRequestFromOrderData {
+  lines: CreateTransferRequestFromOrderLineInput[];
+}
+
+export interface CreateStandaloneTransferRequestLineInput {
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+}
+
+export interface CreateStandaloneTransferRequestData {
+  lines: CreateStandaloneTransferRequestLineInput[];
+  notes?: string | null;
+}
+
+export interface CreateTransferRequestResponse {
+  id: string;
+  transferNumber: string;
+}
+
+export interface OrderTransferRequestSummary {
+  id: string;
+  transferNumber: string;
+  status: TransferRequestStatus;
+  lineCount: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -1041,6 +1144,69 @@ class ApiClient {
 
   async updateJobCardNotes(id: string, notes: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
+  // Transfer request endpoints
+  async getTransferRequests(params: TransferRequestsQueryParams = {}): Promise<ApiResponse<TransferRequestsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/transfer-requests?${queryString}` : '/transfer-requests';
+    return this.request<ApiResponse<TransferRequestsListResponse>>(endpoint);
+  }
+
+  async getTransferRequestById(id: string): Promise<ApiResponse<TransferRequest>> {
+    return this.request<ApiResponse<TransferRequest>>(`/transfer-requests/${id}`);
+  }
+
+  async getTransferRequestsForOrder(orderId: string): Promise<ApiResponse<OrderTransferRequestSummary[]>> {
+    return this.request<ApiResponse<OrderTransferRequestSummary[]>>(`/transfer-requests/order/${orderId}`);
+  }
+
+  async generateTransferRequest(orderId: string, data: CreateTransferRequestFromOrderData): Promise<ApiResponse<CreateTransferRequestResponse>> {
+    return this.request<ApiResponse<CreateTransferRequestResponse>>(`/transfer-requests/generate/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createStandaloneTransferRequest(data: CreateStandaloneTransferRequestData): Promise<ApiResponse<CreateTransferRequestResponse>> {
+    return this.request<ApiResponse<CreateTransferRequestResponse>>('/transfer-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async shipTransferRequest(id: string, shippedByName: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/transfer-requests/${id}/ship`, {
+      method: 'POST',
+      body: JSON.stringify({ shippedByName }),
+    });
+  }
+
+  async updateTransferRequestLine(transferRequestId: string, lineId: string, receivedQuantity: number): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/transfer-requests/${transferRequestId}/lines/${lineId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ receivedQuantity }),
+    });
+  }
+
+  async receiveTransferRequest(id: string, receivedByName: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/transfer-requests/${id}/receive`, {
+      method: 'POST',
+      body: JSON.stringify({ receivedByName }),
+    });
+  }
+
+  async updateTransferRequestNotes(id: string, notes: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/transfer-requests/${id}/notes`, {
       method: 'PATCH',
       body: JSON.stringify({ notes }),
     });

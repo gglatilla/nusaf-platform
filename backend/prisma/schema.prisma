@@ -858,3 +858,84 @@ model JobCardCounter {
 
   @@map("job_card_counter")
 }
+
+// ============================================
+// TRANSFER REQUEST ENTITIES
+// ============================================
+
+enum TransferRequestStatus {
+  PENDING
+  IN_TRANSIT
+  RECEIVED
+}
+
+model TransferRequest {
+  id              String                @id @default(cuid())
+  transferNumber  String                @unique @map("transfer_number") // TR-2026-00001
+  companyId       String                @map("company_id")
+
+  // Order reference (optional - transfers can be standalone for stock replenishment)
+  orderId         String?               @map("order_id")
+  orderNumber     String?               @map("order_number") // Snapshot
+
+  // Locations (always JHB → CT)
+  fromLocation    Warehouse             @default(JHB) @map("from_location")
+  toLocation      Warehouse             @default(CT) @map("to_location")
+
+  // Status
+  status          TransferRequestStatus @default(PENDING)
+  notes           String?
+
+  // Shipping info
+  shippedAt       DateTime?             @map("shipped_at")
+  shippedBy       String?               @map("shipped_by")
+  shippedByName   String?               @map("shipped_by_name")
+
+  // Receiving info
+  receivedAt      DateTime?             @map("received_at")
+  receivedBy      String?               @map("received_by")
+  receivedByName  String?               @map("received_by_name")
+
+  // Relations
+  lines           TransferRequestLine[]
+
+  // Audit
+  createdAt       DateTime              @default(now()) @map("created_at")
+  createdBy       String?               @map("created_by")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([status])
+  @@map("transfer_requests")
+}
+
+model TransferRequestLine {
+  id                 String          @id @default(cuid())
+  transferRequestId  String          @map("transfer_request_id")
+  transferRequest    TransferRequest @relation(fields: [transferRequestId], references: [id], onDelete: Cascade)
+  lineNumber         Int             @map("line_number")
+
+  // Product snapshot
+  productId          String          @map("product_id")
+  productSku         String          @map("product_sku")
+  productDescription String          @map("product_description")
+
+  // Quantities
+  quantity           Int             // Quantity to transfer
+  receivedQuantity   Int             @default(0) @map("received_quantity")
+
+  // Optional link to order line
+  orderLineId        String?         @map("order_line_id")
+
+  @@index([transferRequestId])
+  @@map("transfer_request_lines")
+}
+
+model TransferRequestCounter {
+  id    String @id @default("transfer_request_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("transfer_request_counter")
+}
