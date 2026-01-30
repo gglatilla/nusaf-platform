@@ -1,0 +1,496 @@
+import { Prisma, PickingSlipStatus, Warehouse } from '@prisma/client';
+import { prisma } from '../config/database';
+
+/**
+ * Valid status transitions for picking slips
+ */
+export const PICKING_SLIP_STATUS_TRANSITIONS: Record<PickingSlipStatus, PickingSlipStatus[]> = {
+  PENDING: ['IN_PROGRESS'],
+  IN_PROGRESS: ['COMPLETE'],
+  COMPLETE: [],
+};
+
+/**
+ * Generate the next picking slip number in format PS-YYYY-NNNNN
+ */
+export async function generatePickingSlipNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  const counter = await prisma.$transaction(async (tx) => {
+    let counter = await tx.pickingSlipCounter.findUnique({
+      where: { id: 'picking_slip_counter' },
+    });
+
+    if (!counter) {
+      counter = await tx.pickingSlipCounter.create({
+        data: {
+          id: 'picking_slip_counter',
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    if (counter.year !== currentYear) {
+      counter = await tx.pickingSlipCounter.update({
+        where: { id: 'picking_slip_counter' },
+        data: {
+          year: currentYear,
+          count: 1,
+        },
+      });
+      return counter;
+    }
+
+    counter = await tx.pickingSlipCounter.update({
+      where: { id: 'picking_slip_counter' },
+      data: {
+        count: { increment: 1 },
+      },
+    });
+
+    return counter;
+  });
+
+  const paddedCount = counter.count.toString().padStart(5, '0');
+  return `PS-${currentYear}-${paddedCount}`;
+}
+
+/**
+ * Line item data for creating a picking slip
+ */
+export interface CreatePickingSlipLineInput {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityToPick: number;
+}
+
+/**
+ * Create a picking slip for a confirmed order
+ */
+export async function createPickingSlip(
+  orderId: string,
+  location: Warehouse,
+  lines: CreatePickingSlipLineInput[],
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; pickingSlip?: { id: string; pickingSlipNumber: string }; error?: string }> {
+  // Verify the order exists, is confirmed, and belongs to the company
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (order.status !== 'CONFIRMED') {
+    return { success: false, error: 'Picking slips can only be created for CONFIRMED orders' };
+  }
+
+  if (lines.length === 0) {
+    return { success: false, error: 'At least one line item is required' };
+  }
+
+  // Generate picking slip number
+  const pickingSlipNumber = await generatePickingSlipNumber();
+
+  // Create picking slip with lines in a transaction
+  const pickingSlip = await prisma.$transaction(async (tx) => {
+    const newPickingSlip = await tx.pickingSlip.create({
+      data: {
+        pickingSlipNumber,
+        companyId,
+        orderId,
+        orderNumber: order.orderNumber,
+        location,
+        status: 'PENDING',
+        createdBy: userId,
+      },
+    });
+
+    // Create picking slip lines
+    const lineData = lines.map((line) => ({
+      pickingSlipId: newPickingSlip.id,
+      orderLineId: line.orderLineId,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantityToPick: line.quantityToPick,
+    }));
+
+    await tx.pickingSlipLine.createMany({
+      data: lineData,
+    });
+
+    return newPickingSlip;
+  });
+
+  return {
+    success: true,
+    pickingSlip: {
+      id: pickingSlip.id,
+      pickingSlipNumber: pickingSlip.pickingSlipNumber,
+    },
+  };
+}
+
+/**
+ * Get picking slips with filtering and pagination
+ */
+export async function getPickingSlips(options: {
+  companyId: string;
+  orderId?: string;
+  location?: Warehouse;
+  status?: PickingSlipStatus;
+  page?: number;
+  pageSize?: number;
+}): Promise<{
+  pickingSlips: Array<{
+    id: string;
+    pickingSlipNumber: string;
+    orderNumber: string;
+    orderId: string;
+    location: Warehouse;
+    status: PickingSlipStatus;
+    assignedToName: string | null;
+    lineCount: number;
+    createdAt: Date;
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}> {
+  const { companyId, orderId, location, status, page = 1, pageSize = 20 } = options;
+
+  const where: Prisma.PickingSlipWhereInput = {
+    companyId,
+  };
+
+  if (orderId) {
+    where.orderId = orderId;
+  }
+
+  if (location) {
+    where.location = location;
+  }
+
+  if (status) {
+    where.status = status;
+  }
+
+  const [total, pickingSlips] = await Promise.all([
+    prisma.pickingSlip.count({ where }),
+    prisma.pickingSlip.findMany({
+      where,
+      include: {
+        _count: { select: { lines: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return {
+    pickingSlips: pickingSlips.map((ps) => ({
+      id: ps.id,
+      pickingSlipNumber: ps.pickingSlipNumber,
+      orderNumber: ps.orderNumber,
+      orderId: ps.orderId,
+      location: ps.location,
+      status: ps.status,
+      assignedToName: ps.assignedToName,
+      lineCount: ps._count.lines,
+      createdAt: ps.createdAt,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
+}
+
+/**
+ * Get picking slip by ID with lines
+ */
+export async function getPickingSlipById(id: string, companyId: string) {
+  const pickingSlip = await prisma.pickingSlip.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+    include: {
+      lines: {
+        orderBy: { lineNumber: 'asc' },
+      },
+    },
+  });
+
+  if (!pickingSlip) {
+    return null;
+  }
+
+  return {
+    id: pickingSlip.id,
+    pickingSlipNumber: pickingSlip.pickingSlipNumber,
+    companyId: pickingSlip.companyId,
+    orderId: pickingSlip.orderId,
+    orderNumber: pickingSlip.orderNumber,
+    location: pickingSlip.location,
+    status: pickingSlip.status,
+    assignedTo: pickingSlip.assignedTo,
+    assignedToName: pickingSlip.assignedToName,
+    startedAt: pickingSlip.startedAt,
+    completedAt: pickingSlip.completedAt,
+    lines: pickingSlip.lines.map((line) => ({
+      id: line.id,
+      orderLineId: line.orderLineId,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantityToPick: line.quantityToPick,
+      quantityPicked: line.quantityPicked,
+      pickedAt: line.pickedAt,
+      pickedBy: line.pickedBy,
+      binLocation: line.binLocation,
+    })),
+    createdAt: pickingSlip.createdAt,
+    createdBy: pickingSlip.createdBy,
+    updatedAt: pickingSlip.updatedAt,
+  };
+}
+
+/**
+ * Assign a picking slip to a user
+ */
+export async function assignPickingSlip(
+  id: string,
+  assignedTo: string,
+  assignedToName: string,
+  _userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const pickingSlip = await prisma.pickingSlip.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+  });
+
+  if (!pickingSlip) {
+    return { success: false, error: 'Picking slip not found' };
+  }
+
+  if (pickingSlip.status === 'COMPLETE') {
+    return { success: false, error: 'Cannot assign a completed picking slip' };
+  }
+
+  await prisma.pickingSlip.update({
+    where: { id },
+    data: {
+      assignedTo,
+      assignedToName,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Start picking - change status from PENDING to IN_PROGRESS
+ */
+export async function startPicking(
+  id: string,
+  _userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const pickingSlip = await prisma.pickingSlip.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+  });
+
+  if (!pickingSlip) {
+    return { success: false, error: 'Picking slip not found' };
+  }
+
+  if (pickingSlip.status !== 'PENDING') {
+    return { success: false, error: `Cannot start picking for a slip with status ${pickingSlip.status}` };
+  }
+
+  await prisma.pickingSlip.update({
+    where: { id },
+    data: {
+      status: 'IN_PROGRESS',
+      startedAt: new Date(),
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update the picked quantity for a line
+ */
+export async function updateLinePicked(
+  pickingSlipId: string,
+  lineId: string,
+  quantityPicked: number,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const pickingSlip = await prisma.pickingSlip.findFirst({
+    where: {
+      id: pickingSlipId,
+      companyId,
+    },
+    include: {
+      lines: {
+        where: { id: lineId },
+      },
+    },
+  });
+
+  if (!pickingSlip) {
+    return { success: false, error: 'Picking slip not found' };
+  }
+
+  if (pickingSlip.lines.length === 0) {
+    return { success: false, error: 'Line not found' };
+  }
+
+  const line = pickingSlip.lines[0];
+
+  if (pickingSlip.status === 'COMPLETE') {
+    return { success: false, error: 'Cannot update a completed picking slip' };
+  }
+
+  if (quantityPicked < 0) {
+    return { success: false, error: 'Quantity picked cannot be negative' };
+  }
+
+  if (quantityPicked > line.quantityToPick) {
+    return { success: false, error: 'Quantity picked cannot exceed quantity to pick' };
+  }
+
+  await prisma.pickingSlipLine.update({
+    where: { id: lineId },
+    data: {
+      quantityPicked,
+      pickedAt: quantityPicked > 0 ? new Date() : null,
+      pickedBy: quantityPicked > 0 ? userId : null,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Complete picking - change status from IN_PROGRESS to COMPLETE
+ * Validates that all lines have been picked
+ */
+export async function completePicking(
+  id: string,
+  _userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const pickingSlip = await prisma.pickingSlip.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+    include: {
+      lines: true,
+    },
+  });
+
+  if (!pickingSlip) {
+    return { success: false, error: 'Picking slip not found' };
+  }
+
+  if (pickingSlip.status !== 'IN_PROGRESS') {
+    return { success: false, error: `Cannot complete picking for a slip with status ${pickingSlip.status}` };
+  }
+
+  // Check if all lines have been fully picked
+  const incompleteLine = pickingSlip.lines.find((line) => line.quantityPicked < line.quantityToPick);
+  if (incompleteLine) {
+    return {
+      success: false,
+      error: `Line ${incompleteLine.lineNumber} (${incompleteLine.productSku}) not fully picked: ${incompleteLine.quantityPicked}/${incompleteLine.quantityToPick}`,
+    };
+  }
+
+  await prisma.pickingSlip.update({
+    where: { id },
+    data: {
+      status: 'COMPLETE',
+      completedAt: new Date(),
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Get picking slips for an order
+ */
+export async function getPickingSlipsForOrder(
+  orderId: string,
+  companyId: string
+): Promise<Array<{
+  id: string;
+  pickingSlipNumber: string;
+  location: Warehouse;
+  status: PickingSlipStatus;
+  lineCount: number;
+}>> {
+  const pickingSlips = await prisma.pickingSlip.findMany({
+    where: {
+      orderId,
+      companyId,
+    },
+    include: {
+      _count: { select: { lines: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return pickingSlips.map((ps) => ({
+    id: ps.id,
+    pickingSlipNumber: ps.pickingSlipNumber,
+    location: ps.location,
+    status: ps.status,
+    lineCount: ps._count.lines,
+  }));
+}
+
+/**
+ * Check if picking slips exist for an order
+ */
+export async function hasPickingSlips(orderId: string, companyId: string): Promise<boolean> {
+  const count = await prisma.pickingSlip.count({
+    where: {
+      orderId,
+      companyId,
+    },
+  });
+  return count > 0;
+}

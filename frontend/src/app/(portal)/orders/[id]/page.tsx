@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin } from 'lucide-react';
 import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
+import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
+import { GeneratePickingSlipModal } from '@/components/picking-slips/GeneratePickingSlipModal';
+import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipStatusBadge';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -16,6 +19,10 @@ function formatDate(dateString: string | null): string {
     month: 'long',
     day: 'numeric',
   }).format(new Date(dateString));
+}
+
+function getLocationLabel(location: string): string {
+  return location === 'JHB' ? 'Johannesburg' : 'Cape Town';
 }
 
 function LoadingSkeleton() {
@@ -42,15 +49,18 @@ export default function OrderDetailPage() {
   const orderId = params.id as string;
 
   const { data: order, isLoading, error } = useOrder(orderId);
+  const { data: pickingSlips } = usePickingSlipsForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
   const cancel = useCancelOrder();
+  const generatePickingSlips = useGeneratePickingSlips();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showGeneratePickingSlipModal, setShowGeneratePickingSlipModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -71,6 +81,10 @@ export default function OrderDetailPage() {
   const canHold = ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status);
   const canRelease = order.status === 'ON_HOLD';
   const canCancel = ['DRAFT', 'CONFIRMED', 'PROCESSING', 'ON_HOLD'].includes(order.status);
+
+  // Can generate picking slips if order is CONFIRMED and no picking slips exist yet
+  const hasPickingSlips = pickingSlips && pickingSlips.length > 0;
+  const canGeneratePickingSlips = order.status === 'CONFIRMED' && !hasPickingSlips;
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -98,6 +112,22 @@ export default function OrderDetailPage() {
     setCancelReason('');
   };
 
+  const handleGeneratePickingSlips = async (lines: Array<{
+    orderLineId: string;
+    lineNumber: number;
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    quantityToPick: number;
+    location: 'JHB' | 'CT';
+  }>) => {
+    await generatePickingSlips.mutateAsync({
+      orderId,
+      data: { lines },
+    });
+    setShowGeneratePickingSlipModal(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -119,6 +149,16 @@ export default function OrderDetailPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
+          {canGeneratePickingSlips && (
+            <button
+              onClick={() => setShowGeneratePickingSlipModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Generate Picking Slips
+            </button>
+          )}
+
           {canConfirm && (
             <button
               onClick={handleConfirm}
@@ -193,6 +233,36 @@ export default function OrderDetailPage() {
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Order Lines</h2>
             <OrderLineTable lines={order.lines} />
           </div>
+
+          {/* Picking Slips Section */}
+          {hasPickingSlips && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Picking Slips</h2>
+              <div className="space-y-3">
+                {pickingSlips.map((slip) => (
+                  <div
+                    key={slip.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Link
+                        href={`/picking-slips/${slip.id}`}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        {slip.pickingSlipNumber}
+                      </Link>
+                      <PickingSlipStatusBadge status={slip.status} />
+                      <span className="inline-flex items-center gap-1 text-sm text-slate-600">
+                        <MapPin className="h-4 w-4 text-slate-400" />
+                        {getLocationLabel(slip.location)}
+                      </span>
+                    </div>
+                    <span className="text-sm text-slate-500">{slip.lineCount} line{slip.lineCount !== 1 ? 's' : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           {(order.customerNotes || order.internalNotes) && (
@@ -391,6 +461,15 @@ export default function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Generate Picking Slip Modal */}
+      <GeneratePickingSlipModal
+        isOpen={showGeneratePickingSlipModal}
+        onClose={() => setShowGeneratePickingSlipModal(false)}
+        orderLines={order.lines}
+        onGenerate={handleGeneratePickingSlips}
+        isGenerating={generatePickingSlips.isPending}
+      />
     </div>
   );
 }

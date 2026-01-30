@@ -462,6 +462,12 @@ enum SalesOrderLineStatus {
   DELIVERED
 }
 
+enum PickingSlipStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETE
+}
+
 // ============================================
 // PRICING ENTITIES
 // ============================================
@@ -717,4 +723,72 @@ model SalesOrderCounter {
   count Int    @default(0)
 
   @@map("sales_order_counter")
+}
+
+// ============================================
+// PICKING SLIP ENTITIES
+// ============================================
+
+model PickingSlip {
+  id                String            @id @default(cuid())
+  pickingSlipNumber String            @unique @map("picking_slip_number") // PS-2026-00001
+  companyId         String            @map("company_id")
+  orderId           String            @map("order_id")
+  orderNumber       String            @map("order_number") // Snapshot
+  location          Warehouse         // JHB or CT
+  status            PickingSlipStatus @default(PENDING)
+
+  // Assignment
+  assignedTo     String? @map("assigned_to") // User ID
+  assignedToName String? @map("assigned_to_name") // Snapshot
+
+  // Timestamps
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Relations
+  lines PickingSlipLine[]
+
+  // Audit
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String?   @map("created_by")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([location, status])
+  @@map("picking_slips")
+}
+
+model PickingSlipLine {
+  id            String      @id @default(cuid())
+  pickingSlipId String      @map("picking_slip_id")
+  pickingSlip   PickingSlip @relation(fields: [pickingSlipId], references: [id], onDelete: Cascade)
+  orderLineId   String      @map("order_line_id")
+  lineNumber    Int         @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+
+  // Quantities
+  quantityToPick Int @map("quantity_to_pick")
+  quantityPicked Int @default(0) @map("quantity_picked")
+
+  // Picking info
+  pickedAt    DateTime? @map("picked_at")
+  pickedBy    String?   @map("picked_by")
+  binLocation String?   @map("bin_location") // Optional warehouse location
+
+  @@index([pickingSlipId])
+  @@map("picking_slip_lines")
+}
+
+model PickingSlipCounter {
+  id    String @id @default("picking_slip_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("picking_slip_counter")
 }

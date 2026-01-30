@@ -21,6 +21,7 @@ import productsRoutes from './api/v1/products/route';
 import categoriesRoutes from './api/v1/categories/route';
 import quotesRoutes from './api/v1/quotes/route';
 import ordersRoutes from './api/v1/orders/route';
+import pickingSlipsRoutes from './api/v1/picking-slips/route';
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/v1/products', productsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/quotes', quotesRoutes);
 app.use('/api/v1/orders', ordersRoutes);
+app.use('/api/v1/picking-slips', pickingSlipsRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {

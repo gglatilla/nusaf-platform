@@ -1,99 +1,103 @@
 # Current Session
 
 ## Active Task
-[TASK-012] Order Management - Phase 1: Sales Order Foundation
+[TASK-012] Phase 2: Order Fulfillment - Warehouse Operations (Phase 2A: Picking Slips)
 
 ## Status
 COMPLETE | 100%
 
 ## Plan
-Build Sales Order system following Quote patterns:
-- Database: SalesOrder, SalesOrderLine models with status enums
-- Backend: order.service.ts with CRUD + status transitions
-- API: /orders routes following quote pattern
-- Frontend: Orders list page, detail page, components
-- Integration: Create order from accepted quote
+Build Picking Slips system for warehouse operations:
+- Database: PickingSlip, PickingSlipLine, PickingSlipCounter models with status enum
+- Backend: picking-slip.service.ts with CRUD + status transitions
+- API: /picking-slips routes following order pattern
+- Frontend: Picking slips list page, detail page, components
+- Integration: Generate picking slips from confirmed orders
 
-## Micro-tasks (20 total)
+## Micro-tasks (Phase 2A - 14 total)
+
 ### Phase A: Database
-- [x] 1. Add enums and models to schema.prisma
-- [x] 2. Run prisma migrate (tables already existed, regenerated client)
+- [x] 1. Add PickingSlipStatus enum and PickingSlip, PickingSlipLine, PickingSlipCounter models to schema.prisma
+- [x] 2. Create and run database migration (via SQL, db push had issues)
 
 ### Phase B: Backend Service
-- [x] 3. Create order.service.ts with generateOrderNumber()
-- [x] 4. Add getOrders(), getOrderById()
-- [x] 5. Add createOrderFromQuote()
-- [x] 6. Add status transitions (confirm, hold, release, cancel)
+- [x] 3. Create picking-slip.service.ts with generateNumber + createPickingSlip
+- [x] 4. Add getPickingSlips, getPickingSlipById functions
+- [x] 5. Add assignPickingSlip, startPicking functions
+- [x] 6. Add updateLinePicked, completePicking functions
 
 ### Phase C: Validation & Routes
-- [x] 7. Create validation/orders.ts
-- [x] 8. Create api/v1/orders/route.ts
-- [x] 9. Add status action endpoints
+- [x] 7. Create validation/picking-slips.ts (Zod schemas)
+- [x] 8. Create api/v1/picking-slips/route.ts (all endpoints)
 
 ### Phase D: Frontend Types & API
-- [x] 10. Add types to api.ts
-- [x] 11. Add API client methods
+- [x] 9. Add PickingSlip types to frontend/src/lib/api.ts
+- [x] 10. Add API client methods
 
 ### Phase E: Frontend Hooks
-- [x] 12. Create useOrders.ts
+- [x] 11. Create usePickingSlips.ts hooks
 
 ### Phase F: Frontend Components
-- [x] 13. Create OrderStatusBadge.tsx
-- [x] 14. Create OrderListTable.tsx
-- [x] 15. Create OrderLineTable.tsx, OrderTotals.tsx
-- [x] 16. Create CreateOrderModal.tsx
+- [x] 12. Create PickingSlipStatusBadge, PickingSlipListTable, PickingSlipLineTable, GeneratePickingSlipModal components
 
 ### Phase G: Frontend Pages
-- [x] 17. Create /orders list page
-- [x] 18. Create /orders/[id] detail page
-- [x] 19. Update quote detail with "Create Order" button
+- [x] 13. Create /picking-slips list page
+- [x] 14. Create /picking-slips/[id] detail page
 
-### Phase H: Testing
-- [x] 20. TypeScript compilation verified (frontend + backend)
+### Phase H: Integration
+- [x] 15. Update order detail page: add Generate button, show linked picking slips, add sidebar nav
 
 ## Files Created
+
 ### Backend
-- `backend/src/services/order.service.ts`
-- `backend/src/utils/validation/orders.ts`
-- `backend/src/api/v1/orders/route.ts`
+- `backend/src/services/picking-slip.service.ts`
+- `backend/src/utils/validation/picking-slips.ts`
+- `backend/src/api/v1/picking-slips/route.ts`
 
 ### Frontend
-- `frontend/src/hooks/useOrders.ts`
-- `frontend/src/components/orders/OrderStatusBadge.tsx`
-- `frontend/src/components/orders/OrderListTable.tsx`
-- `frontend/src/components/orders/OrderLineTable.tsx`
-- `frontend/src/components/orders/OrderTotals.tsx`
-- `frontend/src/components/orders/CreateOrderModal.tsx`
-- `frontend/src/app/(portal)/orders/page.tsx`
-- `frontend/src/app/(portal)/orders/[id]/page.tsx`
+- `frontend/src/hooks/usePickingSlips.ts`
+- `frontend/src/components/picking-slips/PickingSlipStatusBadge.tsx`
+- `frontend/src/components/picking-slips/PickingSlipListTable.tsx`
+- `frontend/src/components/picking-slips/PickingSlipLineTable.tsx`
+- `frontend/src/components/picking-slips/GeneratePickingSlipModal.tsx`
+- `frontend/src/app/(portal)/picking-slips/page.tsx`
+- `frontend/src/app/(portal)/picking-slips/[id]/page.tsx`
 
 ## Files Modified
-- `backend/prisma/schema.prisma` - Added SalesOrder, SalesOrderLine, SalesOrderCounter models and enums
-- `backend/src/index.ts` - Added orders route
-- `frontend/src/lib/api.ts` - Added order types and API methods
-- `frontend/src/app/(portal)/quotes/[id]/page.tsx` - Added "Create Order" button for ACCEPTED quotes
+- `backend/prisma/schema.prisma` - Added PickingSlipStatus enum, PickingSlip, PickingSlipLine, PickingSlipCounter models
+- `backend/src/index.ts` - Added picking-slips route
+- `frontend/src/lib/api.ts` - Added picking slip types and API methods
+- `frontend/src/lib/navigation.ts` - Added Picking Slips to sidebar navigation
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added Generate Picking Slips button and picking slips section
 
 ## Skills Read
 - domain/order-fulfillment-operations
 - foundation/api-design-patterns
 
 ## Decisions Made
-- Order number format: SO-YYYY-NNNNN (consistent with quote pattern)
-- Snapshot data: Line items copy product data from quote to preserve history
-- Quote conversion: Quote status changes to CONVERTED when order created
+- Picking slip number format: PS-YYYY-NNNNN (consistent with order pattern)
+- Manual warehouse selection (auto-allocation comes after TASK-013 Inventory)
+- Lines are grouped by location when generating (creates 1-2 slips max)
+- Status workflow: PENDING → IN_PROGRESS → COMPLETE (simple 3-state)
 - Company isolation: All queries filter by authenticated user's companyId
-- Soft delete: Never hard delete orders (audit compliance)
-- Status workflow: DRAFT → CONFIRMED → PROCESSING → READY_TO_SHIP → SHIPPED → DELIVERED → INVOICED → CLOSED
-  (with ON_HOLD and CANCELLED branches, PARTIALLY_SHIPPED for partial fulfillment)
+- Can only generate picking slips for CONFIRMED orders
+- Can only complete picking when all lines are fully picked
 
 ## Verification Steps
-1. Start backend server
-2. Navigate to /quotes, accept a quote
-3. Click "Create Order" button on accepted quote
-4. Fill in optional PO details, click "Create Order"
-5. Verify redirect to new order detail page
-6. Navigate to /orders to see the order in the list
-7. Test status transitions (Confirm, Hold, Cancel)
+1. Start backend and frontend servers
+2. Navigate to /orders, confirm an order
+3. Click "Generate Picking Slips" on the confirmed order detail
+4. Select warehouse for each line (JHB or CT)
+5. Click "Generate Picking Slips"
+6. Verify the order detail shows linked picking slips
+7. Navigate to /picking-slips to see the new slip(s)
+8. Open a picking slip detail page
+9. Click "Start Picking" to begin
+10. Update line quantities (Edit or Pick All)
+11. Click "Complete Picking" when all lines are picked
+12. Verify status updates correctly
 
 ## Next Task
-Ready for [TASK-013] Inventory tracking or manual testing of Order system
+Ready for:
+- [TASK-012 Phase 2B] Job Cards (manufacturing/assembly tracking)
+- [TASK-013] Inventory tracking

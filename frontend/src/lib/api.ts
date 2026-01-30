@@ -401,6 +401,98 @@ export interface OrdersQueryParams {
   pageSize?: number;
 }
 
+// Picking Slip types
+export type PickingSlipStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETE';
+
+export interface PickingSlipLine {
+  id: string;
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityToPick: number;
+  quantityPicked: number;
+  pickedAt: string | null;
+  pickedBy: string | null;
+  binLocation: string | null;
+}
+
+export interface PickingSlip {
+  id: string;
+  pickingSlipNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  location: Warehouse;
+  status: PickingSlipStatus;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  lines: PickingSlipLine[];
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface PickingSlipListItem {
+  id: string;
+  pickingSlipNumber: string;
+  orderNumber: string;
+  orderId: string;
+  location: Warehouse;
+  status: PickingSlipStatus;
+  assignedToName: string | null;
+  lineCount: number;
+  createdAt: string;
+}
+
+export interface PickingSlipsListResponse {
+  pickingSlips: PickingSlipListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface PickingSlipsQueryParams {
+  orderId?: string;
+  location?: Warehouse;
+  status?: PickingSlipStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface GeneratePickingSlipsLineInput {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityToPick: number;
+  location: Warehouse;
+}
+
+export interface GeneratePickingSlipsData {
+  lines: GeneratePickingSlipsLineInput[];
+}
+
+export interface GeneratePickingSlipsResponse {
+  pickingSlips: Array<{ id: string; pickingSlipNumber: string; location: Warehouse }>;
+  errors?: string[];
+}
+
+export interface OrderPickingSlipSummary {
+  id: string;
+  pickingSlipNumber: string;
+  location: Warehouse;
+  status: PickingSlipStatus;
+  lineCount: number;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -741,6 +833,63 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/cancel`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    });
+  }
+
+  // Picking slip endpoints
+  async getPickingSlips(params: PickingSlipsQueryParams = {}): Promise<ApiResponse<PickingSlipsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/picking-slips?${queryString}` : '/picking-slips';
+    return this.request<ApiResponse<PickingSlipsListResponse>>(endpoint);
+  }
+
+  async getPickingSlipById(id: string): Promise<ApiResponse<PickingSlip>> {
+    return this.request<ApiResponse<PickingSlip>>(`/picking-slips/${id}`);
+  }
+
+  async getPickingSlipsForOrder(orderId: string): Promise<ApiResponse<OrderPickingSlipSummary[]>> {
+    return this.request<ApiResponse<OrderPickingSlipSummary[]>>(`/picking-slips/order/${orderId}`);
+  }
+
+  async generatePickingSlips(orderId: string, data: GeneratePickingSlipsData): Promise<ApiResponse<GeneratePickingSlipsResponse>> {
+    return this.request<ApiResponse<GeneratePickingSlipsResponse>>(`/picking-slips/generate/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async assignPickingSlip(id: string, assignedTo: string, assignedToName: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/picking-slips/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assignedTo, assignedToName }),
+    });
+  }
+
+  async startPicking(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/picking-slips/${id}/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async updatePickingSlipLine(pickingSlipId: string, lineId: string, quantityPicked: number): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/picking-slips/${pickingSlipId}/lines/${lineId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantityPicked }),
+    });
+  }
+
+  async completePicking(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/picking-slips/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
   }
 }
