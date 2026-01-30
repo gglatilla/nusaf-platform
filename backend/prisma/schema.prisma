@@ -792,3 +792,66 @@ model PickingSlipCounter {
 
   @@map("picking_slip_counter")
 }
+
+// ============================================
+// JOB CARD ENTITIES
+// ============================================
+
+enum JobCardStatus {
+  PENDING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETE
+}
+
+enum JobType {
+  MACHINING
+  ASSEMBLY
+}
+
+model JobCard {
+  id              String        @id @default(cuid())
+  jobCardNumber   String        @unique @map("job_card_number") // JC-2026-00001
+  companyId       String        @map("company_id")
+  orderId         String        @map("order_id")
+  orderNumber     String        @map("order_number")      // Snapshot
+  orderLineId     String        @map("order_line_id")
+
+  // Product snapshot
+  productId          String  @map("product_id")
+  productSku         String  @map("product_sku")
+  productDescription String  @map("product_description")
+  quantity           Int
+
+  // Job details
+  jobType        JobType       @map("job_type")
+  status         JobCardStatus @default(PENDING)
+  holdReason     String?       @map("hold_reason")  // Required if ON_HOLD
+  notes          String?
+
+  // Assignment
+  assignedTo     String?       @map("assigned_to")
+  assignedToName String?       @map("assigned_to_name")
+
+  // Timestamps
+  startedAt      DateTime?     @map("started_at")
+  completedAt    DateTime?     @map("completed_at")
+
+  // Audit
+  createdAt      DateTime      @default(now()) @map("created_at")
+  createdBy      String?       @map("created_by")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([status])
+  @@map("job_cards")
+}
+
+model JobCardCounter {
+  id    String @id @default("job_card_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("job_card_counter")
+}

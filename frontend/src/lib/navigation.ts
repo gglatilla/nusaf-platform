@@ -8,6 +8,7 @@ import {
   Upload,
   Euro,
   ClipboardList,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -33,6 +34,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Quotes', href: '/quotes', icon: FileText },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Picking Slips', href: '/picking-slips', icon: ClipboardList },
+  { name: 'Job Cards', href: '/job-cards', icon: Wrench },
   { name: 'Invoices', href: '/invoices', icon: Receipt },
 ];
 

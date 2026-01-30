@@ -493,6 +493,88 @@ export interface OrderPickingSlipSummary {
   lineCount: number;
 }
 
+// Job Card types
+export type JobCardStatus = 'PENDING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETE';
+export type JobType = 'MACHINING' | 'ASSEMBLY';
+
+export interface JobCard {
+  id: string;
+  jobCardNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  orderLineId: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  jobType: JobType;
+  status: JobCardStatus;
+  holdReason: string | null;
+  notes: string | null;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface JobCardListItem {
+  id: string;
+  jobCardNumber: string;
+  orderNumber: string;
+  orderId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  jobType: JobType;
+  status: JobCardStatus;
+  assignedToName: string | null;
+  createdAt: string;
+}
+
+export interface JobCardsListResponse {
+  jobCards: JobCardListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface JobCardsQueryParams {
+  orderId?: string;
+  status?: JobCardStatus;
+  jobType?: JobType;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateJobCardData {
+  orderId: string;
+  orderLineId: string;
+  jobType: JobType;
+  notes?: string;
+}
+
+export interface CreateJobCardResponse {
+  id: string;
+  jobCardNumber: string;
+}
+
+export interface OrderJobCardSummary {
+  id: string;
+  jobCardNumber: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  jobType: JobType;
+  status: JobCardStatus;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -890,6 +972,77 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/picking-slips/${id}/complete`, {
       method: 'POST',
       body: JSON.stringify({}),
+    });
+  }
+
+  // Job card endpoints
+  async getJobCards(params: JobCardsQueryParams = {}): Promise<ApiResponse<JobCardsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.jobType) searchParams.set('jobType', params.jobType);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/job-cards?${queryString}` : '/job-cards';
+    return this.request<ApiResponse<JobCardsListResponse>>(endpoint);
+  }
+
+  async getJobCardById(id: string): Promise<ApiResponse<JobCard>> {
+    return this.request<ApiResponse<JobCard>>(`/job-cards/${id}`);
+  }
+
+  async getJobCardsForOrder(orderId: string): Promise<ApiResponse<OrderJobCardSummary[]>> {
+    return this.request<ApiResponse<OrderJobCardSummary[]>>(`/job-cards/order/${orderId}`);
+  }
+
+  async createJobCard(data: CreateJobCardData): Promise<ApiResponse<CreateJobCardResponse>> {
+    return this.request<ApiResponse<CreateJobCardResponse>>('/job-cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async assignJobCard(id: string, assignedTo: string, assignedToName: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assignedTo, assignedToName }),
+    });
+  }
+
+  async startJobCard(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async putJobCardOnHold(id: string, holdReason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/hold`, {
+      method: 'POST',
+      body: JSON.stringify({ holdReason }),
+    });
+  }
+
+  async resumeJobCard(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/resume`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async completeJobCard(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async updateJobCardNotes(id: string, notes: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
     });
   }
 }

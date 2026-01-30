@@ -3,14 +3,18 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench } from 'lucide-react';
 import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
+import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
 import { GeneratePickingSlipModal } from '@/components/picking-slips/GeneratePickingSlipModal';
 import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipStatusBadge';
+import { CreateJobCardModal } from '@/components/job-cards/CreateJobCardModal';
+import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
+import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -50,17 +54,20 @@ export default function OrderDetailPage() {
 
   const { data: order, isLoading, error } = useOrder(orderId);
   const { data: pickingSlips } = usePickingSlipsForOrder(orderId);
+  const { data: jobCards } = useJobCardsForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
   const cancel = useCancelOrder();
   const generatePickingSlips = useGeneratePickingSlips();
+  const createJobCard = useCreateJobCard();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showGeneratePickingSlipModal, setShowGeneratePickingSlipModal] = useState(false);
+  const [showCreateJobCardModal, setShowCreateJobCardModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -85,6 +92,10 @@ export default function OrderDetailPage() {
   // Can generate picking slips if order is CONFIRMED and no picking slips exist yet
   const hasPickingSlips = pickingSlips && pickingSlips.length > 0;
   const canGeneratePickingSlips = order.status === 'CONFIRMED' && !hasPickingSlips;
+
+  // Can create job cards if order is CONFIRMED or PROCESSING
+  const hasJobCards = jobCards && jobCards.length > 0;
+  const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -128,6 +139,20 @@ export default function OrderDetailPage() {
     setShowGeneratePickingSlipModal(false);
   };
 
+  const handleCreateJobCard = async (data: {
+    orderLineId: string;
+    jobType: 'MACHINING' | 'ASSEMBLY';
+    notes?: string;
+  }) => {
+    await createJobCard.mutateAsync({
+      orderId,
+      orderLineId: data.orderLineId,
+      jobType: data.jobType,
+      notes: data.notes,
+    });
+    setShowCreateJobCardModal(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -156,6 +181,16 @@ export default function OrderDetailPage() {
             >
               <ClipboardList className="h-4 w-4" />
               Generate Picking Slips
+            </button>
+          )}
+
+          {canCreateJobCard && (
+            <button
+              onClick={() => setShowCreateJobCardModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700"
+            >
+              <Wrench className="h-4 w-4" />
+              Create Job Card
             </button>
           )}
 
@@ -258,6 +293,36 @@ export default function OrderDetailPage() {
                       </span>
                     </div>
                     <span className="text-sm text-slate-500">{slip.lineCount} line{slip.lineCount !== 1 ? 's' : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Job Cards Section */}
+          {hasJobCards && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Job Cards</h2>
+              <div className="space-y-3">
+                {jobCards.map((jc) => (
+                  <div
+                    key={jc.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Link
+                        href={`/job-cards/${jc.id}`}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        {jc.jobCardNumber}
+                      </Link>
+                      <JobCardStatusBadge status={jc.status} />
+                      <JobTypeBadge jobType={jc.jobType} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-slate-600">{jc.productSku}</span>
+                      <span className="text-sm text-slate-500">Qty: {jc.quantity}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -469,6 +534,15 @@ export default function OrderDetailPage() {
         orderLines={order.lines}
         onGenerate={handleGeneratePickingSlips}
         isGenerating={generatePickingSlips.isPending}
+      />
+
+      {/* Create Job Card Modal */}
+      <CreateJobCardModal
+        isOpen={showCreateJobCardModal}
+        onClose={() => setShowCreateJobCardModal(false)}
+        orderLines={order.lines}
+        onCreateJobCard={handleCreateJobCard}
+        isCreating={createJobCard.isPending}
       />
     </div>
   );
