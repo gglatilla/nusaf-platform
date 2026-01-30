@@ -24,6 +24,8 @@ import ordersRoutes from './api/v1/orders/route';
 import pickingSlipsRoutes from './api/v1/picking-slips/route';
 import jobCardsRoutes from './api/v1/job-cards/route';
 import transferRequestsRoutes from './api/v1/transfer-requests/route';
+import issuesRoutes from './api/v1/issues/route';
+import documentsRoutes from './api/v1/documents/route';
 
 const app = express();
 
@@ -50,6 +52,8 @@ app.use('/api/v1/orders', ordersRoutes);
 app.use('/api/v1/picking-slips', pickingSlipsRoutes);
 app.use('/api/v1/job-cards', jobCardsRoutes);
 app.use('/api/v1/transfer-requests', transferRequestsRoutes);
+app.use('/api/v1/issues', issuesRoutes);
+app.use('/api/v1/documents', documentsRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {

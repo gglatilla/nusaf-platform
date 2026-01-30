@@ -18,6 +18,7 @@ import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
 import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
 import { CreateTransferRequestModal } from '@/components/transfer-requests/CreateTransferRequestModal';
 import { TransferRequestStatusBadge } from '@/components/transfer-requests/TransferRequestStatusBadge';
+import { OrderDocumentsSection } from '@/components/documents';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -514,6 +515,12 @@ export default function OrderDetailPage() {
               )}
             </dl>
           </div>
+
+          {/* Documents Section */}
+          <OrderDocumentsSection
+            orderId={orderId}
+            orderNumber={order.orderNumber}
+          />
         </div>
       </div>
 

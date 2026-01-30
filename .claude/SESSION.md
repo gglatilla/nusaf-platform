@@ -1,74 +1,84 @@
 # Current Session
 
 ## Active Task
-[TASK-012] Phase 2C: Transfer Requests (JHB → CT Shipping)
+[TASK-012] Phase 2D: Issue Flagging and Document Archive
 
 ## Status
 COMPLETE | 100%
 
 ## Plan
-Build Transfer Requests system for inter-branch stock movements:
-- Database: TransferRequest, TransferRequestLine, TransferRequestCounter models with TransferRequestStatus enum
-- Backend: transfer-request.service.ts with CRUD + status transitions (ship, receive)
-- API: /transfer-requests routes following picking slip pattern
-- Frontend: Transfer requests list page, detail page, components
-- Integration: Create transfers from confirmed orders, show on order detail
+Two interconnected systems implemented:
+1. **Issue Flagging** - Track and resolve problems on Picking Slips and Job Cards
+2. **Document Archive** - Store and retrieve order-related documents in Cloudflare R2
 
-## Micro-tasks (Phase 2C - 13 total)
+## Micro-tasks Completed
 
-### Phase A: Database
-- [x] 1. Add TransferRequestStatus enum and TransferRequest, TransferRequestLine, TransferRequestCounter models to schema.prisma
-- [x] 2. Create migration file
+### Issue Flagging (10 tasks)
+- [x] 1. Add IssueFlagCategory, IssueFlagSeverity, IssueFlagStatus enums and IssueFlag, IssueComment, IssueFlagCounter models to schema.prisma
+- [x] 2. Create migration file `20260130140000_add_issue_flags_and_documents`
+- [x] 3. Create `issue-flag.service.ts` with generateNumber, create, list, get, getForPickingSlip, getForJobCard, getStats functions
+- [x] 4. Add updateStatus, addComment, resolve, close functions
+- [x] 5. Create `validation/issue-flags.ts` Zod schemas
+- [x] 6. Create `api/v1/issues/route.ts` endpoints + register in index.ts
+- [x] 7. Add IssueFlag types and API methods to `lib/api.ts`
+- [x] 8. Create `useIssueFlags.ts` hooks
+- [x] 9. Create IssueFlagStatusBadge, SeverityBadge, CategoryBadge components
+- [x] 10. Create IssueListTable, IssueCommentThread, CreateIssueFlagModal components
+- [x] 11. Create `/issues` list page
+- [x] 12. Create `/issues/[id]` detail page
+- [x] 13. Add "Flag Issue" button and issues section to Picking Slip detail
+- [x] 14. Add "Flag Issue" button and issues section to Job Card detail
+- [x] 15. Create DashboardIssuesWidget and add to dashboard
+- [x] 16. Add Issues to navigation
 
-### Phase B: Backend Service
-- [x] 3. Create transfer-request.service.ts with generateNumber, create, createStandalone, list, get functions
-- [x] 4. Add status transition functions (ship, receive, updateLineReceived, updateNotes)
-
-### Phase C: Validation & Routes
-- [x] 5. Create validation/transfer-requests.ts Zod schemas
-- [x] 6. Create api/v1/transfer-requests/route.ts endpoints + register in index.ts
-
-### Phase D: Frontend Types & API
-- [x] 7. Add TransferRequest types and API methods to lib/api.ts
-
-### Phase E: Frontend Hooks
-- [x] 8. Create useTransferRequests.ts hooks
-
-### Phase F: Frontend Components
-- [x] 9. Create TransferRequestStatusBadge.tsx
-- [x] 10. Create TransferRequestListTable, TransferRequestLineTable, CreateTransferRequestModal
-
-### Phase G: Frontend Pages
-- [x] 11. Create /transfer-requests list page
-- [x] 12. Create /transfer-requests/[id] detail page
-
-### Phase H: Integration
-- [x] 13. Update order detail page with Transfer Requests section + Create Transfer button
-- [x] 14. Update navigation.ts to add Transfers to sidebar
+### Document Archive (7 tasks)
+- [x] 17. Add DocumentType enum and Document model to schema.prisma
+- [x] 18. Migration included in `20260130140000_add_issue_flags_and_documents`
+- [x] 19. Create `document.service.ts` with upload, list, getForOrder, getDownloadUrl, delete functions
+- [x] 20. Create `validation/documents.ts` and `api/v1/documents/route.ts`
+- [x] 21. Add Document types and API methods to `lib/api.ts`
+- [x] 22. Create `useDocuments.ts` hooks
+- [x] 23. Create DocumentTypeLabel, DocumentUploadButton, DocumentList, OrderDocumentsSection components
+- [x] 24. Add Documents section to Order detail page
 
 ## Files Created
 
 ### Backend
-- `backend/prisma/migrations/20260130110000_add_transfer_requests/migration.sql`
-- `backend/src/services/transfer-request.service.ts`
-- `backend/src/utils/validation/transfer-requests.ts`
-- `backend/src/api/v1/transfer-requests/route.ts`
+- `backend/prisma/migrations/20260130140000_add_issue_flags_and_documents/migration.sql`
+- `backend/src/services/issue-flag.service.ts`
+- `backend/src/services/document.service.ts`
+- `backend/src/utils/validation/issue-flags.ts`
+- `backend/src/utils/validation/documents.ts`
+- `backend/src/api/v1/issues/route.ts`
+- `backend/src/api/v1/documents/route.ts`
 
 ### Frontend
-- `frontend/src/hooks/useTransferRequests.ts`
-- `frontend/src/components/transfer-requests/TransferRequestStatusBadge.tsx`
-- `frontend/src/components/transfer-requests/TransferRequestListTable.tsx`
-- `frontend/src/components/transfer-requests/TransferRequestLineTable.tsx`
-- `frontend/src/components/transfer-requests/CreateTransferRequestModal.tsx`
-- `frontend/src/app/(portal)/transfer-requests/page.tsx`
-- `frontend/src/app/(portal)/transfer-requests/[id]/page.tsx`
+- `frontend/src/hooks/useIssueFlags.ts`
+- `frontend/src/hooks/useDocuments.ts`
+- `frontend/src/components/issues/IssueFlagStatusBadge.tsx`
+- `frontend/src/components/issues/IssueFlagSeverityBadge.tsx`
+- `frontend/src/components/issues/IssueFlagCategoryBadge.tsx`
+- `frontend/src/components/issues/IssueListTable.tsx`
+- `frontend/src/components/issues/IssueCommentThread.tsx`
+- `frontend/src/components/issues/CreateIssueFlagModal.tsx`
+- `frontend/src/components/issues/DashboardIssuesWidget.tsx`
+- `frontend/src/components/documents/DocumentTypeLabel.tsx`
+- `frontend/src/components/documents/DocumentUploadButton.tsx`
+- `frontend/src/components/documents/DocumentList.tsx`
+- `frontend/src/components/documents/OrderDocumentsSection.tsx`
+- `frontend/src/components/documents/index.ts`
+- `frontend/src/app/(portal)/issues/page.tsx`
+- `frontend/src/app/(portal)/issues/[id]/page.tsx`
 
 ## Files Modified
-- `backend/prisma/schema.prisma` - Added TransferRequestStatus enum, TransferRequest, TransferRequestLine, TransferRequestCounter models
-- `backend/src/index.ts` - Added transfer-requests route
-- `frontend/src/lib/api.ts` - Added transfer request types and API methods
-- `frontend/src/lib/navigation.ts` - Added Transfers to sidebar navigation
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added Create Transfer button and transfer requests section
+- `backend/prisma/schema.prisma` - Added Issue Flag and Document models with enums
+- `backend/src/index.ts` - Registered issues and documents routes
+- `frontend/src/lib/api.ts` - Added Issue Flag and Document types and API methods
+- `frontend/src/lib/navigation.ts` - Added Issues to sidebar navigation
+- `frontend/src/app/(portal)/picking-slips/[id]/page.tsx` - Added Flag Issue button and issues section
+- `frontend/src/app/(portal)/job-cards/[id]/page.tsx` - Added Flag Issue button and issues section
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added Documents section
+- `frontend/src/app/(portal)/dashboard/page.tsx` - Added DashboardIssuesWidget
 
 ## Skills Read
 - domain/order-fulfillment-operations
@@ -76,30 +86,53 @@ Build Transfer Requests system for inter-branch stock movements:
 - foundation/database-design-b2b
 - domain/ui-ux-webapp
 
-## Decisions Made
-- Transfer request number format: TR-YYYY-NNNNN (consistent with order/picking slip pattern)
-- Transfers are always JHB → CT (fromLocation defaults to JHB, toLocation defaults to CT)
-- Can be linked to SalesOrder (CT customer fulfillment) OR standalone (stock replenishment)
-- Status workflow: PENDING → IN_TRANSIT → RECEIVED
-- Lines track: productId, productSku, productDescription, quantity, receivedQuantity
-- Cannot mark as received until all lines have some received quantity
-- Company isolation: All queries filter by authenticated user's companyId
+## Business Rules Implemented
+
+### Issue Flagging
+- Categories: STOCK, QUALITY, PRODUCTION, TIMING, DOCUMENTATION
+- Severities with SLA targets:
+  - CRITICAL: 4 hours
+  - HIGH: 24 hours
+  - MEDIUM: 72 hours
+  - LOW: 1 week
+- Status workflow: OPEN → IN_PROGRESS → PENDING_INFO → RESOLVED → CLOSED
+- Issue number format: ISS-YYYY-NNNNN
+- Issues can be linked to PickingSlip OR JobCard (polymorphic)
+- Comments support for collaboration
+- Dashboard widget shows open issues by severity
+
+### Document Archive
+- Document types: CUSTOMER_PO, SIGNED_DELIVERY_NOTE
+- Storage: Cloudflare R2 (existing service)
+- Signed URLs for download with 1-hour expiry
+- Retention: 7 years (SA Tax Act compliance)
+- Path format: documents/{companyId}/{orderId}/{type}/{timestamp}_{filename}
+- Max file size: 10MB
+- Allowed types: PDF, JPEG, PNG, WebP
 
 ## Verification Steps
-1. Start backend and frontend servers
-2. Navigate to /orders, open a confirmed order
-3. Click "Create Transfer" button
-4. Select order lines to transfer, set quantities
-5. Verify transfer request created with status PENDING
-6. Navigate to /transfer-requests to see the list
-7. Open transfer detail, click "Mark Shipped"
-8. Verify status changes to IN_TRANSIT, shippedAt/By populated
-9. Update received quantities for each line
-10. Click "Mark Received"
-11. Verify status changes to RECEIVED, receivedAt/By populated
-12. Test standalone creation from /transfer-requests page (future enhancement)
+
+### Issue Flagging
+1. Navigate to a Picking Slip detail page
+2. Click "Flag Issue" button
+3. Create issue with category=STOCK, severity=HIGH
+4. Verify SLA deadline is set (24 hours from now)
+5. Navigate to /issues to see the list
+6. Open issue detail, add a comment
+7. Change status to IN_PROGRESS
+8. Resolve with resolution text
+9. Close the issue
+10. Check dashboard widget shows correct counts
+
+### Document Archive
+1. Navigate to an Order detail page
+2. Click Upload Document button in sidebar
+3. Select document type and file
+4. Verify file appears in documents list
+5. Click download, verify signed URL works
+6. Verify retention date is 7 years from upload
 
 ## Next Task
 Ready for:
 - [TASK-013] Inventory tracking
-- Further enhancements to transfer request workflow
+- Any additional enhancements to issue/document workflows

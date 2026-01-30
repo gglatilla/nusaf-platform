@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle, AlertTriangle } from 'lucide-react';
 import {
   useJobCard,
   useStartJobCard,
@@ -12,8 +12,12 @@ import {
   useCompleteJobCard,
   useUpdateJobCardNotes,
 } from '@/hooks/useJobCards';
+import { useIssuesForJobCard, useCreateIssueFlag } from '@/hooks/useIssueFlags';
 import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
 import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
+import { IssueFlagStatusBadge } from '@/components/issues/IssueFlagStatusBadge';
+import { IssueFlagSeverityBadge } from '@/components/issues/IssueFlagSeverityBadge';
+import { CreateIssueFlagModal } from '@/components/issues/CreateIssueFlagModal';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -57,16 +61,19 @@ export default function JobCardDetailPage() {
   const jobCardId = params.id as string;
 
   const { data: jobCard, isLoading, error } = useJobCard(jobCardId);
+  const { data: issues } = useIssuesForJobCard(jobCardId);
   const startJob = useStartJobCard();
   const putOnHold = usePutJobCardOnHold();
   const resumeJob = useResumeJobCard();
   const completeJob = useCompleteJobCard();
   const updateNotes = useUpdateJobCardNotes();
+  const createIssue = useCreateIssueFlag();
 
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [holdReason, setHoldReason] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotes, setEditedNotes] = useState('');
+  const [showFlagIssueModal, setShowFlagIssueModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -194,6 +201,14 @@ export default function JobCardDetailPage() {
               {completeJob.isPending ? 'Completing...' : 'Complete Job'}
             </button>
           )}
+
+          <button
+            onClick={() => setShowFlagIssueModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-md hover:bg-amber-100"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Flag Issue
+          </button>
         </div>
       </div>
 
@@ -371,6 +386,34 @@ export default function JobCardDetailPage() {
               />
             </div>
           </div>
+
+          {/* Issues */}
+          {issues && issues.length > 0 && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <h2 className="text-lg font-semibold text-slate-900">Issues</h2>
+              </div>
+              <div className="space-y-3">
+                {issues.map((issue) => (
+                  <Link
+                    key={issue.id}
+                    href={`/issues/${issue.id}`}
+                    className="block p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-slate-900">{issue.issueNumber}</span>
+                      <IssueFlagStatusBadge status={issue.status} />
+                    </div>
+                    <p className="text-sm text-slate-600 truncate">{issue.title}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <IssueFlagSeverityBadge severity={issue.severity} showIcon={false} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -407,6 +450,17 @@ export default function JobCardDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Flag Issue Modal */}
+      <CreateIssueFlagModal
+        isOpen={showFlagIssueModal}
+        onClose={() => setShowFlagIssueModal(false)}
+        onSubmit={async (data) => {
+          await createIssue.mutateAsync(data);
+        }}
+        jobCardId={jobCardId}
+        targetLabel={jobCard.jobCardNumber}
+      />
     </div>
   );
 }

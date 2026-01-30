@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useQuotes } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
+import { DashboardIssuesWidget } from '@/components/issues/DashboardIssuesWidget';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-ZA', {
@@ -66,7 +67,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Content cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
               Recent Orders
@@ -125,6 +126,9 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Issues Widget */}
+          <DashboardIssuesWidget />
         </div>
 
         {/* Account info */}

@@ -678,6 +678,173 @@ export interface OrderTransferRequestSummary {
   lineCount: number;
 }
 
+// Issue Flag types
+export type IssueFlagCategory = 'STOCK' | 'QUALITY' | 'PRODUCTION' | 'TIMING' | 'DOCUMENTATION';
+export type IssueFlagSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type IssueFlagStatus = 'OPEN' | 'IN_PROGRESS' | 'PENDING_INFO' | 'RESOLVED' | 'CLOSED';
+
+export interface IssueComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  createdByName: string;
+}
+
+export interface IssueFlag {
+  id: string;
+  issueNumber: string;
+  companyId: string;
+  category: IssueFlagCategory;
+  severity: IssueFlagSeverity;
+  status: IssueFlagStatus;
+  title: string;
+  description: string;
+  slaDeadline: string;
+  escalatedAt: string | null;
+  resolution: string | null;
+  resolvedAt: string | null;
+  resolvedByName: string | null;
+  createdAt: string;
+  createdByName: string;
+  updatedAt: string;
+  pickingSlip: {
+    id: string;
+    pickingSlipNumber: string;
+    orderNumber: string;
+  } | null;
+  jobCard: {
+    id: string;
+    jobCardNumber: string;
+    orderNumber: string;
+    productSku: string;
+  } | null;
+  comments: IssueComment[];
+}
+
+export interface IssueFlagListItem {
+  id: string;
+  issueNumber: string;
+  category: IssueFlagCategory;
+  severity: IssueFlagSeverity;
+  status: IssueFlagStatus;
+  title: string;
+  slaDeadline: string;
+  pickingSlipNumber: string | null;
+  jobCardNumber: string | null;
+  createdAt: string;
+  createdByName: string;
+}
+
+export interface IssueFlagsListResponse {
+  issueFlags: IssueFlagListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface IssueFlagsQueryParams {
+  pickingSlipId?: string;
+  jobCardId?: string;
+  status?: IssueFlagStatus;
+  severity?: IssueFlagSeverity;
+  category?: IssueFlagCategory;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateIssueFlagData {
+  pickingSlipId?: string;
+  jobCardId?: string;
+  category: IssueFlagCategory;
+  severity: IssueFlagSeverity;
+  title: string;
+  description: string;
+}
+
+export interface CreateIssueFlagResponse {
+  id: string;
+  issueNumber: string;
+}
+
+export interface IssueFlagStats {
+  total: number;
+  bySeverity: Record<IssueFlagSeverity, number>;
+  byStatus: Record<IssueFlagStatus, number>;
+  overdue: number;
+}
+
+export interface IssueFlagSummary {
+  id: string;
+  issueNumber: string;
+  category: IssueFlagCategory;
+  severity: IssueFlagSeverity;
+  status: IssueFlagStatus;
+  title: string;
+}
+
+// Document types
+export type DocumentType = 'CUSTOMER_PO' | 'SIGNED_DELIVERY_NOTE';
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  CUSTOMER_PO: 'Customer PO',
+  SIGNED_DELIVERY_NOTE: 'Signed Delivery Note',
+};
+
+export interface Document {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  type: DocumentType;
+  typeLabel: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  uploadedByName: string;
+}
+
+export interface DocumentForOrder {
+  id: string;
+  type: DocumentType;
+  typeLabel: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  uploadedByName: string;
+}
+
+export interface DocumentsListResponse {
+  documents: Document[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface DocumentsQueryParams {
+  orderId?: string;
+  type?: DocumentType;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface UploadDocumentData {
+  orderId: string;
+  type: DocumentType;
+  file: File;
+}
+
+export interface DocumentDownloadResponse {
+  url: string;
+  filename: string;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -1209,6 +1376,108 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/transfer-requests/${id}/notes`, {
       method: 'PATCH',
       body: JSON.stringify({ notes }),
+    });
+  }
+
+  // Issue Flag endpoints
+  async getIssueFlags(params: IssueFlagsQueryParams = {}): Promise<ApiResponse<IssueFlagsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.pickingSlipId) searchParams.set('pickingSlipId', params.pickingSlipId);
+    if (params.jobCardId) searchParams.set('jobCardId', params.jobCardId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.severity) searchParams.set('severity', params.severity);
+    if (params.category) searchParams.set('category', params.category);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/issues?${queryString}` : '/issues';
+    return this.request<ApiResponse<IssueFlagsListResponse>>(endpoint);
+  }
+
+  async getIssueFlagById(id: string): Promise<ApiResponse<IssueFlag>> {
+    return this.request<ApiResponse<IssueFlag>>(`/issues/${id}`);
+  }
+
+  async getIssueFlagStats(): Promise<ApiResponse<IssueFlagStats>> {
+    return this.request<ApiResponse<IssueFlagStats>>('/issues/stats');
+  }
+
+  async getIssuesForPickingSlip(pickingSlipId: string): Promise<ApiResponse<IssueFlagSummary[]>> {
+    return this.request<ApiResponse<IssueFlagSummary[]>>(`/issues/picking-slip/${pickingSlipId}`);
+  }
+
+  async getIssuesForJobCard(jobCardId: string): Promise<ApiResponse<IssueFlagSummary[]>> {
+    return this.request<ApiResponse<IssueFlagSummary[]>>(`/issues/job-card/${jobCardId}`);
+  }
+
+  async createIssueFlag(data: CreateIssueFlagData): Promise<ApiResponse<CreateIssueFlagResponse>> {
+    return this.request<ApiResponse<CreateIssueFlagResponse>>('/issues', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateIssueFlagStatus(id: string, status: IssueFlagStatus): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/issues/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async addIssueComment(id: string, content: string): Promise<ApiResponse<IssueComment>> {
+    return this.request<ApiResponse<IssueComment>>(`/issues/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async resolveIssue(id: string, resolution: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/issues/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolution }),
+    });
+  }
+
+  async closeIssue(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/issues/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Document endpoints
+  async getDocuments(params: DocumentsQueryParams = {}): Promise<ApiResponse<DocumentsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.type) searchParams.set('type', params.type);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/documents?${queryString}` : '/documents';
+    return this.request<ApiResponse<DocumentsListResponse>>(endpoint);
+  }
+
+  async getDocumentsForOrder(orderId: string): Promise<ApiResponse<DocumentForOrder[]>> {
+    return this.request<ApiResponse<DocumentForOrder[]>>(`/documents/order/${orderId}`);
+  }
+
+  async getDocumentDownloadUrl(id: string): Promise<ApiResponse<DocumentDownloadResponse>> {
+    return this.request<ApiResponse<DocumentDownloadResponse>>(`/documents/${id}/download`);
+  }
+
+  async uploadDocument(data: UploadDocumentData): Promise<ApiResponse<{ id: string; filename: string }>> {
+    const formData = new FormData();
+    formData.append('file', data.file);
+    formData.append('orderId', data.orderId);
+    formData.append('type', data.type);
+    return this.uploadFile<ApiResponse<{ id: string; filename: string }>>('/documents/upload', formData);
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    await this.request(`/documents/${id}`, {
+      method: 'DELETE',
     });
   }
 }

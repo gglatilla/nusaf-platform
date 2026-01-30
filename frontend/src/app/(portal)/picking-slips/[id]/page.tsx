@@ -3,15 +3,19 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Check, MapPin, Calendar, FileText, User } from 'lucide-react';
+import { ArrowLeft, Play, Check, MapPin, Calendar, FileText, User, AlertTriangle } from 'lucide-react';
 import {
   usePickingSlip,
   useStartPicking,
   useUpdatePickingSlipLine,
   useCompletePicking,
 } from '@/hooks/usePickingSlips';
+import { useIssuesForPickingSlip, useCreateIssueFlag } from '@/hooks/useIssueFlags';
 import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipStatusBadge';
 import { PickingSlipLineTable } from '@/components/picking-slips/PickingSlipLineTable';
+import { IssueFlagStatusBadge } from '@/components/issues/IssueFlagStatusBadge';
+import { IssueFlagSeverityBadge } from '@/components/issues/IssueFlagSeverityBadge';
+import { CreateIssueFlagModal } from '@/components/issues/CreateIssueFlagModal';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -60,11 +64,14 @@ export default function PickingSlipDetailPage() {
   const pickingSlipId = params.id as string;
 
   const { data: pickingSlip, isLoading, error } = usePickingSlip(pickingSlipId);
+  const { data: issues } = useIssuesForPickingSlip(pickingSlipId);
   const startPicking = useStartPicking();
   const updateLine = useUpdatePickingSlipLine();
   const completePicking = useCompletePicking();
+  const createIssue = useCreateIssueFlag();
 
   const [isUpdatingLine, setIsUpdatingLine] = useState(false);
+  const [showFlagIssueModal, setShowFlagIssueModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -166,6 +173,14 @@ export default function PickingSlipDetailPage() {
               {completePicking.isPending ? 'Completing...' : 'Complete Picking'}
             </button>
           )}
+
+          <button
+            onClick={() => setShowFlagIssueModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-md hover:bg-amber-100"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Flag Issue
+          </button>
         </div>
       </div>
 
@@ -285,8 +300,47 @@ export default function PickingSlipDetailPage() {
               </div>
             </dl>
           </div>
+
+          {/* Issues */}
+          {issues && issues.length > 0 && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <h2 className="text-lg font-semibold text-slate-900">Issues</h2>
+              </div>
+              <div className="space-y-3">
+                {issues.map((issue) => (
+                  <Link
+                    key={issue.id}
+                    href={`/issues/${issue.id}`}
+                    className="block p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-slate-900">{issue.issueNumber}</span>
+                      <IssueFlagStatusBadge status={issue.status} />
+                    </div>
+                    <p className="text-sm text-slate-600 truncate">{issue.title}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <IssueFlagSeverityBadge severity={issue.severity} showIcon={false} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Flag Issue Modal */}
+      <CreateIssueFlagModal
+        isOpen={showFlagIssueModal}
+        onClose={() => setShowFlagIssueModal(false)}
+        onSubmit={async (data) => {
+          await createIssue.mutateAsync(data);
+        }}
+        pickingSlipId={pickingSlipId}
+        targetLabel={pickingSlip.pickingSlipNumber}
+      />
     </div>
   );
 }
