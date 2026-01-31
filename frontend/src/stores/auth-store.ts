@@ -11,6 +11,7 @@ interface AuthState {
   refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
+  hasHydrated: boolean;
 }
 
 interface AuthActions {
@@ -19,6 +20,7 @@ interface AuthActions {
   refreshTokens: () => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  setHasHydrated: (hydrated: boolean) => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -29,6 +31,7 @@ const initialState: AuthState = {
   refreshToken: null,
   isLoading: false,
   error: null,
+  hasHydrated: false,
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -106,6 +109,8 @@ export const useAuthStore = create<AuthStore>()(
       clearError: () => set({ error: null }),
 
       setLoading: (loading: boolean) => set({ isLoading: loading }),
+
+      setHasHydrated: (hydrated: boolean) => set({ hasHydrated: hydrated }),
     }),
     {
       name: 'nusaf-auth',
@@ -114,11 +119,16 @@ export const useAuthStore = create<AuthStore>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Auth store hydration error:', error);
+        }
         // Restore access token to API client on hydration
         if (state?.accessToken) {
           api.setAccessToken(state.accessToken);
         }
+        // Mark hydration as complete
+        useAuthStore.setState({ hasHydrated: true });
       },
     }
   )

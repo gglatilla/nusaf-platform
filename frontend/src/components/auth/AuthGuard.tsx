@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -10,25 +10,17 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { user, accessToken, isLoading } = useAuthStore();
-  const [isChecking, setIsChecking] = useState(true);
+  const { user, accessToken, isLoading, hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    // Wait for hydration
-    const timer = setTimeout(() => {
-      setIsChecking(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!isChecking && !isLoading && !accessToken) {
+    // Only redirect after hydration is complete
+    if (hasHydrated && !isLoading && !accessToken) {
       router.push('/login');
     }
-  }, [isChecking, isLoading, accessToken, router]);
+  }, [hasHydrated, isLoading, accessToken, router]);
 
-  if (isChecking || isLoading) {
+  // Show loading while hydrating or loading
+  if (!hasHydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -36,6 +28,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
+  // Not authenticated - will redirect in useEffect
   if (!user || !accessToken) {
     return null;
   }
