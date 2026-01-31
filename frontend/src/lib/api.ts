@@ -173,6 +173,77 @@ export interface CatalogProduct {
   hasPrice: boolean;
 }
 
+// Inventory types
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'ON_ORDER' | 'OVERSTOCK';
+export type StockMovementType =
+  | 'RECEIPT'
+  | 'ISSUE'
+  | 'TRANSFER_OUT'
+  | 'TRANSFER_IN'
+  | 'MANUFACTURE_IN'
+  | 'MANUFACTURE_OUT'
+  | 'ADJUSTMENT_IN'
+  | 'ADJUSTMENT_OUT'
+  | 'SCRAP';
+
+export interface StockLocationData {
+  warehouseId: string;
+  warehouseName: string;
+  onHand: number;
+  softReserved: number;
+  hardReserved: number;
+  available: number;
+  onOrder: number;
+  reorderPoint: number | null;
+  reorderQuantity: number | null;
+  minimumStock: number | null;
+  maximumStock: number | null;
+  stockStatus: StockStatus;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  warehouseId: string;
+  warehouseName: string;
+  type: StockMovementType;
+  quantity: number;
+  referenceType: string | null;
+  referenceId: string | null;
+  notes: string | null;
+  createdAt: string;
+  createdBy: string | null;
+}
+
+export interface ProductInventory {
+  onHand: number;
+  available: number;
+  reserved: number;
+  onOrder: number;
+  stockStatus: StockStatus;
+  byLocation: StockLocationData[];
+}
+
+export interface ProductWithInventory extends CatalogProduct {
+  // Inventory defaults
+  defaultReorderPoint: number | null;
+  defaultReorderQty: number | null;
+  defaultMinStock: number | null;
+  defaultMaxStock: number | null;
+  leadTimeDays: number | null;
+  // Inventory data (when ?include=inventory)
+  inventory?: ProductInventory;
+  // Movements (when ?include=movements)
+  movements?: StockMovement[];
+}
+
+export interface CreateStockAdjustmentData {
+  warehouseId: string;
+  adjustmentType: 'ADD' | 'REMOVE' | 'SET';
+  quantity: number;
+  reason: string;
+}
+
 export interface ProductsResponse {
   products: CatalogProduct[];
   pagination: {
@@ -1002,6 +1073,40 @@ class ApiClient {
 
   async getProductById(id: string): Promise<ApiResponse<CatalogProduct>> {
     return this.request<ApiResponse<CatalogProduct>>(`/products/${id}`);
+  }
+
+  /**
+   * Fetch product with inventory data
+   * @param id Product ID
+   * @param include Comma-separated list: 'inventory', 'movements', or 'inventory,movements'
+   * @param movementLimit Number of movements to include (default 20)
+   */
+  async getProductWithInventory(
+    id: string,
+    include: string = 'inventory,movements',
+    movementLimit: number = 20
+  ): Promise<ApiResponse<ProductWithInventory>> {
+    const params = new URLSearchParams({
+      include,
+      movementLimit: movementLimit.toString(),
+    });
+    return this.request<ApiResponse<ProductWithInventory>>(`/products/${id}?${params}`);
+  }
+
+  /**
+   * Create a stock adjustment for a product
+   */
+  async createStockAdjustment(
+    productId: string,
+    data: CreateStockAdjustmentData
+  ): Promise<ApiResponse<{ id: string; message: string }>> {
+    return this.request<ApiResponse<{ id: string; message: string }>>(
+      `/products/${productId}/stock/adjustments`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
   }
 
   // Admin settings endpoints
