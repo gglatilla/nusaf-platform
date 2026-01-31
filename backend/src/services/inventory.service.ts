@@ -129,8 +129,21 @@ export async function getProductInventorySummary(productId: string) {
     productDefaults: product,
   });
 
-  // Build byLocation array
-  const byLocation = stockLevels.map((sl) => {
+  // Build byLocation array from existing stock levels
+  const byLocation: Array<{
+    warehouseId: Warehouse;
+    warehouseName: string;
+    onHand: number;
+    available: number;
+    softReserved: number;
+    hardReserved: number;
+    onOrder: number;
+    reorderPoint: number | null;
+    reorderQuantity: number | null;
+    minimumStock: number | null;
+    maximumStock: number | null;
+    stockStatus: StockStatus;
+  }> = stockLevels.map((sl) => {
     const available = sl.onHand - sl.hardReserved;
     const locationStatus = computeStockStatus({
       onHand: sl.onHand,
@@ -156,6 +169,42 @@ export async function getProductInventorySummary(productId: string) {
       stockStatus: locationStatus,
     };
   });
+
+  // Ensure both warehouses are always present (for admin/manager views)
+  const ALL_WAREHOUSES: Warehouse[] = ['JHB', 'CT'];
+  const existingWarehouses = new Set(byLocation.map((loc) => loc.warehouseId));
+
+  for (const warehouse of ALL_WAREHOUSES) {
+    if (!existingWarehouses.has(warehouse)) {
+      // Add missing warehouse with zero values
+      const emptyStatus = computeStockStatus({
+        onHand: 0,
+        hardReserved: 0,
+        onOrder: 0,
+        reorderPoint: null,
+        maximumStock: null,
+        productDefaults: product,
+      });
+
+      byLocation.push({
+        warehouseId: warehouse,
+        warehouseName: WAREHOUSE_NAMES[warehouse],
+        onHand: 0,
+        available: 0,
+        softReserved: 0,
+        hardReserved: 0,
+        onOrder: 0,
+        reorderPoint: null,
+        reorderQuantity: null,
+        minimumStock: null,
+        maximumStock: null,
+        stockStatus: emptyStatus,
+      });
+    }
+  }
+
+  // Sort by warehouse ID for consistent ordering (CT first, then JHB alphabetically)
+  byLocation.sort((a, b) => a.warehouseId.localeCompare(b.warehouseId));
 
   return {
     totalOnHand,
