@@ -1,51 +1,51 @@
 # Current Session
 
 ## Active Task
-TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
+TASK-013C Product List Stock Badges (PLANNED, NOT STARTED)
 
 ## Status
-COMPLETE | All fixes pushed, awaiting Vercel/Railway deployment
+PLANNED | Plan approved, ready to implement
 
-## What Was Fixed This Session
+## Previous Task Completed
+TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
+- Missing inventory tables migration
+- API response shape alignment
+- Warehouse breakdown always shows both locations
+- Backend + frontend sort: JHB first
 
-### All TASK-013B Fixes (Complete)
-1. **Missing Inventory Tables** - Migration created and pushed
-2. **API Response Shape Mismatch** - Field names aligned frontend/backend
-3. **Empty Warehouse Breakdown** - Both JHB and CT always appear
-4. **Backend Warehouse Sort Order** - JHB first in `inventory.service.ts`
-5. **Frontend Warehouse Sort Order** - JHB first in `WarehouseStockTable.tsx`
+## TASK-013C Plan Summary
+Add stock status badges to product listing page:
 
-### Commits This Session
-- `11def5e` - TASK-013B: Fix warehouse sort order - JHB first (backend)
-- `bf6f1e0` - TASK-013B: Fix frontend warehouse sort - JHB first
+### Micro-tasks (7 total)
+1. Extend API types - add `stockSummary` to CatalogProduct, extend ProductsQueryParams
+2. Update useProducts hook - always include stockSummary
+3. Add StockStatusBadge to ProductCard (top-right corner)
+4. Create StockStatusFilter component (sidebar checkboxes)
+5. Create ProductSort component (dropdown above grid)
+6. Integrate in Products page (state, URL sync, wire up)
+7. Export new components
 
-## Files Modified This Session
-- `backend/src/services/inventory.service.ts` - Changed byLocation sort order
-- `frontend/src/components/inventory/WarehouseStockTable.tsx` - Changed frontend sort order
+### Files to Modify
+- `frontend/src/lib/api.ts`
+- `frontend/src/hooks/useProducts.ts`
+- `frontend/src/components/products/ProductCard.tsx`
+- `frontend/src/components/products/StockStatusFilter.tsx` (NEW)
+- `frontend/src/components/products/ProductSort.tsx` (NEW)
+- `frontend/src/app/(portal)/products/page.tsx`
+- `frontend/src/components/products/index.ts`
 
-## Deferred to TASK-013D
-- **Per-warehouse reorder settings editing** - Currently display-only, will add edit capability in Inventory Operations Dashboard task
+## Full Plan Location
+See: `C:\Users\Guido\.claude\plans\cryptic-cuddling-parnas.md`
 
-## Verification Needed (After Deployment)
-- [ ] Test https://app.nusaf.net/products - click a product
-- [ ] Verify stock info shows in modal (not "unavailable")
-- [ ] Click "View Full Details" - verify product page loads
-- [ ] Click Inventory tab - verify JHB row is FIRST, then CT
-- [ ] Both rows appear even if no stock data exists
-
-## Next Steps
-1. Wait for Vercel/Railway to deploy
-2. Verify TASK-013B fixes work
-3. Proceed to TASK-013C (Product list stock badges)
+## Next Steps (Exact)
+1. Start with micro-task 1: Extend API types in `frontend/src/lib/api.ts`
+2. Add `stockSummary` optional field to CatalogProduct interface
+3. Add `include` and `stockStatus` to ProductsQueryParams
 
 ## Context for Next Session
-TASK-013B is now fully complete with 5 fixes:
-1. Missing database tables (migration)
-2. API response field names (alignment)
-3. Warehouse breakdown always shows both locations
-4. Backend sort: JHB first
-5. Frontend sort: JHB first
+TASK-013C is fully planned with 7 micro-tasks. Backend support already exists:
+- `?include=stockSummary` returns stock data per product
+- `?stockStatus=IN_STOCK,LOW_STOCK,...` filters by status
+- `?sort=available:asc|desc` sorts by availability
 
-Per-warehouse reorder editing deferred to TASK-013D.
-
-Ready for TASK-013C after deployment verification.
+Ready to start implementation with micro-task 1.
