@@ -71,7 +71,7 @@ Backend services and API for inventory management. Separate tables with proper n
 
 **Key decision:** Database tables are correctly normalized (Product + StockLevel + StockMovement as separate tables). This is the same approach used by SAP, Odoo, NetSuite. The problem was presentation — the API and UI treated them as disconnected modules.
 
-### TASK-013A (CURRENT) — Unified Product-Inventory API
+### TASK-013A (COMPLETE) — Unified Product-Inventory API
 Extend product API to include inventory data. A product IS an inventory item.
 
 **Scope (backend only, no frontend):**
@@ -86,7 +86,7 @@ Extend product API to include inventory data. A product IS an inventory item.
 
 **Spec:** TASK-013A-Unified-Product-Inventory-API.md
 
-### TASK-013B (UP NEXT) — Product Page Inventory Tab
+### TASK-013B (CURRENT) — Product Page Inventory Tab
 Add "Inventory" tab to the product detail page.
 
 **Planned scope:**
