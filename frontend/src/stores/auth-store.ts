@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AuthenticatedUser, LoginRequest } from '@nusaf/shared';
 import { api, ApiError } from '@/lib/api';
 
@@ -11,7 +11,7 @@ interface AuthState {
   refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
-  hasHydrated: boolean;
+  _hasHydrated: boolean;
 }
 
 interface AuthActions {
@@ -25,19 +25,19 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
-const initialState: AuthState = {
+const initialState: Omit<AuthState, '_hasHydrated'> = {
   user: null,
   accessToken: null,
   refreshToken: null,
   isLoading: false,
   error: null,
-  hasHydrated: false,
 };
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       ...initialState,
+      _hasHydrated: false,
 
       login: async (credentials: LoginRequest) => {
         set({ isLoading: true, error: null });
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthStore>()(
           // Ignore logout errors
         } finally {
           api.setAccessToken(null);
-          set(initialState);
+          set({ ...initialState, _hasHydrated: true });
         }
       },
 
@@ -101,7 +101,7 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           // Refresh failed, log out
           api.setAccessToken(null);
-          set(initialState);
+          set({ ...initialState, _hasHydrated: true });
           throw error;
         }
       },
@@ -110,26 +110,34 @@ export const useAuthStore = create<AuthStore>()(
 
       setLoading: (loading: boolean) => set({ isLoading: loading }),
 
-      setHasHydrated: (hydrated: boolean) => set({ hasHydrated: hydrated }),
+      setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
     }),
     {
       name: 'nusaf-auth',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('Auth store hydration error:', error);
-        }
-        // Restore access token to API client on hydration
-        if (state?.accessToken) {
-          api.setAccessToken(state.accessToken);
-        }
-        // Mark hydration as complete
-        useAuthStore.setState({ hasHydrated: true });
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (error) {
+            console.error('Auth store hydration error:', error);
+          }
+          // Restore access token to API client on hydration
+          if (state?.accessToken) {
+            api.setAccessToken(state.accessToken);
+          }
+          // Mark hydration as complete using setTimeout to avoid reference error
+          setTimeout(() => {
+            useAuthStore.getState().setHasHydrated(true);
+          }, 0);
+        };
       },
     }
   )
 );
+
+// Helper hook to check hydration status
+export const useAuthHydrated = () => useAuthStore((state) => state._hasHydrated);

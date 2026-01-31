@@ -10,17 +10,17 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { user, accessToken, isLoading, hasHydrated } = useAuthStore();
+  const { user, accessToken, isLoading, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
     // Only redirect after hydration is complete
-    if (hasHydrated && !isLoading && !accessToken) {
+    if (_hasHydrated && !isLoading && !accessToken) {
       router.push('/login');
     }
-  }, [hasHydrated, isLoading, accessToken, router]);
+  }, [_hasHydrated, isLoading, accessToken, router]);
 
   // Show loading while hydrating or loading
-  if (!hasHydrated || isLoading) {
+  if (!_hasHydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
