@@ -6,7 +6,8 @@ export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   databaseUrl: process.env.DATABASE_URL,
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+  // Fix: trim whitespace from CORS origins to handle "origin1, origin2" format
+  corsOrigins: process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || ['http://localhost:3000'],
 
   // Auth
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
@@ -18,6 +19,24 @@ export const config = {
   maxLoginAttempts: 5,
   lockoutDuration: 15 * 60 * 1000, // 15 minutes in ms
 };
+
+// Validate required environment variables
+if (!config.databaseUrl) {
+  console.error('[CONFIG] FATAL: DATABASE_URL is required');
+  process.exit(1);
+}
+
+if (config.nodeEnv === 'production' && config.jwtSecret === 'dev-secret-change-in-production') {
+  console.error('[CONFIG] FATAL: JWT_SECRET must be set in production');
+  process.exit(1);
+}
+
+// Log configuration for debugging
+console.log('[CONFIG] Loaded configuration:');
+console.log(`  Environment: ${config.nodeEnv}`);
+console.log(`  Port: ${config.port}`);
+console.log(`  CORS Origins: ${JSON.stringify(config.corsOrigins)}`);
+console.log(`  Database: ${config.databaseUrl ? '[SET]' : '[NOT SET]'}`);
 
 export const isDev = config.nodeEnv === 'development';
 export const isProd = config.nodeEnv === 'production';
