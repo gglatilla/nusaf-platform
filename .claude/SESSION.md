@@ -1,91 +1,93 @@
 # Current Session
 
 ## Active Task
-[TASK-013A] Unified Product-Inventory API
+[TASK-013B] Product Page Inventory Tab
 
 ## Status
-COMPLETE | 100%
+IN_PROGRESS | 0%
 
-## Completed Micro-tasks
-- [x] Database migration: Add 5 fields to Product, 2 fields to StockLevel
-- [x] Add `computeStockStatus()` and `computeProductStockStatus()` functions
-- [x] Add `getProductInventorySummary()` helper (returns unified inventory object)
-- [x] Update GET `/products/:id` with `?include=inventory,movements` support
-- [x] Update GET `/products` with `?include=stockSummary`, `?stockStatus`, `?sortBy=available`
-- [x] Add PATCH `/products/:id` endpoint for inventory defaults
-- [x] Add nested stock routes under `/products/:productId/stock/*`
+## Exploration Findings
 
-## Files Created
-(none - all modifications to existing files)
+### Product Detail Implementation
+- **ProductDetailModal.tsx** is a MODAL, not a full page
+- NO tabs exist — modal shows basic product info + Add to Quote button
+- Modal uses Radix UI Dialog component
 
-## Files Modified
-- `backend/prisma/schema.prisma` — Added inventory fields to Product and StockLevel
-- `backend/src/services/inventory.service.ts` — Added stock status functions, inventory summary helpers
-- `backend/src/api/v1/products/route.ts` — Added all new endpoints and query params
+### UI Components Available
+- Radix UI primitives (Dialog, etc.) + Tailwind CSS
+- NO generic Tab component — need to create or use Radix Tabs
+- NO Badge component — need to create StockStatusBadge
+- Table styling exists in quotes/orders tables
 
-## API Changes Implemented
+### API Patterns
+- React Query hooks in `frontend/src/hooks/` (useProducts.ts, useQuotes.ts)
+- API client in `frontend/src/lib/api.ts` with Bearer token auth
+- Zustand auth store in `frontend/src/stores/auth-store.ts`
 
-### GET /api/v1/products/:id
-New query params:
-- `?include=inventory` — includes stock levels per warehouse
-- `?include=movements` — includes recent stock movements
-- `?include=inventory,movements` — both
-- `?movementLimit=20` — controls how many movements to include (default 20)
+### Missing Prerequisite
+- User/Customer models do NOT have `primaryWarehouseId` field yet
+- Will implement as part of Phase 1
 
-### GET /api/v1/products
-New query params:
-- `?include=stockSummary` — adds stock summary per product
-- `?stockStatus=IN_STOCK,LOW_STOCK` — filter by status (comma-separated)
-- `?sort=available:asc` or `?sort=available:desc` — sort by available quantity
+---
 
-### PATCH /api/v1/products/:id (NEW)
-Update inventory defaults:
-```json
-{
-  "defaultReorderPoint": 50,
-  "defaultReorderQty": 100,
-  "defaultMinStock": 20,
-  "defaultMaxStock": 500,
-  "leadTimeDays": 14
-}
-```
+## Approved Plan Summary
 
-### Nested Stock Routes (NEW)
-- `GET /products/:productId/stock` — unified inventory view
-- `GET /products/:productId/stock/movements` — movement history
-- `GET /products/:productId/stock/reservations` — active reservations
-- `GET /products/:productId/stock/adjustments` — list adjustments for product
-- `POST /products/:productId/stock/adjustments` — create adjustment for product
+### Approach
+- **Option C** for modal: Add simple inventory summary + link to full page
+- Create new product detail PAGE at `/products/[id]` with tabs (Details, Inventory)
 
-## Database Schema Changes
+### Four Distinct Views
+1. **VIEW A** - Admin/Manager (no primary): Combined totals + warehouse table
+2. **VIEW B** - Admin/Manager (with primary): Their warehouse + table highlighted
+3. **VIEW C** - Sales (with primary): Their warehouse + subdued cards + table
+4. **VIEW D** - Customer (with primary): Simplified friendly view, NO table
 
-### Product Model (new fields)
-- `defaultReorderPoint` — when to trigger reorder
-- `defaultReorderQty` — how many to order
-- `defaultMinStock` — safety stock level
-- `defaultMaxStock` — max storage capacity
-- `leadTimeDays` — supplier lead time
+### Critical UX Rules
+- Warehouse table is NOT optional for internal users
+- Available column FIRST and bold, On Hand muted
+- Customer sees "Also available from Johannesburg: X units · Est. 2–4 working days"
+- Customer primary warehouse unnamed ("Available" not "Available at Cape Town")
 
-### StockLevel Model (new fields)
-- `reorderPoint` — location-specific override
-- `minimumStock` — renamed from minimumLevel
-- `maximumStock` — location-specific override
+---
 
-## Stock Status Values
-- `IN_STOCK` — available > reorderPoint
-- `LOW_STOCK` — 0 < available <= reorderPoint
-- `OUT_OF_STOCK` — available <= 0, no onOrder
-- `ON_ORDER` — available <= 0, has onOrder
-- `OVERSTOCK` — onHand > maximumStock
+## Micro-tasks
 
-## Key Design Decisions
-1. Products with no StockLevel records return zero quantities (not errors)
-2. Location-specific reorder settings override product defaults when set
-3. Stock status calculated using `computeStockStatus()` per location, `computeProductStockStatus()` aggregate
-4. `byLocation` array includes full reorder settings and per-location status
+### Phase 1: Prerequisites & Foundation
+- [ ] 1.1 Database migration — add primaryWarehouseId to User, Customer
+- [ ] 1.2 Create StockStatusBadge component
+- [ ] 1.3 Create useProductInventory hook
 
-## Next Steps
-TASK-013B: Product page Inventory tab (Frontend)
+### Phase 2: Product Detail Page with Tabs
+- [ ] 2.1 Create product detail page route with tab system
+- [ ] 2.2 Create StockOverviewCards component (4 views)
+- [ ] 2.3 Create WarehouseStockTable component
+- [ ] 2.4 Create StockMovementsTable component
+- [ ] 2.5 Create AdjustStockModal component
+- [ ] 2.6 Create InventorySettings component
+- [ ] 2.7 Assemble ProductInventoryTab component
+
+### Phase 3: Update Modal
+- [ ] 3.1 Add inventory summary to ProductDetailModal
+
+---
+
+## Files to Create
+- `frontend/src/components/inventory/StockStatusBadge.tsx`
+- `frontend/src/components/inventory/StockOverviewCards.tsx`
+- `frontend/src/components/inventory/WarehouseStockTable.tsx`
+- `frontend/src/components/inventory/StockMovementsTable.tsx`
+- `frontend/src/components/inventory/AdjustStockModal.tsx`
+- `frontend/src/components/inventory/InventorySettings.tsx`
+- `frontend/src/components/inventory/ProductInventoryTab.tsx`
+- `frontend/src/app/(portal)/products/[id]/page.tsx`
+- `frontend/src/hooks/useProductInventory.ts`
+
+## Files to Modify
+- `backend/prisma/schema.prisma`
+- `frontend/src/components/products/ProductDetailModal.tsx`
+- `frontend/src/lib/api.ts`
+
+---
 
 ## Context for Next Session
-TASK-013A is complete. The backend API now presents products and inventory as one unified entity. The existing `/api/v1/inventory/*` routes continue to work unchanged for operational inventory management.
+TASK-013B plan approved. Starting Phase 1: Prerequisites & Foundation. First micro-task is database migration to add primaryWarehouseId to User and Customer models.
