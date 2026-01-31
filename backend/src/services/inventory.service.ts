@@ -79,6 +79,175 @@ export function computeProductStockStatus(params: {
   return 'IN_STOCK';
 }
 
+/**
+ * Get unified inventory summary for a product
+ * Returns totals + byLocation array with all reorder settings
+ * Products with no StockLevel records return zero quantities (not an error)
+ */
+export async function getProductInventorySummary(productId: string) {
+  // Fetch product with stock levels
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      defaultReorderPoint: true,
+      defaultReorderQty: true,
+      defaultMinStock: true,
+      defaultMaxStock: true,
+      leadTimeDays: true,
+      stockLevels: true,
+    },
+  });
+
+  if (!product) {
+    return null;
+  }
+
+  const stockLevels = product.stockLevels;
+
+  // Calculate totals
+  let totalOnHand = 0;
+  let totalSoftReserved = 0;
+  let totalHardReserved = 0;
+  let totalOnOrder = 0;
+
+  for (const sl of stockLevels) {
+    totalOnHand += sl.onHand;
+    totalSoftReserved += sl.softReserved;
+    totalHardReserved += sl.hardReserved;
+    totalOnOrder += sl.onOrder;
+  }
+
+  const totalAvailable = totalOnHand - totalHardReserved;
+  const totalReserved = totalSoftReserved + totalHardReserved;
+
+  // Calculate aggregate status
+  const status = computeProductStockStatus({
+    totalOnHand,
+    totalAvailable,
+    totalOnOrder,
+    productDefaults: product,
+  });
+
+  // Build byLocation array
+  const byLocation = stockLevels.map((sl) => {
+    const available = sl.onHand - sl.hardReserved;
+    const locationStatus = computeStockStatus({
+      onHand: sl.onHand,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      reorderPoint: sl.reorderPoint,
+      maximumStock: sl.maximumStock,
+      productDefaults: product,
+    });
+
+    return {
+      warehouseId: sl.location,
+      warehouseName: WAREHOUSE_NAMES[sl.location],
+      onHand: sl.onHand,
+      available,
+      softReserved: sl.softReserved,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      reorderPoint: sl.reorderPoint,
+      reorderQty: sl.reorderQuantity,
+      minimumStock: sl.minimumStock,
+      maximumStock: sl.maximumStock,
+      stockStatus: locationStatus,
+    };
+  });
+
+  return {
+    totalOnHand,
+    totalAvailable,
+    totalReserved,
+    totalOnOrder,
+    status,
+    byLocation,
+    // Include product-level defaults for reference
+    defaults: {
+      reorderPoint: product.defaultReorderPoint,
+      reorderQty: product.defaultReorderQty,
+      minStock: product.defaultMinStock,
+      maxStock: product.defaultMaxStock,
+      leadTimeDays: product.leadTimeDays,
+    },
+  };
+}
+
+/**
+ * Get stock summary for multiple products (for product list with stockSummary)
+ * Returns a map of productId -> { totalOnHand, totalAvailable, status }
+ */
+export async function getProductsStockSummary(productIds: string[]) {
+  if (productIds.length === 0) {
+    return new Map<string, { totalOnHand: number; totalAvailable: number; status: StockStatus }>();
+  }
+
+  // Fetch all stock levels for the given products
+  const stockLevels = await prisma.stockLevel.findMany({
+    where: { productId: { in: productIds } },
+    include: {
+      product: {
+        select: {
+          id: true,
+          defaultReorderPoint: true,
+          defaultMaxStock: true,
+        },
+      },
+    },
+  });
+
+  // Group by productId and calculate totals
+  const summaryMap = new Map<string, { totalOnHand: number; totalAvailable: number; totalOnOrder: number; product: { defaultReorderPoint: number | null; defaultMaxStock: number | null } }>();
+
+  for (const sl of stockLevels) {
+    const existing = summaryMap.get(sl.productId);
+    if (existing) {
+      existing.totalOnHand += sl.onHand;
+      existing.totalAvailable += sl.onHand - sl.hardReserved;
+      existing.totalOnOrder += sl.onOrder;
+    } else {
+      summaryMap.set(sl.productId, {
+        totalOnHand: sl.onHand,
+        totalAvailable: sl.onHand - sl.hardReserved,
+        totalOnOrder: sl.onOrder,
+        product: sl.product,
+      });
+    }
+  }
+
+  // Convert to final result with status
+  const result = new Map<string, { totalOnHand: number; totalAvailable: number; status: StockStatus }>();
+
+  // Include all requested products (even those without stock records)
+  for (const productId of productIds) {
+    const summary = summaryMap.get(productId);
+    if (summary) {
+      const status = computeProductStockStatus({
+        totalOnHand: summary.totalOnHand,
+        totalAvailable: summary.totalAvailable,
+        totalOnOrder: summary.totalOnOrder,
+        productDefaults: summary.product,
+      });
+      result.set(productId, {
+        totalOnHand: summary.totalOnHand,
+        totalAvailable: summary.totalAvailable,
+        status,
+      });
+    } else {
+      // No stock records = zero quantities, OUT_OF_STOCK
+      result.set(productId, {
+        totalOnHand: 0,
+        totalAvailable: 0,
+        status: 'OUT_OF_STOCK',
+      });
+    }
+  }
+
+  return result;
+}
+
 // ============================================
 // STOCK LEVEL FUNCTIONS
 // ============================================
