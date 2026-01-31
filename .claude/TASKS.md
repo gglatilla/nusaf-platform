@@ -3,7 +3,7 @@
 ---
 
 ## Current
-- [TASK-013B] Product page Inventory tab [Inventory, UI/Frontend]
+(none)
 
 ## Up Next
 - [TASK-013C] Product list stock badges [Inventory, UI/Frontend]
@@ -42,6 +42,7 @@
 - [TASK-012-2D] Order Fulfillment — Issue Flagging + Document Archive ✓
 - [TASK-013] Inventory tracking backend (StockLevel, StockMovement, StockAdjustment, StockReservation services + API) ✓
 - [TASK-013A] Unified Product-Inventory API — backend API unification ✓
+- [TASK-013B] Product page Inventory tab ✓
 
 ---
 
@@ -86,16 +87,23 @@ Extend product API to include inventory data. A product IS an inventory item.
 
 **Spec:** TASK-013A-Unified-Product-Inventory-API.md
 
-### TASK-013B (CURRENT) — Product Page Inventory Tab
+### TASK-013B (COMPLETE) — Product Page Inventory Tab
 Add "Inventory" tab to the product detail page.
 
-**Planned scope:**
-- Stock overview: total onHand, available, reserved, onOrder across all warehouses
-- Per-warehouse breakdown table
-- Stock status badge (green/amber/red)
-- "Adjust Stock" button → modal to create stock adjustment
-- Recent stock movements list for this product (expandable to full history)
-- Reorder point settings (edit defaults + per-location overrides)
+**What was built:**
+- Product detail page at `/products/[id]` with Details and Inventory tabs
+- StockStatusBadge component (IN_STOCK/LOW_STOCK/OUT_OF_STOCK/ON_ORDER/OVERSTOCK)
+- StockOverviewCards with 4-view logic:
+  - VIEW A: Admin/Manager no primary → combined totals
+  - VIEW B: Admin/Manager with primary → their warehouse + "also available"
+  - VIEW C: Sales with primary → their warehouse, subdued secondary cards
+  - VIEW D: Customer with primary → friendly language, "also available" with delivery estimate
+- WarehouseStockTable with user's warehouse highlighted (★ indicator, sorted to top)
+- StockMovementsTable with type icons and color-coded quantities
+- AdjustStockModal for stock adjustments (admin/manager only)
+- InventorySettings for reorder point defaults (admin/manager only)
+- ProductDetailModal updated with stock summary + "View Full Details" link
+- useProductWithInventory React Query hook
 
 ### TASK-013C — Product List Stock Badges
 Add stock indicators to the product listing page.
