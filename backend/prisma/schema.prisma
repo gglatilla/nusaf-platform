@@ -26,6 +26,9 @@ model User {
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])
 
+  // Primary warehouse for stock display (user sees their warehouse stock as hero metric)
+  primaryWarehouse Warehouse? @map("primary_warehouse")
+
   sessions Session[]
 
   // Issue Flag relations
@@ -80,6 +83,9 @@ model Company {
   vatNumber          String?      @map("vat_number")
   tier               CustomerTier @default(END_USER)
   isActive           Boolean      @default(true) @map("is_active")
+
+  // Primary warehouse for fulfillment (CT customers check CT stock first, spill to JHB)
+  primaryWarehouse Warehouse? @map("primary_warehouse")
 
   users      User[]
   addresses  CompanyAddress[]
