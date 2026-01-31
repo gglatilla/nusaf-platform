@@ -7,6 +7,11 @@ import {
   calculateCustomerPrice,
   recalculateProductPrices,
 } from '../../../services/pricing.service';
+import {
+  getProductInventorySummary,
+  getProductMovementHistory,
+} from '../../../services/inventory.service';
+import type { CustomerTier } from '@prisma/client';
 
 const router = Router();
 
@@ -188,11 +193,21 @@ router.get('/', authenticate, async (req, res) => {
 /**
  * GET /api/v1/products/:id
  * Get product details with full pricing information
+ * Query params:
+ *   - include: comma-separated list of facets (inventory, movements)
+ *   - movementLimit: number of recent movements to include (default 20)
  */
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params;
+    const includeParam = (req.query.include as string) || '';
+    const movementLimit = Math.min(100, Math.max(1, parseInt(req.query.movementLimit as string, 10) || 20));
+
+    // Parse include param
+    const includes = new Set(includeParam.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
+    const includeInventory = includes.has('inventory');
+    const includeMovements = includes.has('movements');
 
     // Check if this is the /price endpoint (handled separately)
     if (id === 'price') {
@@ -202,8 +217,8 @@ router.get('/:id', authenticate, async (req, res) => {
       });
     }
 
-    // Parallel fetch: product and company tier
-    const [product, company] = await Promise.all([
+    // Parallel fetch: product, company tier, and optional inventory/movements
+    const [product, company, inventoryResult, movementsResult] = await Promise.all([
       prisma.product.findUnique({
         where: { id },
         include: {
@@ -234,6 +249,8 @@ router.get('/:id', authenticate, async (req, res) => {
         where: { id: authReq.user.companyId },
         select: { tier: true },
       }),
+      includeInventory ? getProductInventorySummary(id) : Promise.resolve(undefined),
+      includeMovements ? getProductMovementHistory(id, { pageSize: movementLimit }) : Promise.resolve(undefined),
     ]);
 
     if (!product || !product.isActive || product.deletedAt) {
@@ -245,7 +262,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     const userRole = authReq.user.role;
     const isCustomer = userRole === 'CUSTOMER';
-    const tier = company?.tier ?? 'END_USER';
+    const tier = (company?.tier ?? 'END_USER') as CustomerTier;
 
     const listPrice = product.listPrice ? Number(product.listPrice) : null;
     let displayPrice: number | null = null;
@@ -263,22 +280,54 @@ router.get('/:id', authenticate, async (req, res) => {
       priceLabel = 'Price on Request';
     }
 
+    // Build response
+    const responseData: Record<string, unknown> = {
+      id: product.id,
+      nusafSku: product.nusafSku,
+      supplierSku: product.supplierSku,
+      description: product.description,
+      unitOfMeasure: product.unitOfMeasure,
+      supplier: product.supplier,
+      category: product.category,
+      subCategory: product.subCategory,
+      price: displayPrice,
+      priceLabel,
+      hasPrice: !!listPrice,
+      priceUpdatedAt: product.priceUpdatedAt,
+    };
+
+    // Add inventory if requested
+    if (includeInventory) {
+      if (inventoryResult) {
+        responseData.inventory = inventoryResult;
+      } else {
+        // No inventory record = zero quantities
+        responseData.inventory = {
+          totalOnHand: 0,
+          totalAvailable: 0,
+          totalReserved: 0,
+          totalOnOrder: 0,
+          status: 'OUT_OF_STOCK',
+          byLocation: [],
+          defaults: {
+            reorderPoint: null,
+            reorderQty: null,
+            minStock: null,
+            maxStock: null,
+            leadTimeDays: null,
+          },
+        };
+      }
+    }
+
+    // Add movements if requested
+    if (includeMovements) {
+      responseData.recentMovements = movementsResult?.movements ?? [];
+    }
+
     return res.json({
       success: true,
-      data: {
-        id: product.id,
-        nusafSku: product.nusafSku,
-        supplierSku: product.supplierSku,
-        description: product.description,
-        unitOfMeasure: product.unitOfMeasure,
-        supplier: product.supplier,
-        category: product.category,
-        subCategory: product.subCategory,
-        price: displayPrice,
-        priceLabel,
-        hasPrice: !!listPrice,
-        priceUpdatedAt: product.priceUpdatedAt,
-      },
+      data: responseData,
     });
   } catch (error) {
     console.error('Get product error:', error);
