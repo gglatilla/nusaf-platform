@@ -415,6 +415,100 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/products/:id
+ * Update product inventory defaults (admin/manager only)
+ * Body: { defaultReorderPoint, defaultReorderQty, defaultMinStock, defaultMaxStock, leadTimeDays }
+ */
+router.patch('/:id', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const {
+      defaultReorderPoint,
+      defaultReorderQty,
+      defaultMinStock,
+      defaultMaxStock,
+      leadTimeDays,
+    } = req.body;
+
+    // Verify product exists
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+
+    if (!existingProduct || !existingProduct.isActive || existingProduct.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    // Build update data (only include fields that are present in body)
+    const updateData: Prisma.ProductUpdateInput = {
+      updatedBy: authReq.user.id,
+    };
+
+    if (defaultReorderPoint !== undefined) {
+      updateData.defaultReorderPoint = defaultReorderPoint === null ? null : Number(defaultReorderPoint);
+    }
+    if (defaultReorderQty !== undefined) {
+      updateData.defaultReorderQty = defaultReorderQty === null ? null : Number(defaultReorderQty);
+    }
+    if (defaultMinStock !== undefined) {
+      updateData.defaultMinStock = defaultMinStock === null ? null : Number(defaultMinStock);
+    }
+    if (defaultMaxStock !== undefined) {
+      updateData.defaultMaxStock = defaultMaxStock === null ? null : Number(defaultMaxStock);
+    }
+    if (leadTimeDays !== undefined) {
+      updateData.leadTimeDays = leadTimeDays === null ? null : Number(leadTimeDays);
+    }
+
+    // Update product
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        nusafSku: true,
+        defaultReorderPoint: true,
+        defaultReorderQty: true,
+        defaultMinStock: true,
+        defaultMaxStock: true,
+        leadTimeDays: true,
+        updatedAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        id: updatedProduct.id,
+        nusafSku: updatedProduct.nusafSku,
+        inventoryDefaults: {
+          reorderPoint: updatedProduct.defaultReorderPoint,
+          reorderQty: updatedProduct.defaultReorderQty,
+          minStock: updatedProduct.defaultMinStock,
+          maxStock: updatedProduct.defaultMaxStock,
+          leadTimeDays: updatedProduct.leadTimeDays,
+        },
+        updatedAt: updatedProduct.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update product error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update product',
+      },
+    });
+  }
+});
+
+/**
  * GET /api/v1/products/:id/price
  * Get calculated price for a product (requires authentication)
  */
