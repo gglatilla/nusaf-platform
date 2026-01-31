@@ -3,7 +3,8 @@
 
 [build]
 builder = "nixpacks"
-buildCommand = "rm -rf node_modules/.cache && npm install && npm run build -w shared && cd backend && npx prisma generate && npm run build"
+buildCommand = "npm install && npm run build -w shared && cd backend && npx prisma generate && npm run build"
+nixpacksConfigPath = "nixpacks.toml"
 
 [deploy]
 startCommand = "cd backend && npx prisma migrate deploy && npm run start"

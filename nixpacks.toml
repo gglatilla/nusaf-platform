@@ -1,11 +1,15 @@
 # Nixpacks configuration for Railway
 # This builds the Nusaf Platform backend
 
+# Disable caching to avoid EBUSY errors with npm
+[options]
+no_cache = true
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["rm -rf node_modules/.cache", "npm install"]
+cmds = ["npm install"]
 
 [phases.build]
 cmds = [
