@@ -11,15 +11,22 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const { user, accessToken, isLoading } = useAuthStore();
-  const hasHydrated = useAuthStore.persist.hasHydrated();
 
-  // Force re-render when hydration completes
-  const [, forceUpdate] = useState({});
+  // Track hydration state - starts false, becomes true after hydration
+  const [hasHydrated, setHasHydrated] = useState(false);
+
   useEffect(() => {
-    const unsub = useAuthStore.persist.onFinishHydration(() => {
-      forceUpdate({});
+    // Check if already hydrated (e.g., hot reload)
+    if (useAuthStore.persist?.hasHydrated()) {
+      setHasHydrated(true);
+    }
+
+    // Subscribe to hydration completion
+    const unsub = useAuthStore.persist?.onFinishHydration(() => {
+      setHasHydrated(true);
     });
-    return unsub;
+
+    return () => unsub?.();
   }, []);
 
   useEffect(() => {

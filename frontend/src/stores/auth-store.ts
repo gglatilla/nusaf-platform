@@ -143,4 +143,8 @@ if (typeof window !== 'undefined') {
 }
 
 // Helper hook to check hydration status using Zustand's built-in API
-export const useAuthHydrated = () => useAuthStore.persist.hasHydrated();
+// Returns false during SSR (when persist is not available)
+export const useAuthHydrated = () => {
+  if (typeof window === 'undefined') return false;
+  return useAuthStore.persist?.hasHydrated() ?? false;
+};
