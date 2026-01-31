@@ -29,13 +29,16 @@ export function WarehouseStockTable({
     );
   }
 
-  // Sort: user's primary warehouse to top, then alphabetical
+  // Sort: user's primary warehouse to top, then JHB first (primary warehouse), then others
+  const WAREHOUSE_ORDER: Record<string, number> = { JHB: 0, CT: 1 };
   const sortedLocations = [...locations].sort((a, b) => {
+    // User's primary warehouse always first
     if (userPrimaryWarehouse) {
       if (a.warehouseId === userPrimaryWarehouse) return -1;
       if (b.warehouseId === userPrimaryWarehouse) return 1;
     }
-    return a.warehouseName.localeCompare(b.warehouseName);
+    // Otherwise, JHB (company primary) first, then others
+    return (WAREHOUSE_ORDER[a.warehouseId] ?? 99) - (WAREHOUSE_ORDER[b.warehouseId] ?? 99);
   });
 
   return (
