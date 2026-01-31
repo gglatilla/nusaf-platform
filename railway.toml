@@ -2,8 +2,8 @@
 # Deploy from project root to support npm workspaces
 
 [build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+builder = "nixpacks"
+buildCommand = "rm -rf node_modules/.cache && npm ci && npm run build -w shared && cd backend && npx prisma generate && npm run build"
 
 [deploy]
 healthcheckPath = "/health"
