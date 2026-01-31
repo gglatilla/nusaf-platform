@@ -1,19 +1,4 @@
-// Build: 2026-01-31-v2 - Railway Deployment Fix
-// Global error handlers - must be first to catch module loading errors!
-process.on('uncaughtException', (error) => {
-  console.error('[FATAL] Uncaught Exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
-
-console.log('[STARTUP] Backend initializing...');
-console.log('[STARTUP] Node version:', process.version);
-console.log('[STARTUP] Working directory:', process.cwd());
-
+// Build: 2026-01-30-v1 - Category Code Migration
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
