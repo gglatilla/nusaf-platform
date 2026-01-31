@@ -1,5 +1,6 @@
 # Custom Dockerfile for Railway deployment
 # Builds the Nusaf Platform backend with workspace support
+# v2 - clean config
 
 FROM node:20-slim
 
