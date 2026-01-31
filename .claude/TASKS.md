@@ -123,6 +123,7 @@ Operational inventory management page for warehouse staff.
 - Pending adjustments queue (approve/reject workflow)
 - Stock movement audit log (searchable/filterable)
 - Every row links to the product detail page
+- **Per-warehouse reorder settings editing** (deferred from TASK-013B) — allow editing reorder point, min/max stock per location
 
 ---
 

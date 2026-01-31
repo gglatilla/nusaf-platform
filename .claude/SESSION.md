@@ -1,39 +1,32 @@
 # Current Session
 
 ## Active Task
-TASK-013B Bug Fixes - Inventory Tab Issues (Final Fix)
+TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
 
 ## Status
-COMPLETE | All fixes pushed, awaiting Railway deployment
+COMPLETE | All fixes pushed, awaiting Vercel/Railway deployment
 
 ## What Was Fixed This Session
 
-### Previous Fixes (Still Valid)
+### All TASK-013B Fixes (Complete)
 1. **Missing Inventory Tables** - Migration created and pushed
 2. **API Response Shape Mismatch** - Field names aligned frontend/backend
 3. **Empty Warehouse Breakdown** - Both JHB and CT always appear
+4. **Backend Warehouse Sort Order** - JHB first in `inventory.service.ts`
+5. **Frontend Warehouse Sort Order** - JHB first in `WarehouseStockTable.tsx`
 
-### New Fix (This Session)
-4. **Warehouse Sort Order** - JHB (primary warehouse) now listed FIRST in byLocation array
-   - Changed from alphabetical sort (CT, JHB) to priority sort (JHB, CT)
-   - File: `backend/src/services/inventory.service.ts` line 206-211
-
-## Commits This Session
-1. `11def5e` - TASK-013B: Fix warehouse sort order - JHB first
+### Commits This Session
+- `11def5e` - TASK-013B: Fix warehouse sort order - JHB first (backend)
+- `bf6f1e0` - TASK-013B: Fix frontend warehouse sort - JHB first
 
 ## Files Modified This Session
 - `backend/src/services/inventory.service.ts` - Changed byLocation sort order
+- `frontend/src/components/inventory/WarehouseStockTable.tsx` - Changed frontend sort order
 
-## Reorder Points Per Warehouse
-**Already implemented** - The `stock_levels` table has per-location fields:
-- `reorder_point` - When to trigger reorder
-- `reorder_quantity` - How many to order
-- `minimum_stock` - Safety stock level
-- `maximum_stock` - Max storage capacity
+## Deferred to TASK-013D
+- **Per-warehouse reorder settings editing** - Currently display-only, will add edit capability in Inventory Operations Dashboard task
 
-All nullable - when null, falls back to product-level defaults.
-
-## Verification Needed (After Railway Deploys)
+## Verification Needed (After Deployment)
 - [ ] Test https://app.nusaf.net/products - click a product
 - [ ] Verify stock info shows in modal (not "unavailable")
 - [ ] Click "View Full Details" - verify product page loads
@@ -41,15 +34,18 @@ All nullable - when null, falls back to product-level defaults.
 - [ ] Both rows appear even if no stock data exists
 
 ## Next Steps
-1. Wait for Railway to deploy
-2. Verify all TASK-013B fixes work on production
-3. Then proceed to TASK-013C (Product list stock badges)
+1. Wait for Vercel/Railway to deploy
+2. Verify TASK-013B fixes work
+3. Proceed to TASK-013C (Product list stock badges)
 
 ## Context for Next Session
-TASK-013B is now fully complete. Four issues fixed:
+TASK-013B is now fully complete with 5 fixes:
 1. Missing database tables (migration)
 2. API response field names (alignment)
 3. Warehouse breakdown always shows both locations
-4. JHB listed first (primary warehouse)
+4. Backend sort: JHB first
+5. Frontend sort: JHB first
+
+Per-warehouse reorder editing deferred to TASK-013D.
 
 Ready for TASK-013C after deployment verification.
