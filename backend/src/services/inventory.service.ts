@@ -203,8 +203,12 @@ export async function getProductInventorySummary(productId: string) {
     }
   }
 
-  // Sort by warehouse ID for consistent ordering (CT first, then JHB alphabetically)
-  byLocation.sort((a, b) => a.warehouseId.localeCompare(b.warehouseId));
+  // Sort with JHB (primary warehouse) first, then others alphabetically
+  const WAREHOUSE_ORDER: Record<string, number> = { JHB: 0, CT: 1 };
+  byLocation.sort(
+    (a, b) =>
+      (WAREHOUSE_ORDER[a.warehouseId] ?? 99) - (WAREHOUSE_ORDER[b.warehouseId] ?? 99)
+  );
 
   return {
     totalOnHand,
