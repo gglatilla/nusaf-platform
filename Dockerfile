@@ -4,7 +4,7 @@
 FROM node:20-slim AS builder
 
 # Cache bust - change this value to force rebuild of BOTH stages
-ARG CACHE_BUST=v4
+ARG CACHE_BUST=v5
 RUN echo "Builder cache bust: $CACHE_BUST"
 
 # Install OpenSSL for Prisma
@@ -39,7 +39,7 @@ RUN npm run build
 FROM node:20-slim AS production
 
 # Cache bust - MUST match builder to force production stage rebuild
-ARG CACHE_BUST=v4
+ARG CACHE_BUST=v5
 RUN echo "Production cache bust: $CACHE_BUST"
 
 # Install OpenSSL for Prisma runtime
