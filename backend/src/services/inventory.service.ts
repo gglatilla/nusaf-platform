@@ -14,6 +14,72 @@ import type {
 } from '../utils/validation/inventory';
 
 // ============================================
+// STOCK STATUS TYPES AND HELPERS
+// ============================================
+
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'ON_ORDER' | 'OVERSTOCK';
+
+export const WAREHOUSE_NAMES: Record<Warehouse, string> = {
+  JHB: 'Johannesburg',
+  CT: 'Cape Town',
+};
+
+/**
+ * Compute stock status for a single location
+ * Uses location-specific reorder settings, falls back to product defaults
+ */
+export function computeStockStatus(params: {
+  onHand: number;
+  hardReserved: number;
+  onOrder: number;
+  reorderPoint: number | null;
+  maximumStock: number | null;
+  productDefaults?: {
+    defaultReorderPoint: number | null;
+    defaultMaxStock: number | null;
+  };
+}): StockStatus {
+  const { onHand, hardReserved, onOrder, reorderPoint, maximumStock, productDefaults } = params;
+  const available = onHand - hardReserved;
+
+  // Use location override or fall back to product default
+  const effectiveReorderPoint = reorderPoint ?? productDefaults?.defaultReorderPoint ?? 0;
+  const effectiveMaxStock = maximumStock ?? productDefaults?.defaultMaxStock ?? null;
+
+  // Priority order for status determination
+  if (available <= 0 && onOrder > 0) return 'ON_ORDER';
+  if (available <= 0) return 'OUT_OF_STOCK';
+  if (effectiveMaxStock !== null && onHand > effectiveMaxStock) return 'OVERSTOCK';
+  if (effectiveReorderPoint > 0 && available <= effectiveReorderPoint) return 'LOW_STOCK';
+  return 'IN_STOCK';
+}
+
+/**
+ * Compute aggregate stock status across all locations for a product
+ */
+export function computeProductStockStatus(params: {
+  totalOnHand: number;
+  totalAvailable: number;
+  totalOnOrder: number;
+  productDefaults?: {
+    defaultReorderPoint: number | null;
+    defaultMaxStock: number | null;
+  };
+}): StockStatus {
+  const { totalOnHand, totalAvailable, totalOnOrder, productDefaults } = params;
+
+  const effectiveReorderPoint = productDefaults?.defaultReorderPoint ?? 0;
+  const effectiveMaxStock = productDefaults?.defaultMaxStock ?? null;
+
+  // Priority order for status determination
+  if (totalAvailable <= 0 && totalOnOrder > 0) return 'ON_ORDER';
+  if (totalAvailable <= 0) return 'OUT_OF_STOCK';
+  if (effectiveMaxStock !== null && totalOnHand > effectiveMaxStock) return 'OVERSTOCK';
+  if (effectiveReorderPoint > 0 && totalAvailable <= effectiveReorderPoint) return 'LOW_STOCK';
+  return 'IN_STOCK';
+}
+
+// ============================================
 // STOCK LEVEL FUNCTIONS
 // ============================================
 
@@ -32,6 +98,10 @@ export async function getStockLevel(productId: string, location: Warehouse) {
           nusafSku: true,
           description: true,
           unitOfMeasure: true,
+          defaultReorderPoint: true,
+          defaultReorderQty: true,
+          defaultMinStock: true,
+          defaultMaxStock: true,
         },
       },
     },
@@ -40,6 +110,16 @@ export async function getStockLevel(productId: string, location: Warehouse) {
   if (!stockLevel) {
     return null;
   }
+
+  const available = stockLevel.onHand - stockLevel.hardReserved;
+  const stockStatus = computeStockStatus({
+    onHand: stockLevel.onHand,
+    hardReserved: stockLevel.hardReserved,
+    onOrder: stockLevel.onOrder,
+    reorderPoint: stockLevel.reorderPoint,
+    maximumStock: stockLevel.maximumStock,
+    productDefaults: stockLevel.product,
+  });
 
   return {
     id: stockLevel.id,
@@ -50,12 +130,12 @@ export async function getStockLevel(productId: string, location: Warehouse) {
     softReserved: stockLevel.softReserved,
     hardReserved: stockLevel.hardReserved,
     onOrder: stockLevel.onOrder,
-    available: stockLevel.onHand - stockLevel.hardReserved,
-    minimumLevel: stockLevel.minimumLevel,
+    available,
+    reorderPoint: stockLevel.reorderPoint,
     reorderQuantity: stockLevel.reorderQuantity,
-    isLowStock: stockLevel.minimumLevel
-      ? stockLevel.onHand - stockLevel.hardReserved < stockLevel.minimumLevel
-      : false,
+    minimumStock: stockLevel.minimumStock,
+    maximumStock: stockLevel.maximumStock,
+    stockStatus,
     updatedAt: stockLevel.updatedAt,
   };
 }
@@ -73,26 +153,44 @@ export async function getProductStockAcrossLocations(productId: string) {
           nusafSku: true,
           description: true,
           unitOfMeasure: true,
+          defaultReorderPoint: true,
+          defaultReorderQty: true,
+          defaultMinStock: true,
+          defaultMaxStock: true,
         },
       },
     },
   });
 
-  return stockLevels.map((sl) => ({
-    id: sl.id,
-    productId: sl.productId,
-    product: sl.product,
-    location: sl.location,
-    onHand: sl.onHand,
-    softReserved: sl.softReserved,
-    hardReserved: sl.hardReserved,
-    onOrder: sl.onOrder,
-    available: sl.onHand - sl.hardReserved,
-    minimumLevel: sl.minimumLevel,
-    reorderQuantity: sl.reorderQuantity,
-    isLowStock: sl.minimumLevel ? sl.onHand - sl.hardReserved < sl.minimumLevel : false,
-    updatedAt: sl.updatedAt,
-  }));
+  return stockLevels.map((sl) => {
+    const available = sl.onHand - sl.hardReserved;
+    const stockStatus = computeStockStatus({
+      onHand: sl.onHand,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      reorderPoint: sl.reorderPoint,
+      maximumStock: sl.maximumStock,
+      productDefaults: sl.product,
+    });
+
+    return {
+      id: sl.id,
+      productId: sl.productId,
+      product: sl.product,
+      location: sl.location,
+      onHand: sl.onHand,
+      softReserved: sl.softReserved,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      available,
+      reorderPoint: sl.reorderPoint,
+      reorderQuantity: sl.reorderQuantity,
+      minimumStock: sl.minimumStock,
+      maximumStock: sl.maximumStock,
+      stockStatus,
+      updatedAt: sl.updatedAt,
+    };
+  });
 }
 
 /**
@@ -138,6 +236,10 @@ export async function getStockLevels(options: StockLevelListQuery) {
             description: true,
             unitOfMeasure: true,
             category: { select: { id: true, name: true } },
+            defaultReorderPoint: true,
+            defaultReorderQty: true,
+            defaultMinStock: true,
+            defaultMaxStock: true,
           },
         },
       },
@@ -147,25 +249,39 @@ export async function getStockLevels(options: StockLevelListQuery) {
     }),
   ]);
 
-  let results = stockLevels.map((sl) => ({
-    id: sl.id,
-    productId: sl.productId,
-    product: sl.product,
-    location: sl.location,
-    onHand: sl.onHand,
-    softReserved: sl.softReserved,
-    hardReserved: sl.hardReserved,
-    onOrder: sl.onOrder,
-    available: sl.onHand - sl.hardReserved,
-    minimumLevel: sl.minimumLevel,
-    reorderQuantity: sl.reorderQuantity,
-    isLowStock: sl.minimumLevel ? sl.onHand - sl.hardReserved < sl.minimumLevel : false,
-    updatedAt: sl.updatedAt,
-  }));
+  let results = stockLevels.map((sl) => {
+    const available = sl.onHand - sl.hardReserved;
+    const stockStatus = computeStockStatus({
+      onHand: sl.onHand,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      reorderPoint: sl.reorderPoint,
+      maximumStock: sl.maximumStock,
+      productDefaults: sl.product,
+    });
+
+    return {
+      id: sl.id,
+      productId: sl.productId,
+      product: sl.product,
+      location: sl.location,
+      onHand: sl.onHand,
+      softReserved: sl.softReserved,
+      hardReserved: sl.hardReserved,
+      onOrder: sl.onOrder,
+      available,
+      reorderPoint: sl.reorderPoint,
+      reorderQuantity: sl.reorderQuantity,
+      minimumStock: sl.minimumStock,
+      maximumStock: sl.maximumStock,
+      stockStatus,
+      updatedAt: sl.updatedAt,
+    };
+  });
 
   // Filter for low stock if requested
   if (lowStockOnly) {
-    results = results.filter((r) => r.isLowStock).slice(0, pageSize);
+    results = results.filter((r) => r.stockStatus === 'LOW_STOCK' || r.stockStatus === 'OUT_OF_STOCK').slice(0, pageSize);
   }
 
   return {
@@ -180,12 +296,10 @@ export async function getStockLevels(options: StockLevelListQuery) {
 }
 
 /**
- * Get low stock products (where available < minimum level)
+ * Get low stock products (where status is LOW_STOCK or OUT_OF_STOCK)
  */
 export async function getLowStockProducts(location?: Warehouse) {
-  const where: Prisma.StockLevelWhereInput = {
-    minimumLevel: { not: null },
-  };
+  const where: Prisma.StockLevelWhereInput = {};
 
   if (location) {
     where.location = location;
@@ -201,26 +315,45 @@ export async function getLowStockProducts(location?: Warehouse) {
           description: true,
           unitOfMeasure: true,
           category: { select: { id: true, name: true } },
+          defaultReorderPoint: true,
+          defaultReorderQty: true,
+          defaultMinStock: true,
+          defaultMaxStock: true,
         },
       },
     },
     orderBy: { product: { nusafSku: 'asc' } },
   });
 
-  // Filter in memory for low stock (available < minimum)
+  // Filter for low stock status
   return stockLevels
-    .filter((sl) => sl.minimumLevel !== null && sl.onHand - sl.hardReserved < sl.minimumLevel)
-    .map((sl) => ({
-      id: sl.id,
-      productId: sl.productId,
-      product: sl.product,
-      location: sl.location,
-      onHand: sl.onHand,
-      available: sl.onHand - sl.hardReserved,
-      minimumLevel: sl.minimumLevel,
-      reorderQuantity: sl.reorderQuantity,
-      shortfall: sl.minimumLevel! - (sl.onHand - sl.hardReserved),
-    }));
+    .map((sl) => {
+      const available = sl.onHand - sl.hardReserved;
+      const stockStatus = computeStockStatus({
+        onHand: sl.onHand,
+        hardReserved: sl.hardReserved,
+        onOrder: sl.onOrder,
+        reorderPoint: sl.reorderPoint,
+        maximumStock: sl.maximumStock,
+        productDefaults: sl.product,
+      });
+      const effectiveReorderPoint = sl.reorderPoint ?? sl.product.defaultReorderPoint ?? 0;
+
+      return {
+        id: sl.id,
+        productId: sl.productId,
+        product: sl.product,
+        location: sl.location,
+        onHand: sl.onHand,
+        available,
+        reorderPoint: sl.reorderPoint,
+        reorderQuantity: sl.reorderQuantity,
+        minimumStock: sl.minimumStock,
+        stockStatus,
+        shortfall: effectiveReorderPoint > 0 ? Math.max(0, effectiveReorderPoint - available) : 0,
+      };
+    })
+    .filter((sl) => sl.stockStatus === 'LOW_STOCK' || sl.stockStatus === 'OUT_OF_STOCK');
 }
 
 /**
