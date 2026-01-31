@@ -14,8 +14,8 @@ COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
-# Install dependencies (use install, not ci, to handle workspaces better)
-RUN npm install --omit=dev || npm install
+# Install ALL dependencies (need devDeps like typescript for build)
+RUN npm install
 
 # Copy source files
 COPY shared ./shared
@@ -28,6 +28,12 @@ RUN npm run build -w shared
 WORKDIR /app/backend
 RUN npx prisma generate
 RUN npm run build
+
+# Prune devDependencies for smaller image
+WORKDIR /app
+RUN npm prune --omit=dev
+
+WORKDIR /app/backend
 
 # Expose port
 EXPOSE 3001
