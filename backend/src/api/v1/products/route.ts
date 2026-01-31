@@ -371,35 +371,41 @@ router.get('/:id', authenticate, async (req, res) => {
       priceLabel,
       hasPrice: !!listPrice,
       priceUpdatedAt: product.priceUpdatedAt,
+      // Inventory defaults at root level (matches frontend ProductWithInventory type)
+      defaultReorderPoint: product.defaultReorderPoint,
+      defaultReorderQty: product.defaultReorderQty,
+      defaultMinStock: product.defaultMinStock,
+      defaultMaxStock: product.defaultMaxStock,
+      leadTimeDays: product.leadTimeDays,
     };
 
-    // Add inventory if requested
+    // Add inventory if requested (transform to match frontend ProductInventory type)
     if (includeInventory) {
       if (inventoryResult) {
-        responseData.inventory = inventoryResult;
+        responseData.inventory = {
+          onHand: inventoryResult.totalOnHand,
+          available: inventoryResult.totalAvailable,
+          reserved: inventoryResult.totalReserved,
+          onOrder: inventoryResult.totalOnOrder,
+          stockStatus: inventoryResult.status,
+          byLocation: inventoryResult.byLocation,
+        };
       } else {
         // No inventory record = zero quantities
         responseData.inventory = {
-          totalOnHand: 0,
-          totalAvailable: 0,
-          totalReserved: 0,
-          totalOnOrder: 0,
-          status: 'OUT_OF_STOCK',
+          onHand: 0,
+          available: 0,
+          reserved: 0,
+          onOrder: 0,
+          stockStatus: 'OUT_OF_STOCK',
           byLocation: [],
-          defaults: {
-            reorderPoint: null,
-            reorderQty: null,
-            minStock: null,
-            maxStock: null,
-            leadTimeDays: null,
-          },
         };
       }
     }
 
-    // Add movements if requested
+    // Add movements if requested (field name matches frontend type)
     if (includeMovements) {
-      responseData.recentMovements = movementsResult?.movements ?? [];
+      responseData.movements = movementsResult?.movements ?? [];
     }
 
     return res.json({
