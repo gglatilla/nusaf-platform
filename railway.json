@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",
-    "watchPatterns": ["backend/**", "shared/**", "Dockerfile"]
+        "watchPatterns": ["backend/**", "shared/**", "Dockerfile", "railway.json"]
   },
   "deploy": {
     "startCommand": "npx prisma migrate deploy && npm run start",
