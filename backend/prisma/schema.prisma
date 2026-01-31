@@ -266,6 +266,13 @@ model Product {
   listPrice      Decimal?  @map("list_price") @db.Decimal(10, 2)
   priceUpdatedAt DateTime? @map("price_updated_at")
 
+  // Inventory defaults (product-level, can be overridden per location on StockLevel)
+  defaultReorderPoint Int? @map("default_reorder_point") // When to trigger reorder
+  defaultReorderQty   Int? @map("default_reorder_qty")   // How many to order
+  defaultMinStock     Int? @map("default_min_stock")     // Safety stock level
+  defaultMaxStock     Int? @map("default_max_stock")     // Max storage capacity
+  leadTimeDays        Int? @map("lead_time_days")        // Supplier lead time
+
   // Supplier
   supplierId String   @map("supplier_id")
   supplier   Supplier @relation(fields: [supplierId], references: [id])
@@ -1101,8 +1108,11 @@ model StockLevel {
   hardReserved    Int       @default(0) @map("hard_reserved")
   onOrder         Int       @default(0) @map("on_order")
 
-  minimumLevel    Int?      @map("minimum_level")
-  reorderQuantity Int?      @map("reorder_quantity")
+  // Reorder settings (location-specific overrides, null = use product defaults)
+  reorderPoint    Int?      @map("reorder_point")    // When to trigger reorder
+  reorderQuantity Int?      @map("reorder_quantity") // How many to order
+  minimumStock    Int?      @map("minimum_stock")    // Safety stock level
+  maximumStock    Int?      @map("maximum_stock")    // Max storage capacity
 
   createdAt       DateTime  @default(now()) @map("created_at")
   createdBy       String?   @map("created_by")
