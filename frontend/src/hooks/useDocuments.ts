@@ -58,6 +58,9 @@ export function useDocumentDownload() {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await api.getDocumentDownloadUrl(id);
+      if (!response.data) {
+        throw new Error('Failed to get download URL');
+      }
       return response.data;
     },
   });
