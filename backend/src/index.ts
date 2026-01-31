@@ -26,6 +26,7 @@ import jobCardsRoutes from './api/v1/job-cards/route';
 import transferRequestsRoutes from './api/v1/transfer-requests/route';
 import issuesRoutes from './api/v1/issues/route';
 import documentsRoutes from './api/v1/documents/route';
+import inventoryRoutes from './api/v1/inventory/route';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/v1/job-cards', jobCardsRoutes);
 app.use('/api/v1/transfer-requests', transferRequestsRoutes);
 app.use('/api/v1/issues', issuesRoutes);
 app.use('/api/v1/documents', documentsRoutes);
+app.use('/api/v1/inventory', inventoryRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {

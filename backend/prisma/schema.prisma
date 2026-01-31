@@ -278,6 +278,8 @@ model Product {
 
   // Relations
   crossReferences CompetitorCrossReference[]
+  stockLevels     StockLevel[]
+  stockMovements  StockMovement[]
 
   // Audit
   createdAt DateTime  @default(now()) @map("created_at")
@@ -477,6 +479,36 @@ enum PickingSlipStatus {
   PENDING
   IN_PROGRESS
   COMPLETE
+}
+
+// Inventory Management Enums
+enum StockMovementType {
+  RECEIPT           // Goods received from supplier
+  ISSUE             // Goods picked for sales order
+  TRANSFER_OUT      // Sent to another location
+  TRANSFER_IN       // Received from another location
+  MANUFACTURE_IN    // Finished goods from production
+  MANUFACTURE_OUT   // Raw materials consumed
+  ADJUSTMENT_IN     // Manual correction (positive)
+  ADJUSTMENT_OUT    // Manual correction (negative)
+  SCRAP             // Damaged/scrapped goods
+}
+
+enum StockAdjustmentReason {
+  INITIAL_COUNT
+  CYCLE_COUNT
+  DAMAGED
+  EXPIRED
+  FOUND
+  LOST
+  DATA_CORRECTION
+  OTHER
+}
+
+enum StockAdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ============================================
@@ -1046,6 +1078,113 @@ model IssueFlagCounter {
   count Int    @default(0)
 
   @@map("issue_flag_counter")
+}
+
+// ============================================
+// INVENTORY MANAGEMENT ENTITIES
+// ============================================
+
+model StockLevel {
+  id              String    @id @default(cuid())
+  productId       String    @map("product_id")
+  product         Product   @relation(fields: [productId], references: [id])
+  location        Warehouse
+
+  onHand          Int       @default(0) @map("on_hand")
+  softReserved    Int       @default(0) @map("soft_reserved")
+  hardReserved    Int       @default(0) @map("hard_reserved")
+  onOrder         Int       @default(0) @map("on_order")
+
+  minimumLevel    Int?      @map("minimum_level")
+  reorderQuantity Int?      @map("reorder_quantity")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  createdBy       String?   @map("created_by")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  updatedBy       String?   @map("updated_by")
+
+  @@unique([productId, location])
+  @@index([productId])
+  @@index([location])
+  @@map("stock_levels")
+}
+
+model StockMovement {
+  id               String              @id @default(cuid())
+  productId        String              @map("product_id")
+  product          Product             @relation(fields: [productId], references: [id])
+  location         Warehouse
+  movementType     StockMovementType   @map("movement_type")
+  quantity         Int
+  balanceAfter     Int                 @map("balance_after")
+
+  referenceType    String?             @map("reference_type")
+  referenceId      String?             @map("reference_id")
+  referenceNumber  String?             @map("reference_number")
+
+  adjustmentReason StockAdjustmentReason? @map("adjustment_reason")
+  notes            String?
+
+  createdAt        DateTime            @default(now()) @map("created_at")
+  createdBy        String              @map("created_by")
+
+  @@index([productId, location])
+  @@index([movementType])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model StockAdjustment {
+  id               String                @id @default(cuid())
+  adjustmentNumber String                @unique @map("adjustment_number")
+  location         Warehouse
+  reason           StockAdjustmentReason
+  notes            String?
+  status           StockAdjustmentStatus @default(PENDING)
+
+  approvedAt       DateTime?             @map("approved_at")
+  approvedBy       String?               @map("approved_by")
+  rejectedAt       DateTime?             @map("rejected_at")
+  rejectedBy       String?               @map("rejected_by")
+  rejectionReason  String?               @map("rejection_reason")
+
+  lines            StockAdjustmentLine[]
+
+  createdAt        DateTime              @default(now()) @map("created_at")
+  createdBy        String                @map("created_by")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  updatedBy        String?               @map("updated_by")
+
+  @@index([status])
+  @@index([location])
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentLine {
+  id                 String          @id @default(cuid())
+  adjustmentId       String          @map("adjustment_id")
+  adjustment         StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  lineNumber         Int             @map("line_number")
+
+  productId          String          @map("product_id")
+  productSku         String          @map("product_sku")
+  productDescription String          @map("product_description")
+
+  currentQuantity    Int             @map("current_quantity")
+  adjustedQuantity   Int             @map("adjusted_quantity")
+  difference         Int
+  notes              String?
+
+  @@index([adjustmentId])
+  @@map("stock_adjustment_lines")
+}
+
+model StockAdjustmentCounter {
+  id    String @id @default("stock_adjustment_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("stock_adjustment_counter")
 }
 
 // ============================================
