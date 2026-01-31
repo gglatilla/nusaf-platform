@@ -33,6 +33,7 @@ The backend API returned field names that didn't match what the frontend expecte
 ### Fixes Applied
 1. `eb542a2` - Fix API response shape to match frontend types
 2. `2cc0ef3` - Add missing inventory tables migration
+3. `9c9d9e1` - Always show both JHB and CT in warehouse breakdown
 
 ### Files Modified
 - `backend/src/api/v1/products/route.ts` - Transform inventory response
