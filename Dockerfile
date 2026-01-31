@@ -3,9 +3,9 @@
 # ============================================
 FROM node:20-slim AS builder
 
-# Cache bust - change this value to force rebuild
-ARG CACHE_BUST=2026-01-31-v3
-RUN echo "Cache bust: $CACHE_BUST"
+# Cache bust - change this value to force rebuild of BOTH stages
+ARG CACHE_BUST=v4
+RUN echo "Builder cache bust: $CACHE_BUST"
 
 # Install OpenSSL for Prisma
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
@@ -38,6 +38,10 @@ RUN npm run build
 # ============================================
 FROM node:20-slim AS production
 
+# Cache bust - MUST match builder to force production stage rebuild
+ARG CACHE_BUST=v4
+RUN echo "Production cache bust: $CACHE_BUST"
+
 # Install OpenSSL for Prisma runtime
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
@@ -56,14 +60,17 @@ COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
 
 # Install production dependencies only
-# This creates proper workspace links because shared is present
 RUN npm ci --omit=dev --ignore-scripts
 
 # Regenerate Prisma client for production
 WORKDIR /app/backend
 RUN npx prisma generate
 
+# Copy entrypoint script
+COPY backend/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
 EXPOSE 3001
 
-# Start command - run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Use entrypoint for better debugging output
+ENTRYPOINT ["./entrypoint.sh"]
