@@ -16,7 +16,8 @@ COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
 # Install ALL dependencies (need devDeps like typescript for build)
-RUN npm install
+# Use --ignore-scripts because postinstall builds shared, but source files aren't copied yet
+RUN npm install --ignore-scripts
 
 # Copy source files
 COPY shared ./shared
