@@ -11,8 +11,12 @@ import {
   getProductInventorySummary,
   getProductMovementHistory,
   getProductsStockSummary,
+  getProductReservations,
+  createStockAdjustment,
   type StockStatus,
 } from '../../../services/inventory.service';
+import { createStockAdjustmentSchema } from '../../../utils/validation/inventory';
+import { Warehouse } from '@prisma/client';
 import type { CustomerTier } from '@prisma/client';
 
 const router = Router();
@@ -631,5 +635,254 @@ router.post(
     }
   }
 );
+
+// ============================================
+// NESTED STOCK ROUTES (Product Context)
+// ============================================
+
+/**
+ * GET /api/v1/products/:productId/stock
+ * Get stock levels for a product (unified inventory view)
+ */
+router.get('/:productId/stock', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const inventory = await getProductInventorySummary(productId);
+
+    if (!inventory) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: inventory,
+    });
+  } catch (error) {
+    console.error('Get product stock error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_STOCK_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch product stock',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/stock/movements
+ * Get movement history for a product
+ */
+router.get('/:productId/stock/movements', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const location = req.query.location as Warehouse | undefined;
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 20;
+
+    if (location && !['JHB', 'CT'].includes(location)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid location' },
+      });
+    }
+
+    const result = await getProductMovementHistory(productId, {
+      location,
+      startDate,
+      endDate,
+      page,
+      pageSize,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Get product movements error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_MOVEMENTS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch product movements',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/stock/reservations
+ * Get active reservations for a product
+ */
+router.get('/:productId/stock/reservations', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const location = req.query.location as Warehouse | undefined;
+
+    if (location && !['JHB', 'CT'].includes(location)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid location' },
+      });
+    }
+
+    const reservations = await getProductReservations(productId, location);
+
+    return res.json({
+      success: true,
+      data: { reservations },
+    });
+  } catch (error) {
+    console.error('Get product reservations error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_RESERVATIONS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch product reservations',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/stock/adjustments
+ * List stock adjustments that include this product
+ */
+router.get('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = Math.min(100, parseInt(req.query.pageSize as string) || 20);
+
+    // Query adjustments that have lines for this product
+    const [total, adjustments] = await Promise.all([
+      prisma.stockAdjustment.count({
+        where: {
+          lines: { some: { productId } },
+        },
+      }),
+      prisma.stockAdjustment.findMany({
+        where: {
+          lines: { some: { productId } },
+        },
+        include: {
+          lines: {
+            where: { productId },
+            select: {
+              id: true,
+              lineNumber: true,
+              productSku: true,
+              productDescription: true,
+              currentQuantity: true,
+              adjustedQuantity: true,
+              difference: true,
+              notes: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        adjustments: adjustments.map((adj) => ({
+          id: adj.id,
+          adjustmentNumber: adj.adjustmentNumber,
+          location: adj.location,
+          reason: adj.reason,
+          status: adj.status,
+          notes: adj.notes,
+          createdAt: adj.createdAt,
+          createdBy: adj.createdBy,
+          approvedAt: adj.approvedAt,
+          rejectedAt: adj.rejectedAt,
+          lines: adj.lines,
+        })),
+        pagination: {
+          page,
+          pageSize,
+          totalItems: total,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get product adjustments error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_ADJUSTMENTS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch product adjustments',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/stock/adjustments
+ * Create a stock adjustment for this product
+ */
+router.post('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId } = req.params;
+
+    // Validate request body
+    const bodyResult = createStockAdjustmentSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Ensure all lines reference the correct product (or add the product to lines)
+    const adjustmentData = {
+      ...bodyResult.data,
+      lines: bodyResult.data.lines.map((line) => ({
+        ...line,
+        productId, // Override with the URL productId
+      })),
+    };
+
+    const result = await createStockAdjustment(adjustmentData, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ADJUSTMENT_CREATE_FAILED', message: result.error },
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: result.adjustment,
+    });
+  } catch (error) {
+    console.error('Create product adjustment error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_ADJUSTMENT_CREATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to create adjustment',
+      },
+    });
+  }
+});
 
 export default router;
