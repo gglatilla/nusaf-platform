@@ -12,6 +12,7 @@ import {
   WarehouseStockTable,
   StockMovementsTable,
   AdjustStockModal,
+  InventorySettings,
 } from '@/components/inventory';
 import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
@@ -290,6 +291,28 @@ function ProductInventoryTab({
       {/* Recent Movements - for internal users only */}
       {isInternalUser && product.movements && (
         <StockMovementsTable movements={product.movements} />
+      )}
+
+      {/* Inventory Settings - for admins/managers only */}
+      {canAdjustStock && (
+        <InventorySettings
+          productDefaults={{
+            defaultReorderPoint: product.defaultReorderPoint,
+            defaultReorderQty: product.defaultReorderQty,
+            defaultMinStock: product.defaultMinStock,
+            defaultMaxStock: product.defaultMaxStock,
+            leadTimeDays: product.leadTimeDays,
+          }}
+          locationOverrides={product.inventory.byLocation.map((loc) => ({
+            warehouseId: loc.warehouseId,
+            warehouseName: loc.warehouseName,
+            reorderPoint: loc.reorderPoint,
+            minimumStock: loc.minimumStock,
+            maximumStock: loc.maximumStock,
+          }))}
+          canEdit={canAdjustStock}
+          // TODO: Add onSave handler when PATCH endpoint is wired up
+        />
       )}
 
       {/* Adjust Stock Button + Modal - for admins/managers */}

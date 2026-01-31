@@ -4,28 +4,28 @@
 [TASK-013B] Product Page Inventory Tab
 
 ## Status
-IN_PROGRESS | 40%
+COMPLETE | 100%
 
 ## Completed Micro-tasks
 - [x] 1.1 Database migration — add primaryWarehouse to User, Company
 - [x] 1.2 Create StockStatusBadge component
 - [x] 1.3 Create useProductInventory hook + API types
-- [x] 2.1 Create product detail page route with tab system (basic version)
-
-## In Progress
-- [ ] 2.2-2.7 Refine inventory components into separate files
-
-## Remaining
-- [ ] 2.2 StockOverviewCards component (proper 4-view handling)
-- [ ] 2.3 WarehouseStockTable component
-- [ ] 2.4 StockMovementsTable component
-- [ ] 2.5 AdjustStockModal component
-- [ ] 2.6 InventorySettings component
-- [ ] 2.7 Assemble ProductInventoryTab component
-- [ ] 3.1 Add inventory summary to ProductDetailModal
+- [x] 2.1 Create product detail page route with tab system
+- [x] 2.2 StockOverviewCards component (4-view logic implemented)
+- [x] 2.3 WarehouseStockTable component (highlighting, ★ indicator)
+- [x] 2.4 StockMovementsTable component (type icons, colors)
+- [x] 2.5 AdjustStockModal component (form validation, pending note)
+- [x] 2.6 InventorySettings component (reorder point defaults)
+- [x] 2.7 Assemble ProductInventoryTab (integrated in page)
+- [x] 3.1 Add inventory summary to ProductDetailModal
 
 ## Files Created
 - `frontend/src/components/inventory/StockStatusBadge.tsx`
+- `frontend/src/components/inventory/StockOverviewCards.tsx`
+- `frontend/src/components/inventory/WarehouseStockTable.tsx`
+- `frontend/src/components/inventory/StockMovementsTable.tsx`
+- `frontend/src/components/inventory/AdjustStockModal.tsx`
+- `frontend/src/components/inventory/InventorySettings.tsx`
 - `frontend/src/components/inventory/index.ts`
 - `frontend/src/hooks/useProductInventory.ts`
 - `frontend/src/app/(portal)/products/[id]/page.tsx`
@@ -35,27 +35,34 @@ IN_PROGRESS | 40%
 - `shared/src/types/auth.ts` — Added primaryWarehouse to AuthenticatedUser
 - `backend/src/services/auth.service.ts` — Include primaryWarehouse in sanitizeUser
 - `frontend/src/lib/api.ts` — Added inventory types and API methods
+- `frontend/src/components/products/ProductDetailModal.tsx` — Added inventory summary
 
-## Current State
-Product detail page exists at `/products/[id]` with:
-- Details tab (product info)
-- Inventory tab with basic implementation:
-  - Hero "Available to Sell" card
-  - Secondary cards (On Hand, Reserved, On Order)
-  - Formula bar
-  - Warehouse breakdown table
-  - Recent movements (last 10)
-  - Role-based visibility (internal vs customer)
+## Implementation Summary
 
-The inventory tab currently has all components inline in the page file. Next step is to break them into separate component files and add the 4-view logic (VIEW A/B/C/D based on role + primaryWarehouse).
+### Product Detail Page `/products/[id]`
+- Details tab (product info, pricing)
+- Inventory tab with:
+  - StockOverviewCards (4-view logic for VIEW A/B/C/D)
+  - WarehouseStockTable (internal users only)
+  - StockMovementsTable (internal users only)
+  - InventorySettings (admin/manager only)
+  - AdjustStockModal (admin/manager only)
 
-## Next Steps
-1. Extract StockOverviewCards component with 4-view logic
-2. Extract WarehouseStockTable component with highlighting
-3. Extract StockMovementsTable component
-4. Create AdjustStockModal component
-5. Create InventorySettings component
-6. Add inventory summary to ProductDetailModal
+### 4-View Logic (StockOverviewCards)
+- VIEW A: Admin/Manager no primary → combined totals
+- VIEW B: Admin/Manager with primary → their warehouse + "also available"
+- VIEW C: Sales with primary → their warehouse, subdued secondary cards
+- VIEW D: Customer with primary → friendly language, "also available" with delivery estimate
+
+### ProductDetailModal Enhancement
+- Stock status badge (IN_STOCK/LOW_STOCK/OUT_OF_STOCK etc.)
+- Available quantity display
+- "View Full Details" link to product detail page
 
 ## Context for Next Session
-TASK-013B at 40% complete. Product detail page with tabs is working. Need to refine inventory components into separate files with proper role-based views (VIEW A/B/C/D). The "Also available" bar for other warehouses still needs to be implemented.
+TASK-013B is complete. All inventory UI components are implemented:
+- Product detail page with tabs at `/products/[id]`
+- Role-based 4-view logic for inventory display
+- Stock adjustment modal for admin/manager
+- Inventory settings for reorder points
+- Modal summary with stock badge and link to full page

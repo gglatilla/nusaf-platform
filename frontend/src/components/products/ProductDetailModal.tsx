@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { AddToQuoteModal } from '@/components/quotes/AddToQuoteModal';
+import { StockStatusBadge } from '@/components/inventory';
+import { useProductWithInventory } from '@/hooks/useProductInventory';
 import type { CatalogProduct } from '@/lib/api';
 
 interface ProductDetailModalProps {
@@ -27,7 +30,15 @@ export function ProductDetailModal({
 }: ProductDetailModalProps) {
   const [showAddToQuote, setShowAddToQuote] = useState(false);
 
+  // Fetch inventory data when modal is open
+  const { data: productWithInventory, isLoading: isLoadingInventory } = useProductWithInventory(
+    product?.id ?? null,
+    { enabled: open && !!product }
+  );
+
   if (!product) return null;
+
+  const inventory = productWithInventory?.inventory;
 
   const formattedPrice = product.price
     ? new Intl.NumberFormat('en-ZA', {
@@ -148,6 +159,50 @@ export function ProductDetailModal({
                   <span className="text-sm text-slate-500 italic">
                     Price on Request
                   </span>
+                )}
+              </dd>
+            </div>
+
+            {/* Stock Summary */}
+            <div className="space-y-2 pt-2 border-t border-slate-200">
+              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Stock Availability
+              </dt>
+              <dd>
+                {isLoadingInventory ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-16 bg-slate-200 rounded animate-pulse" />
+                    <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                ) : inventory ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <StockStatusBadge status={inventory.stockStatus} />
+                      <span className="text-sm text-slate-600">
+                        {inventory.available} available
+                      </span>
+                    </div>
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      View Full Details
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500 italic">
+                      Stock info unavailable
+                    </span>
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      View Full Details
+                    </Link>
+                  </div>
                 )}
               </dd>
             </div>

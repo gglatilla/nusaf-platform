@@ -3,3 +3,4 @@ export { StockOverviewCards } from './StockOverviewCards';
 export { WarehouseStockTable } from './WarehouseStockTable';
 export { StockMovementsTable } from './StockMovementsTable';
 export { AdjustStockModal } from './AdjustStockModal';
+export { InventorySettings } from './InventorySettings';
