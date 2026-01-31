@@ -3,6 +3,10 @@
 # ============================================
 FROM node:20-slim AS builder
 
+# Cache bust - change this value to force rebuild
+ARG CACHE_BUST=2026-01-31-v3
+RUN echo "Cache bust: $CACHE_BUST"
+
 # Install OpenSSL for Prisma
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
