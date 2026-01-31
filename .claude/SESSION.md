@@ -1,116 +1,91 @@
 # Current Session
 
 ## Active Task
-[TASK-013] Inventory Tracking Implementation - Phase 1 & Phase 2
+[TASK-013A] Unified Product-Inventory API
 
 ## Status
 COMPLETE | 100%
 
 ## Completed Micro-tasks
-
-### Phase 1: Core Stock Levels
-- [x] Add inventory enums and models to Prisma schema
-- [x] Add inventory relations to Product model
-- [x] Create inventory validation schemas
-- [x] Create inventory service - stock levels
-- [x] Create inventory service - adjustments
-- [x] Create inventory service - movements
-- [x] Create inventory API routes
-- [x] Register inventory routes in index.ts
-- [x] Run database migration
-
-### Phase 2: Reservations
-- [x] Add ReservationType enum and StockReservation model
-- [x] Add reservation relation to Product model
-- [x] Create reservation service functions
-- [x] Add reservation validation schemas
-- [x] Add reservation API endpoints
-- [x] Integrate reservations with quote service (soft reservations on finalize)
-- [x] Integrate reservations with order service (convert soft→hard, release on cancel)
-- [x] Run Phase 2 database migration
+- [x] Database migration: Add 5 fields to Product, 2 fields to StockLevel
+- [x] Add `computeStockStatus()` and `computeProductStockStatus()` functions
+- [x] Add `getProductInventorySummary()` helper (returns unified inventory object)
+- [x] Update GET `/products/:id` with `?include=inventory,movements` support
+- [x] Update GET `/products` with `?include=stockSummary`, `?stockStatus`, `?sortBy=available`
+- [x] Add PATCH `/products/:id` endpoint for inventory defaults
+- [x] Add nested stock routes under `/products/:productId/stock/*`
 
 ## Files Created
-- `backend/src/utils/validation/inventory.ts` - Zod validation schemas
-- `backend/src/services/inventory.service.ts` - Inventory service functions
-- `backend/src/api/v1/inventory/route.ts` - API routes
+(none - all modifications to existing files)
 
 ## Files Modified
-- `backend/prisma/schema.prisma` - Added inventory enums and models
-- `backend/src/index.ts` - Registered inventory routes
-- `backend/src/services/quote.service.ts` - Added reservation integration
-- `backend/src/services/order.service.ts` - Added reservation integration
+- `backend/prisma/schema.prisma` — Added inventory fields to Product and StockLevel
+- `backend/src/services/inventory.service.ts` — Added stock status functions, inventory summary helpers
+- `backend/src/api/v1/products/route.ts` — Added all new endpoints and query params
 
-## API Endpoints Implemented
+## API Changes Implemented
 
-### Stock Levels
-- GET /api/v1/inventory/stock - List stock levels (paginated, filterable)
-- GET /api/v1/inventory/stock/:productId - Get stock for product (all locations)
-- GET /api/v1/inventory/stock/low - Get low stock products
+### GET /api/v1/products/:id
+New query params:
+- `?include=inventory` — includes stock levels per warehouse
+- `?include=movements` — includes recent stock movements
+- `?include=inventory,movements` — both
+- `?movementLimit=20` — controls how many movements to include (default 20)
 
-### Stock Movements
-- GET /api/v1/inventory/movements - List stock movements
-- GET /api/v1/inventory/movements/:productId - Movement history for product
+### GET /api/v1/products
+New query params:
+- `?include=stockSummary` — adds stock summary per product
+- `?stockStatus=IN_STOCK,LOW_STOCK` — filter by status (comma-separated)
+- `?sort=available:asc` or `?sort=available:desc` — sort by available quantity
 
-### Stock Adjustments
-- POST /api/v1/inventory/adjustments - Create stock adjustment
-- GET /api/v1/inventory/adjustments - List adjustments
-- GET /api/v1/inventory/adjustments/:id - Get adjustment details
-- POST /api/v1/inventory/adjustments/:id/approve - Approve adjustment
-- POST /api/v1/inventory/adjustments/:id/reject - Reject adjustment
+### PATCH /api/v1/products/:id (NEW)
+Update inventory defaults:
+```json
+{
+  "defaultReorderPoint": 50,
+  "defaultReorderQty": 100,
+  "defaultMinStock": 20,
+  "defaultMaxStock": 500,
+  "leadTimeDays": 14
+}
+```
 
-### Reservations
-- GET /api/v1/inventory/reservations - List active reservations
-- GET /api/v1/inventory/reservations/:productId - Reservations for product
-- POST /api/v1/inventory/reservations/:id/release - Manual release (admin)
-- POST /api/v1/inventory/reservations/cleanup-expired - Release expired (cron/admin)
+### Nested Stock Routes (NEW)
+- `GET /products/:productId/stock` — unified inventory view
+- `GET /products/:productId/stock/movements` — movement history
+- `GET /products/:productId/stock/reservations` — active reservations
+- `GET /products/:productId/stock/adjustments` — list adjustments for product
+- `POST /products/:productId/stock/adjustments` — create adjustment for product
 
-## Business Logic Implemented
+## Database Schema Changes
 
-### Stock Levels
-- Track per product per location: onHand, softReserved, hardReserved, onOrder
-- Available = onHand - hardReserved
-- Low stock detection (available < minimumLevel)
-- Atomic stock updates within transactions
+### Product Model (new fields)
+- `defaultReorderPoint` — when to trigger reorder
+- `defaultReorderQty` — how many to order
+- `defaultMinStock` — safety stock level
+- `defaultMaxStock` — max storage capacity
+- `leadTimeDays` — supplier lead time
 
-### Stock Adjustments
-- Create adjustment with multiple lines (pending approval)
-- Approval applies changes and creates movement records
-- Rejection marks as rejected without changes
+### StockLevel Model (new fields)
+- `reorderPoint` — location-specific override
+- `minimumStock` — renamed from minimumLevel
+- `maximumStock` — location-specific override
 
-### Reservations (Two-Tier System)
-- **Soft Reservations** (Quote stage):
-  - Created when quote is finalized (CREATED status)
-  - Expires with quote.validUntil
-  - Does NOT reduce available stock
-  - Released when quote is rejected
+## Stock Status Values
+- `IN_STOCK` — available > reorderPoint
+- `LOW_STOCK` — 0 < available <= reorderPoint
+- `OUT_OF_STOCK` — available <= 0, no onOrder
+- `ON_ORDER` — available <= 0, has onOrder
+- `OVERSTOCK` — onHand > maximumStock
 
-- **Hard Reservations** (Order stage):
-  - Created when order is created from quote
-  - REDUCES available stock
-  - No expiry - held until fulfillment or cancellation
-  - Released when order is cancelled
+## Key Design Decisions
+1. Products with no StockLevel records return zero quantities (not errors)
+2. Location-specific reorder settings override product defaults when set
+3. Stock status calculated using `computeStockStatus()` per location, `computeProductStockStatus()` aggregate
+4. `byLocation` array includes full reorder settings and per-location status
 
-- **Conversion Flow**:
-  Quote finalized → Soft reservation created
-  Quote accepted → Order created
-  Order created → Soft reservation released, Hard reservation created
-  Order cancelled → Hard reservation released
-
-## Verification Steps
-1. Finalize a quote - verify soft reservations created
-2. Check stock shows softReserved quantity
-3. Create order from quote - verify soft→hard conversion
-4. Cancel order - verify hard reservation released
-5. Let quote expire - verify soft reservation released via cleanup
-6. Create stock adjustment - verify approval applies changes
-
-## Next Steps (Future Phases)
-- Phase 3: Purchase Orders (GoodsReceipt, onOrder tracking)
-- Phase 4: Workflow Integration (picking slip → stock issue, transfer → stock transfer)
+## Next Steps
+TASK-013B: Product page Inventory tab (Frontend)
 
 ## Context for Next Session
-TASK-013 is complete. The full inventory tracking infrastructure is in place:
-- Stock levels per product per location
-- Stock movements with full audit trail
-- Stock adjustments with approval workflow
-- Two-tier reservation system integrated with quotes and orders
+TASK-013A is complete. The backend API now presents products and inventory as one unified entity. The existing `/api/v1/inventory/*` routes continue to work unchanged for operational inventory management.

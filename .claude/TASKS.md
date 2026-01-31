@@ -3,10 +3,9 @@
 ---
 
 ## Current
-- [TASK-013A] Unified Product-Inventory API — backend API unification [Inventory, API/Backend]
+- [TASK-013B] Product page Inventory tab [Inventory, UI/Frontend]
 
 ## Up Next
-- [TASK-013B] Product page Inventory tab [Inventory, UI/Frontend]
 - [TASK-013C] Product list stock badges [Inventory, UI/Frontend]
 - [TASK-013D] Inventory operations dashboard [Inventory, UI/Frontend]
 
@@ -42,6 +41,7 @@
 - [TASK-012-2C] Order Fulfillment — Transfer Requests ✓
 - [TASK-012-2D] Order Fulfillment — Issue Flagging + Document Archive ✓
 - [TASK-013] Inventory tracking backend (StockLevel, StockMovement, StockAdjustment, StockReservation services + API) ✓
+- [TASK-013A] Unified Product-Inventory API — backend API unification ✓
 
 ---
 
