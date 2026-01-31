@@ -6,10 +6,12 @@ export interface AuthenticatedUser {
   firstName: string;
   lastName: string;
   role: string; // UserRole from Prisma (uppercase) vs shared types (lowercase)
+  primaryWarehouse: string | null; // 'JHB' | 'CT' | null
   company: {
     id: string;
     name: string;
     tier: string; // CustomerTier from Prisma (uppercase) vs shared types (lowercase)
+    primaryWarehouse: string | null; // 'JHB' | 'CT' | null
   };
 }
 

@@ -285,10 +285,12 @@ function sanitizeUser(user: User, company: Company) {
     firstName: user.firstName,
     lastName: user.lastName,
     role: user.role,
+    primaryWarehouse: user.primaryWarehouse,
     company: {
       id: company.id,
       name: company.name,
       tier: company.tier,
+      primaryWarehouse: company.primaryWarehouse,
     },
   };
 }
