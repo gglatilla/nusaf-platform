@@ -1,7 +1,8 @@
-import { Prisma, QuoteStatus, CustomerTier } from '@prisma/client';
+import { Prisma, QuoteStatus, CustomerTier, Warehouse } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { calculateCustomerPrice } from './pricing.service';
+import { createSoftReservation, releaseReservationsByReference } from './inventory.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -402,10 +403,12 @@ export async function recalculateQuoteTotalsOptimized(quoteId: string, userId?: 
 
 /**
  * Finalize quote - change status from DRAFT to CREATED
+ * Also creates soft reservations for all quote items
  */
 export async function finalizeQuote(
   quoteId: string,
-  userId: string
+  userId: string,
+  options?: { warehouse?: Warehouse }
 ): Promise<{ success: boolean; error?: string; quote?: { id: string; quoteNumber: string; validUntil: Date } }> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
@@ -439,6 +442,25 @@ export async function finalizeQuote(
     },
     select: { id: true, quoteNumber: true, validUntil: true },
   });
+
+  // Create soft reservations for all quote items
+  // Default to JHB warehouse if not specified
+  const warehouse = options?.warehouse ?? 'JHB';
+
+  for (const item of quote.items) {
+    await createSoftReservation(
+      {
+        productId: item.productId,
+        location: warehouse,
+        quantity: item.quantity,
+        referenceType: 'Quote',
+        referenceId: quoteId,
+        referenceNumber: updatedQuote.quoteNumber,
+        expiresAt: validUntil,
+      },
+      userId
+    );
+  }
 
   return {
     success: true,
@@ -492,6 +514,7 @@ export async function acceptQuote(
 
 /**
  * Reject quote - change status from CREATED to REJECTED
+ * Also releases any soft reservations
  */
 export async function rejectQuote(
   quoteId: string,
@@ -517,6 +540,9 @@ export async function rejectQuote(
       updatedBy: userId,
     },
   });
+
+  // Release soft reservations
+  await releaseReservationsByReference('Quote', quoteId, 'Quote rejected', userId);
 
   return { success: true };
 }

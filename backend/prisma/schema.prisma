@@ -277,9 +277,10 @@ model Product {
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 
   // Relations
-  crossReferences CompetitorCrossReference[]
-  stockLevels     StockLevel[]
-  stockMovements  StockMovement[]
+  crossReferences   CompetitorCrossReference[]
+  stockLevels       StockLevel[]
+  stockMovements    StockMovement[]
+  stockReservations StockReservation[]
 
   // Audit
   createdAt DateTime  @default(now()) @map("created_at")
@@ -509,6 +510,11 @@ enum StockAdjustmentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum ReservationType {
+  SOFT  // For quotes - doesn't reduce available
+  HARD  // For confirmed orders - reduces available
 }
 
 // ============================================
@@ -1185,6 +1191,37 @@ model StockAdjustmentCounter {
   count Int    @default(0)
 
   @@map("stock_adjustment_counter")
+}
+
+model StockReservation {
+  id              String          @id @default(cuid())
+  productId       String          @map("product_id")
+  product         Product         @relation(fields: [productId], references: [id])
+  location        Warehouse
+  reservationType ReservationType @map("reservation_type")
+  quantity        Int
+
+  // Reference to quote or order
+  referenceType   String          @map("reference_type")  // Quote, SalesOrder
+  referenceId     String          @map("reference_id")
+  referenceNumber String?         @map("reference_number")
+
+  // For soft reservations - expires with quote validity
+  expiresAt       DateTime?       @map("expires_at")
+
+  // Release tracking
+  releasedAt      DateTime?       @map("released_at")
+  releasedBy      String?         @map("released_by")
+  releaseReason   String?         @map("release_reason")
+
+  createdAt       DateTime        @default(now()) @map("created_at")
+  createdBy       String          @map("created_by")
+
+  @@index([productId, location])
+  @@index([referenceType, referenceId])
+  @@index([reservationType])
+  @@index([expiresAt])
+  @@map("stock_reservations")
 }
 
 // ============================================

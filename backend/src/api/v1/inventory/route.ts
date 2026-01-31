@@ -6,6 +6,8 @@ import {
   createStockAdjustmentSchema,
   stockAdjustmentListQuerySchema,
   rejectStockAdjustmentSchema,
+  reservationListQuerySchema,
+  releaseReservationSchema,
 } from '../../../utils/validation/inventory';
 import {
   getStockLevel,
@@ -19,6 +21,10 @@ import {
   getStockAdjustments,
   approveStockAdjustment,
   rejectStockAdjustment,
+  getReservations,
+  getProductReservations,
+  releaseReservation,
+  releaseExpiredSoftReservations,
 } from '../../../services/inventory.service';
 import { Warehouse } from '@prisma/client';
 
@@ -433,6 +439,157 @@ router.post('/adjustments/:id/reject', authenticate, requireRole('ADMIN', 'MANAG
       error: {
         code: 'REJECT_ERROR',
         message: error instanceof Error ? error.message : 'Failed to reject adjustment',
+      },
+    });
+  }
+});
+
+// ============================================
+// STOCK RESERVATION ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/v1/inventory/reservations
+ * List active reservations with filtering
+ */
+router.get('/reservations', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const queryResult = reservationListQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid query parameters',
+          details: queryResult.error.errors,
+        },
+      });
+    }
+
+    const result = await getReservations(queryResult.data);
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('List reservations error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RESERVATIONS_LIST_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch reservations',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/inventory/reservations/:productId
+ * Get reservations for a specific product
+ */
+router.get('/reservations/:productId', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const location = req.query.location as Warehouse | undefined;
+
+    if (location && !['JHB', 'CT'].includes(location)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid location' },
+      });
+    }
+
+    const reservations = await getProductReservations(productId, location);
+
+    return res.json({
+      success: true,
+      data: { reservations },
+    });
+  } catch (error) {
+    console.error('Get product reservations error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_RESERVATIONS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch product reservations',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/reservations/:id/release
+ * Manually release a reservation (admin action)
+ */
+router.post('/reservations/:id/release', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const bodyResult = releaseReservationSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await releaseReservation(id, bodyResult.data.reason, authReq.user.id);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Reservation not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: {
+          code: result.error === 'Reservation not found' ? 'NOT_FOUND' : 'RELEASE_FAILED',
+          message: result.error,
+        },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Reservation released' },
+    });
+  } catch (error) {
+    console.error('Release reservation error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RELEASE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to release reservation',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/reservations/cleanup-expired
+ * Release all expired soft reservations (admin action, can be called by cron)
+ */
+router.post('/reservations/cleanup-expired', authenticate, requireRole('ADMIN'), async (_req, res) => {
+  try {
+    const result = await releaseExpiredSoftReservations();
+
+    return res.json({
+      success: true,
+      data: {
+        message: `Released ${result.releasedCount} expired reservations`,
+        releasedCount: result.releasedCount,
+      },
+    });
+  } catch (error) {
+    console.error('Cleanup expired reservations error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CLEANUP_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to cleanup expired reservations',
       },
     });
   }

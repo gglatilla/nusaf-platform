@@ -103,7 +103,34 @@ export const rejectStockAdjustmentSchema = z.object({
   reason: z.string().min(1, 'Rejection reason is required').max(500),
 });
 
+/**
+ * Valid reservation types
+ */
+export const reservationTypes = ['SOFT', 'HARD'] as const;
+
+/**
+ * Schema for reservation list query parameters
+ */
+export const reservationListQuerySchema = z.object({
+  location: z.enum(warehouses).optional(),
+  reservationType: z.enum(reservationTypes).optional(),
+  referenceType: z.string().optional(),
+  productId: z.string().optional(),
+  includeExpired: z.coerce.boolean().optional().default(false),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/**
+ * Schema for releasing a reservation
+ */
+export const releaseReservationSchema = z.object({
+  reason: z.string().min(1, 'Reason is required').max(500),
+});
+
 // Type exports
+export type ReservationListQuery = z.infer<typeof reservationListQuerySchema>;
+export type ReleaseReservationInput = z.infer<typeof releaseReservationSchema>;
 export type StockLevelListQuery = z.infer<typeof stockLevelListQuerySchema>;
 export type StockMovementListQuery = z.infer<typeof stockMovementListQuerySchema>;
 export type CreateStockAdjustmentInput = z.infer<typeof createStockAdjustmentSchema>;

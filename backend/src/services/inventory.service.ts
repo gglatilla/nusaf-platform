@@ -3,6 +3,7 @@ import {
   Warehouse,
   StockMovementType,
   StockAdjustmentReason,
+  ReservationType,
 } from '@prisma/client';
 import { prisma } from '../config/database';
 import type {
@@ -822,4 +823,472 @@ export async function rejectStockAdjustment(
   });
 
   return { success: true };
+}
+
+// ============================================
+// STOCK RESERVATION FUNCTIONS
+// ============================================
+
+/**
+ * Create a soft reservation (for quotes)
+ * Soft reservations don't reduce available stock, they're tracked for visibility
+ */
+export async function createSoftReservation(
+  data: {
+    productId: string;
+    location: Warehouse;
+    quantity: number;
+    referenceType: string;
+    referenceId: string;
+    referenceNumber?: string;
+    expiresAt: Date;
+  },
+  userId: string
+): Promise<{ success: boolean; reservationId?: string; error?: string }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Verify product exists
+      const product = await tx.product.findFirst({
+        where: { id: data.productId, deletedAt: null },
+      });
+
+      if (!product) {
+        return { success: false, error: 'Product not found' };
+      }
+
+      // Create the reservation
+      const reservation = await tx.stockReservation.create({
+        data: {
+          productId: data.productId,
+          location: data.location,
+          reservationType: 'SOFT',
+          quantity: data.quantity,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          referenceNumber: data.referenceNumber,
+          expiresAt: data.expiresAt,
+          createdBy: userId,
+        },
+      });
+
+      // Update stock level's softReserved
+      await updateStockLevel(
+        tx,
+        data.productId,
+        data.location,
+        { softReserved: data.quantity },
+        userId
+      );
+
+      return { success: true, reservationId: reservation.id };
+    });
+  } catch (error) {
+    console.error('Create soft reservation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create reservation',
+    };
+  }
+}
+
+/**
+ * Create a hard reservation (for confirmed orders)
+ * Hard reservations reduce available stock
+ */
+export async function createHardReservation(
+  data: {
+    productId: string;
+    location: Warehouse;
+    quantity: number;
+    referenceType: string;
+    referenceId: string;
+    referenceNumber?: string;
+  },
+  userId: string
+): Promise<{ success: boolean; reservationId?: string; error?: string }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Verify product exists
+      const product = await tx.product.findFirst({
+        where: { id: data.productId, deletedAt: null },
+      });
+
+      if (!product) {
+        return { success: false, error: 'Product not found' };
+      }
+
+      // Get current stock level to validate
+      const stockLevel = await tx.stockLevel.findUnique({
+        where: { productId_location: { productId: data.productId, location: data.location } },
+      });
+
+      const currentOnHand = stockLevel?.onHand ?? 0;
+      const currentHardReserved = stockLevel?.hardReserved ?? 0;
+      const available = currentOnHand - currentHardReserved;
+
+      if (data.quantity > available) {
+        return {
+          success: false,
+          error: `Insufficient stock. Available: ${available}, Requested: ${data.quantity}`,
+        };
+      }
+
+      // Create the reservation
+      const reservation = await tx.stockReservation.create({
+        data: {
+          productId: data.productId,
+          location: data.location,
+          reservationType: 'HARD',
+          quantity: data.quantity,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          referenceNumber: data.referenceNumber,
+          createdBy: userId,
+        },
+      });
+
+      // Update stock level's hardReserved
+      await updateStockLevel(
+        tx,
+        data.productId,
+        data.location,
+        { hardReserved: data.quantity },
+        userId
+      );
+
+      return { success: true, reservationId: reservation.id };
+    });
+  } catch (error) {
+    console.error('Create hard reservation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create reservation',
+    };
+  }
+}
+
+/**
+ * Convert a soft reservation to hard (when quote becomes order)
+ */
+export async function convertSoftToHardReservation(
+  reservationId: string,
+  newReferenceType: string,
+  newReferenceId: string,
+  newReferenceNumber: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const reservation = await tx.stockReservation.findUnique({
+        where: { id: reservationId },
+      });
+
+      if (!reservation) {
+        return { success: false, error: 'Reservation not found' };
+      }
+
+      if (reservation.releasedAt) {
+        return { success: false, error: 'Reservation already released' };
+      }
+
+      if (reservation.reservationType !== 'SOFT') {
+        return { success: false, error: 'Only soft reservations can be converted' };
+      }
+
+      // Get current stock level to validate
+      const stockLevel = await tx.stockLevel.findUnique({
+        where: { productId_location: { productId: reservation.productId, location: reservation.location } },
+      });
+
+      const currentOnHand = stockLevel?.onHand ?? 0;
+      const currentHardReserved = stockLevel?.hardReserved ?? 0;
+      const available = currentOnHand - currentHardReserved;
+
+      if (reservation.quantity > available) {
+        return {
+          success: false,
+          error: `Insufficient stock for hard reservation. Available: ${available}, Reserved: ${reservation.quantity}`,
+        };
+      }
+
+      // Release the soft reservation
+      await tx.stockReservation.update({
+        where: { id: reservationId },
+        data: {
+          releasedAt: new Date(),
+          releasedBy: userId,
+          releaseReason: 'Converted to hard reservation',
+        },
+      });
+
+      // Decrease softReserved
+      await updateStockLevel(
+        tx,
+        reservation.productId,
+        reservation.location,
+        { softReserved: -reservation.quantity },
+        userId
+      );
+
+      // Create a new hard reservation
+      await tx.stockReservation.create({
+        data: {
+          productId: reservation.productId,
+          location: reservation.location,
+          reservationType: 'HARD',
+          quantity: reservation.quantity,
+          referenceType: newReferenceType,
+          referenceId: newReferenceId,
+          referenceNumber: newReferenceNumber,
+          createdBy: userId,
+        },
+      });
+
+      // Increase hardReserved
+      await updateStockLevel(
+        tx,
+        reservation.productId,
+        reservation.location,
+        { hardReserved: reservation.quantity },
+        userId
+      );
+
+      return { success: true };
+    });
+  } catch (error) {
+    console.error('Convert reservation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to convert reservation',
+    };
+  }
+}
+
+/**
+ * Release a reservation (for quote rejection, order cancellation, fulfillment)
+ */
+export async function releaseReservation(
+  reservationId: string,
+  reason: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const reservation = await tx.stockReservation.findUnique({
+        where: { id: reservationId },
+      });
+
+      if (!reservation) {
+        return { success: false, error: 'Reservation not found' };
+      }
+
+      if (reservation.releasedAt) {
+        return { success: false, error: 'Reservation already released' };
+      }
+
+      // Release the reservation
+      await tx.stockReservation.update({
+        where: { id: reservationId },
+        data: {
+          releasedAt: new Date(),
+          releasedBy: userId,
+          releaseReason: reason,
+        },
+      });
+
+      // Update the appropriate reserved field
+      const delta =
+        reservation.reservationType === 'SOFT'
+          ? { softReserved: -reservation.quantity }
+          : { hardReserved: -reservation.quantity };
+
+      await updateStockLevel(tx, reservation.productId, reservation.location, delta, userId);
+
+      return { success: true };
+    });
+  } catch (error) {
+    console.error('Release reservation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to release reservation',
+    };
+  }
+}
+
+/**
+ * Release reservations by reference (e.g., all reservations for a quote)
+ */
+export async function releaseReservationsByReference(
+  referenceType: string,
+  referenceId: string,
+  reason: string,
+  userId: string
+): Promise<{ success: boolean; releasedCount: number; error?: string }> {
+  try {
+    const reservations = await prisma.stockReservation.findMany({
+      where: {
+        referenceType,
+        referenceId,
+        releasedAt: null,
+      },
+    });
+
+    let releasedCount = 0;
+    for (const reservation of reservations) {
+      const result = await releaseReservation(reservation.id, reason, userId);
+      if (result.success) {
+        releasedCount++;
+      }
+    }
+
+    return { success: true, releasedCount };
+  } catch (error) {
+    console.error('Release reservations by reference error:', error);
+    return {
+      success: false,
+      releasedCount: 0,
+      error: error instanceof Error ? error.message : 'Failed to release reservations',
+    };
+  }
+}
+
+/**
+ * Get active reservations with filtering
+ */
+export async function getReservations(options: {
+  location?: Warehouse;
+  reservationType?: ReservationType;
+  referenceType?: string;
+  productId?: string;
+  includeExpired?: boolean;
+  page?: number;
+  pageSize?: number;
+}) {
+  const { location, reservationType, referenceType, productId, includeExpired, page = 1, pageSize = 20 } = options;
+
+  const where: Prisma.StockReservationWhereInput = {
+    releasedAt: null, // Only active reservations
+  };
+
+  if (location) {
+    where.location = location;
+  }
+
+  if (reservationType) {
+    where.reservationType = reservationType;
+  }
+
+  if (referenceType) {
+    where.referenceType = referenceType;
+  }
+
+  if (productId) {
+    where.productId = productId;
+  }
+
+  if (!includeExpired) {
+    where.OR = [
+      { expiresAt: null },
+      { expiresAt: { gte: new Date() } },
+    ];
+  }
+
+  const [total, reservations] = await Promise.all([
+    prisma.stockReservation.count({ where }),
+    prisma.stockReservation.findMany({
+      where,
+      include: {
+        product: {
+          select: {
+            id: true,
+            nusafSku: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return {
+    reservations: reservations.map((r) => ({
+      id: r.id,
+      productId: r.productId,
+      product: r.product,
+      location: r.location,
+      reservationType: r.reservationType,
+      quantity: r.quantity,
+      referenceType: r.referenceType,
+      referenceId: r.referenceId,
+      referenceNumber: r.referenceNumber,
+      expiresAt: r.expiresAt,
+      isExpired: r.expiresAt && r.expiresAt < new Date(),
+      createdAt: r.createdAt,
+      createdBy: r.createdBy,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
+}
+
+/**
+ * Get reservations for a specific product
+ */
+export async function getProductReservations(productId: string, location?: Warehouse) {
+  const where: Prisma.StockReservationWhereInput = {
+    productId,
+    releasedAt: null,
+  };
+
+  if (location) {
+    where.location = location;
+  }
+
+  const reservations = await prisma.stockReservation.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return reservations.map((r) => ({
+    id: r.id,
+    location: r.location,
+    reservationType: r.reservationType,
+    quantity: r.quantity,
+    referenceType: r.referenceType,
+    referenceId: r.referenceId,
+    referenceNumber: r.referenceNumber,
+    expiresAt: r.expiresAt,
+    isExpired: r.expiresAt && r.expiresAt < new Date(),
+    createdAt: r.createdAt,
+  }));
+}
+
+/**
+ * Release all expired soft reservations
+ * Can be called by a cron job or on-demand
+ */
+export async function releaseExpiredSoftReservations(): Promise<{ releasedCount: number }> {
+  const expiredReservations = await prisma.stockReservation.findMany({
+    where: {
+      reservationType: 'SOFT',
+      releasedAt: null,
+      expiresAt: { lt: new Date() },
+    },
+  });
+
+  let releasedCount = 0;
+  for (const reservation of expiredReservations) {
+    const result = await releaseReservation(reservation.id, 'Expired', 'system');
+    if (result.success) {
+      releasedCount++;
+    }
+  }
+
+  return { releasedCount };
 }

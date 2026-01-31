@@ -1,6 +1,10 @@
-import { Prisma, SalesOrderStatus } from '@prisma/client';
+import { Prisma, SalesOrderStatus, Warehouse } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
+import {
+  createHardReservation,
+  releaseReservationsByReference,
+} from './inventory.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -238,6 +242,7 @@ export async function getOrderById(orderId: string, companyId: string) {
 
 /**
  * Create order from an accepted quote
+ * Converts soft reservations to hard reservations
  */
 export async function createOrderFromQuote(
   quoteId: string,
@@ -248,6 +253,7 @@ export async function createOrderFromQuote(
     customerPoDate?: Date;
     requiredDate?: Date;
     customerNotes?: string;
+    warehouse?: Warehouse;
   }
 ): Promise<{ success: boolean; order?: { id: string; orderNumber: string }; error?: string }> {
   // Get the quote with items
@@ -278,6 +284,7 @@ export async function createOrderFromQuote(
 
   // Generate order number
   const orderNumber = await generateOrderNumber();
+  const warehouse = options?.warehouse ?? 'JHB';
 
   // Create order with lines in a transaction
   const order = await prisma.$transaction(async (tx) => {
@@ -294,6 +301,7 @@ export async function createOrderFromQuote(
         customerPoDate: options?.customerPoDate,
         requiredDate: options?.requiredDate,
         customerNotes: options?.customerNotes || quote.customerNotes,
+        warehouse,
         subtotal: quote.subtotal,
         vatRate: quote.vatRate,
         vatAmount: quote.vatAmount,
@@ -329,6 +337,24 @@ export async function createOrderFromQuote(
 
     return newOrder;
   });
+
+  // Release soft reservations from quote (outside transaction for better error handling)
+  await releaseReservationsByReference('Quote', quoteId, 'Converted to order', userId);
+
+  // Create hard reservations for order items
+  for (const item of quote.items) {
+    await createHardReservation(
+      {
+        productId: item.productId,
+        location: warehouse,
+        quantity: item.quantity,
+        referenceType: 'SalesOrder',
+        referenceId: order.id,
+        referenceNumber: order.orderNumber,
+      },
+      userId
+    );
+  }
 
   return {
     success: true,
@@ -461,6 +487,7 @@ export async function releaseHold(
 
 /**
  * Cancel order
+ * Also releases any hard reservations
  */
 export async function cancelOrder(
   orderId: string,
@@ -492,6 +519,9 @@ export async function cancelOrder(
       updatedBy: userId,
     },
   });
+
+  // Release hard reservations
+  await releaseReservationsByReference('SalesOrder', orderId, `Order cancelled: ${reason}`, userId);
 
   return { success: true };
 }
