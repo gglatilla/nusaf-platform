@@ -6,7 +6,14 @@ import Link from 'next/link';
 import { ArrowLeft, Package, Tag, Building, Ruler } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
-import { StockStatusBadge } from '@/components/inventory/StockStatusBadge';
+import {
+  StockStatusBadge,
+  StockOverviewCards,
+  WarehouseStockTable,
+  StockMovementsTable,
+  AdjustStockModal,
+} from '@/components/inventory';
+import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
 
 type TabType = 'details' | 'inventory';
@@ -227,24 +234,30 @@ export default function ProductDetailPage() {
           isInternalUser={isInternalUser ?? false}
           canAdjustStock={canAdjustStock ?? false}
           userPrimaryWarehouse={user?.primaryWarehouse ?? null}
+          userRole={(user?.role as 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER') ?? 'CUSTOMER'}
         />
       )}
     </div>
   );
 }
 
-// Placeholder component - will be replaced with actual implementation
+// ProductInventoryTab - assembles all inventory components
 function ProductInventoryTab({
   product,
   isInternalUser,
   canAdjustStock,
   userPrimaryWarehouse,
+  userRole,
 }: {
   product: NonNullable<ReturnType<typeof useProductWithInventory>['data']>;
   isInternalUser: boolean;
   canAdjustStock: boolean;
   userPrimaryWarehouse: string | null;
+  userRole: 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER';
 }) {
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const createAdjustment = useCreateStockAdjustment(product.id);
+
   if (!product.inventory) {
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-6 text-center">
@@ -253,158 +266,54 @@ function ProductInventoryTab({
     );
   }
 
+  const handleAdjustStock = async (data: Parameters<typeof createAdjustment.mutateAsync>[0]) => {
+    await createAdjustment.mutateAsync(data);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Stock Overview - placeholder */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Stock Overview</h2>
-          <StockStatusBadge status={product.inventory.stockStatus} />
-        </div>
+      {/* Stock Overview Cards with 4-view logic */}
+      <StockOverviewCards
+        inventory={product.inventory}
+        userRole={userRole}
+        userPrimaryWarehouse={userPrimaryWarehouse}
+      />
 
-        {/* Hero Card - Available to Sell */}
-        <div className="mb-6 p-6 rounded-lg bg-green-50 border border-green-200">
-          <p className="text-sm font-medium text-green-700 mb-1">Available to Sell</p>
-          <p className="text-4xl font-bold text-green-800">{product.inventory.available}</p>
-          <p className="text-sm text-green-600 mt-1">
-            {isInternalUser ? 'Total across all warehouses' : 'Ready for immediate dispatch'}
-          </p>
-        </div>
-
-        {/* Secondary Cards */}
-        {isInternalUser && (
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase">On Hand</p>
-              <p className="text-xl font-semibold text-slate-700">{product.inventory.onHand}</p>
-            </div>
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase">Reserved</p>
-              <p className="text-xl font-semibold text-slate-700">{product.inventory.reserved}</p>
-            </div>
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase">On Order</p>
-              <p className="text-xl font-semibold text-slate-700">{product.inventory.onOrder}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Formula bar */}
-        {isInternalUser && (
-          <p className="text-sm text-slate-500">
-            Available = On Hand ({product.inventory.onHand}) − Reserved ({product.inventory.reserved}) = {product.inventory.available}
-          </p>
-        )}
-      </div>
-
-      {/* Warehouse Breakdown Table - for internal users */}
-      {isInternalUser && product.inventory.byLocation.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Stock by Warehouse</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Warehouse</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Available</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs text-slate-400">On Hand</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Reserved</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">On Order</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {product.inventory.byLocation
-                  .sort((a, b) => {
-                    // Sort user's primary warehouse to top
-                    if (userPrimaryWarehouse) {
-                      if (a.warehouseId === userPrimaryWarehouse) return -1;
-                      if (b.warehouseId === userPrimaryWarehouse) return 1;
-                    }
-                    return a.warehouseName.localeCompare(b.warehouseName);
-                  })
-                  .map((loc) => {
-                    const isPrimary = loc.warehouseId === userPrimaryWarehouse;
-                    return (
-                      <tr
-                        key={loc.warehouseId}
-                        className={cn(
-                          'border-b border-slate-100',
-                          isPrimary && 'bg-blue-50'
-                        )}
-                      >
-                        <td className="py-3 px-4">
-                          <span className="font-medium text-slate-900">
-                            {isPrimary && <span className="text-amber-500 mr-1">★</span>}
-                            {loc.warehouseName}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900">{loc.available}</td>
-                        <td className="py-3 px-4 text-right text-slate-500">{loc.onHand}</td>
-                        <td className="py-3 px-4 text-right text-slate-700">{loc.softReserved + loc.hardReserved}</td>
-                        <td className="py-3 px-4 text-right text-slate-700">{loc.onOrder}</td>
-                        <td className="py-3 px-4 text-right">
-                          <StockStatusBadge status={loc.stockStatus} size="sm" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* Warehouse Breakdown Table - for internal users only */}
+      {isInternalUser && (
+        <WarehouseStockTable
+          locations={product.inventory.byLocation}
+          userPrimaryWarehouse={userPrimaryWarehouse}
+        />
       )}
 
-      {/* Recent Movements - for internal users */}
-      {isInternalUser && product.movements && product.movements.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Stock Movements</h2>
-          <div className="space-y-2">
-            {product.movements.slice(0, 10).map((movement) => (
-              <div
-                key={movement.id}
-                className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-slate-500">
-                    {new Date(movement.createdAt).toLocaleDateString('en-ZA', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  <span className="text-sm font-medium text-slate-700">
-                    {movement.type.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-sm text-slate-500">{movement.warehouseName}</span>
-                </div>
-                <span
-                  className={cn(
-                    'text-sm font-medium',
-                    movement.quantity > 0 ? 'text-green-600' : 'text-red-600'
-                  )}
-                >
-                  {movement.quantity > 0 ? '+' : ''}{movement.quantity}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Recent Movements - for internal users only */}
+      {isInternalUser && product.movements && (
+        <StockMovementsTable movements={product.movements} />
       )}
 
-      {/* Adjust Stock Button - for admins/managers */}
+      {/* Adjust Stock Button + Modal - for admins/managers */}
       {canAdjustStock && (
-        <div className="flex justify-end">
-          <button
-            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
-            onClick={() => {
-              // TODO: Open adjust stock modal
-              alert('Adjust Stock modal - coming soon');
-            }}
-          >
-            Adjust Stock
-          </button>
-        </div>
+        <>
+          <div className="flex justify-end">
+            <button
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+              onClick={() => setShowAdjustModal(true)}
+            >
+              Adjust Stock
+            </button>
+          </div>
+
+          <AdjustStockModal
+            isOpen={showAdjustModal}
+            onClose={() => setShowAdjustModal(false)}
+            productId={product.id}
+            productSku={product.nusafSku}
+            productDescription={product.description}
+            onSubmit={handleAdjustStock}
+            isSubmitting={createAdjustment.isPending}
+          />
+        </>
       )}
     </div>
   );
