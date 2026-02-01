@@ -6,12 +6,19 @@ import {
 
 /**
  * Hook for fetching paginated products with filters
+ * Always includes stockSummary for displaying stock badges
  */
 export function useProducts(params: ProductsQueryParams = {}) {
+  // Always include stockSummary for stock badges on product cards
+  const queryParams: ProductsQueryParams = {
+    ...params,
+    include: 'stockSummary',
+  };
+
   return useQuery({
-    queryKey: ['products', params],
+    queryKey: ['products', queryParams],
     queryFn: async () => {
-      const response = await api.getProducts(params);
+      const response = await api.getProducts(queryParams);
       return response.data;
     },
   });

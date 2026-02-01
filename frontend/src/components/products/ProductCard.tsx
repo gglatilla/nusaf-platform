@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import type { CatalogProduct } from '@/lib/api';
+import { StockStatusBadge } from '@/components/inventory/StockStatusBadge';
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -19,7 +20,7 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all">
-      {/* Supplier badge */}
+      {/* Supplier and stock badges */}
       <div className="flex items-center justify-between mb-3">
         <span
           className={cn(
@@ -34,6 +35,9 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
         >
           {product.supplier.name}
         </span>
+        {product.stockSummary && (
+          <StockStatusBadge status={product.stockSummary.status} size="sm" />
+        )}
       </div>
 
       {/* SKU */}

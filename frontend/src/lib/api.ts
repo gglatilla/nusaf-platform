@@ -171,6 +171,11 @@ export interface CatalogProduct {
   price: number | null;
   priceLabel: string;
   hasPrice: boolean;
+  stockSummary?: {
+    totalOnHand: number;
+    totalAvailable: number;
+    status: StockStatus;
+  };
 }
 
 // Inventory types
@@ -263,6 +268,8 @@ export interface ProductsQueryParams {
   page?: number;
   pageSize?: number;
   sort?: string;
+  include?: string;
+  stockStatus?: string;
 }
 
 // Recalculate prices response
@@ -1065,6 +1072,8 @@ class ApiClient {
     if (params.page) searchParams.set('page', params.page.toString());
     if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
     if (params.sort) searchParams.set('sort', params.sort);
+    if (params.include) searchParams.set('include', params.include);
+    if (params.stockStatus) searchParams.set('stockStatus', params.stockStatus);
 
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/products?${queryString}` : '/products';
