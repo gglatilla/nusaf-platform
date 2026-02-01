@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Package, Tag, Building, Ruler } from 'lucide-react';
+import { ArrowLeft, Package, Tag, Building, Ruler, Edit } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
 import {
@@ -14,10 +14,11 @@ import {
   AdjustStockModal,
   InventorySettings,
 } from '@/components/inventory';
+import { ProductFormModal } from '@/components/products/ProductFormModal';
 import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
 
-type TabType = 'details' | 'inventory';
+type TabType = 'details' | 'inventory' | 'pricing' | 'images';
 
 function LoadingSkeleton() {
   return (
@@ -47,9 +48,10 @@ export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.id as string;
   const [activeTab, setActiveTab] = useState<TabType>('details');
+  const [showEditModal, setShowEditModal] = useState(false);
   const { user } = useAuthStore();
 
-  const { data: product, isLoading, error } = useProductWithInventory(productId, {
+  const { data: product, isLoading, error, refetch } = useProductWithInventory(productId, {
     enabled: !!productId,
   });
 
@@ -61,6 +63,9 @@ export default function ProductDetailPage() {
 
   // Check if user is admin or manager (can adjust stock)
   const canAdjustStock = user && (user.role === 'ADMIN' || user.role === 'MANAGER');
+
+  // Check if user is admin (can edit product)
+  const canEditProduct = user?.role === 'ADMIN';
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -89,7 +94,9 @@ export default function ProductDetailPage() {
 
   const tabs: { id: TabType; label: string; show: boolean }[] = [
     { id: 'details', label: 'Details', show: true },
-    { id: 'inventory', label: 'Inventory', show: canSeeInventory },
+    { id: 'pricing', label: 'Pricing', show: isInternalUser ?? false },
+    { id: 'images', label: 'Images', show: true },
+    { id: 'inventory', label: 'Inventory', show: canSeeInventory ?? false },
   ];
 
   return (
@@ -110,6 +117,15 @@ export default function ProductDetailPage() {
             <p className="text-sm text-slate-600">{product.description}</p>
           </div>
         </div>
+        {canEditProduct && (
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+          >
+            <Edit className="h-4 w-4" />
+            Edit Product
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -229,6 +245,74 @@ export default function ProductDetailPage() {
         </div>
       )}
 
+      {/* Pricing Tab */}
+      {activeTab === 'pricing' && isInternalUser && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Pricing Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">Cost Price</h3>
+              <p className="text-2xl font-bold text-slate-900">
+                {product.costPrice != null ? (
+                  <>EUR {product.costPrice.toFixed(4)}</>
+                ) : (
+                  <span className="text-slate-400 text-lg font-normal">Not set</span>
+                )}
+              </p>
+              <p className="text-sm text-slate-500 mt-1">Supplier cost in EUR</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">List Price</h3>
+              <p className="text-2xl font-bold text-slate-900">
+                {product.listPrice != null ? (
+                  <>{formatCurrency(product.listPrice)}</>
+                ) : (
+                  <span className="text-slate-400 text-lg font-normal">Not set</span>
+                )}
+              </p>
+              <p className="text-sm text-slate-500 mt-1">Base price before tier discounts</p>
+            </div>
+          </div>
+          {product.priceUpdatedAt && (
+            <p className="text-sm text-slate-500 mt-6">
+              Price last updated: {new Date(product.priceUpdatedAt).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Images Tab */}
+      {activeTab === 'images' && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Product Images</h2>
+          {product.imageUrl ? (
+            <div className="max-w-md">
+              <img
+                src={product.imageUrl}
+                alt={product.description}
+                className="w-full h-auto rounded-lg border border-slate-200"
+              />
+              <p className="text-sm text-slate-500 mt-2 break-all">{product.imageUrl}</p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="text-center">
+                <Package className="h-12 w-12 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500">No image available</p>
+                {canEditProduct && (
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="mt-2 text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    Add image URL
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'inventory' && canSeeInventory && (
         <ProductInventoryTab
           product={product}
@@ -236,6 +320,18 @@ export default function ProductDetailPage() {
           canAdjustStock={canAdjustStock ?? false}
           userPrimaryWarehouse={user?.primaryWarehouse ?? null}
           userRole={(user?.role as 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER') ?? 'CUSTOMER'}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {showEditModal && (
+        <ProductFormModal
+          isOpen={true}
+          product={product as import('@/lib/api').ProductWithInventory}
+          onClose={() => {
+            setShowEditModal(false);
+            refetch();
+          }}
         />
       )}
     </div>

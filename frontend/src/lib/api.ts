@@ -147,6 +147,9 @@ export interface CatalogCategory {
   }>;
 }
 
+// Product type for orchestration
+export type ProductType = 'STOCK_ONLY' | 'ASSEMBLY_REQUIRED' | 'MADE_TO_ORDER' | 'KIT';
+
 export interface CatalogProduct {
   id: string;
   nusafSku: string;
@@ -230,16 +233,88 @@ export interface ProductInventory {
 }
 
 export interface ProductWithInventory extends CatalogProduct {
+  // Core editable fields
+  isActive: boolean;
+  costPrice: number | null;
+  listPrice: number | null;
+  priceUpdatedAt: string | null;
+
+  // Classification
+  productType: ProductType;
+  assemblyLeadDays: number | null;
+  isConfigurable: boolean;
+
+  // Extended info
+  longDescription: string | null;
+  weight: number | null;
+  dimensionsJson: { length?: number; width?: number; height?: number; unit?: string } | null;
+  imageUrl: string | null;
+
   // Inventory defaults
   defaultReorderPoint: number | null;
   defaultReorderQty: number | null;
   defaultMinStock: number | null;
   defaultMaxStock: number | null;
   leadTimeDays: number | null;
+
+  // Foreign keys for editing
+  supplierId: string;
+  categoryId: string;
+  subCategoryId: string | null;
+
   // Inventory data (when ?include=inventory)
   inventory?: ProductInventory;
   // Movements (when ?include=movements)
   movements?: StockMovement[];
+}
+
+// Product create/update types
+export interface CreateProductData {
+  supplierSku: string;
+  nusafSku: string;
+  description: string;
+  supplierId: string;
+  categoryId: string;
+  subCategoryId?: string | null;
+  unitOfMeasure?: string;
+  costPrice?: number | null;
+  listPrice?: number | null;
+  productType?: ProductType;
+  assemblyLeadDays?: number | null;
+  isConfigurable?: boolean;
+  longDescription?: string | null;
+  weight?: number | null;
+  dimensionsJson?: { length?: number; width?: number; height?: number; unit?: string } | null;
+  imageUrl?: string | null;
+  defaultReorderPoint?: number | null;
+  defaultReorderQty?: number | null;
+  defaultMinStock?: number | null;
+  defaultMaxStock?: number | null;
+  leadTimeDays?: number | null;
+}
+
+export interface UpdateProductData {
+  supplierSku?: string;
+  description?: string;
+  supplierId?: string;
+  categoryId?: string;
+  subCategoryId?: string | null;
+  unitOfMeasure?: string;
+  isActive?: boolean;
+  costPrice?: number | null;
+  listPrice?: number | null;
+  productType?: ProductType;
+  assemblyLeadDays?: number | null;
+  isConfigurable?: boolean;
+  longDescription?: string | null;
+  weight?: number | null;
+  dimensionsJson?: { length?: number; width?: number; height?: number; unit?: string } | null;
+  imageUrl?: string | null;
+  defaultReorderPoint?: number | null;
+  defaultReorderQty?: number | null;
+  defaultMinStock?: number | null;
+  defaultMaxStock?: number | null;
+  leadTimeDays?: number | null;
 }
 
 export interface CreateStockAdjustmentData {
@@ -2012,6 +2087,30 @@ class ApiClient {
 
   async deleteSupplierContact(supplierId: string, contactId: string): Promise<void> {
     await this.request(`/suppliers/${supplierId}/contacts/${contactId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // PRODUCT CRUD
+  // ============================================
+
+  async createProduct(data: CreateProductData): Promise<ApiResponse<ProductWithInventory>> {
+    return this.request<ApiResponse<ProductWithInventory>>('/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProduct(id: string, data: UpdateProductData): Promise<ApiResponse<ProductWithInventory>> {
+    return this.request<ApiResponse<ProductWithInventory>>(`/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await this.request(`/products/${id}`, {
       method: 'DELETE',
     });
   }

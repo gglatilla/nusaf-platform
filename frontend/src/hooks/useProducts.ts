@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   api,
   type ProductsQueryParams,
+  type CreateProductData,
+  type UpdateProductData,
 } from '@/lib/api';
 
 /**
@@ -50,5 +52,59 @@ export function useCategories() {
       return response.data;
     },
     staleTime: 24 * 60 * 60 * 1000, // 24 hours - categories rarely change
+  });
+}
+
+/**
+ * Hook for creating a new product
+ */
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateProductData) => {
+      const response = await api.createProduct(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+/**
+ * Hook for updating a product
+ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateProductData }) => {
+      const response = await api.updateProduct(id, data);
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['product', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      // Also invalidate inventory queries if they exist
+      queryClient.invalidateQueries({ queryKey: ['productInventory', variables.id] });
+    },
+  });
+}
+
+/**
+ * Hook for deleting (soft delete) a product
+ */
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.deleteProduct(id);
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['product', id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
   });
 }
