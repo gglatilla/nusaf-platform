@@ -8,3 +8,4 @@ export { InventorySummaryCards } from './InventorySummaryCards';
 export { InventoryStockTable } from './InventoryStockTable';
 export { PendingAdjustmentsTable } from './PendingAdjustmentsTable';
 export { AdjustmentApproveModal } from './AdjustmentApproveModal';
+export { MovementLogTable } from './MovementLogTable';

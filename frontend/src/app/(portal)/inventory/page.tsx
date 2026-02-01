@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { InventorySummaryCards, InventoryStockTable, PendingAdjustmentsTable } from '@/components/inventory';
+import { InventorySummaryCards, InventoryStockTable, PendingAdjustmentsTable, MovementLogTable } from '@/components/inventory';
 import { cn } from '@/lib/utils';
 
 type TabType = 'stock' | 'adjustments' | 'movements' | 'settings';
@@ -133,12 +133,7 @@ function PendingAdjustmentsTab({ canApprove }: { canApprove: boolean }) {
 }
 
 function MovementLogTab() {
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500">
-      <p className="text-lg font-medium text-slate-900 mb-2">Movement Log</p>
-      <p>Stock movement history coming in Phase 4</p>
-    </div>
-  );
+  return <MovementLogTable />;
 }
 
 function ReorderSettingsTab({ canEdit }: { canEdit: boolean }) {

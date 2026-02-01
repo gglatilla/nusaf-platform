@@ -4,7 +4,7 @@
 [TASK-013D] Inventory Operations Dashboard
 
 ## Status
-IN_PROGRESS | 50% complete (Phases 1-3 of 6 complete)
+IN_PROGRESS | 65% complete (Phases 1-4 of 6 complete)
 
 ## Micro-tasks
 ### Phase 1: Page Setup & Summary Cards (COMPLETE)
@@ -25,9 +25,9 @@ IN_PROGRESS | 50% complete (Phases 1-3 of 6 complete)
 - [x] Create `AdjustmentApproveModal.tsx`
 - [x] Wire approve/reject to existing API endpoints
 
-### Phase 4: Movement Log Tab
-- [ ] Create `MovementLogTable.tsx`
-- [ ] Add filters: date range, movement type, product search
+### Phase 4: Movement Log Tab (COMPLETE)
+- [x] Create `MovementLogTable.tsx`
+- [x] Add filters: date range (7d/30d/90d/all), movement type, search
 
 ### Phase 5: Reorder Settings Tab
 - [ ] Create `ReorderSettingsTable.tsx`
@@ -44,6 +44,7 @@ IN_PROGRESS | 50% complete (Phases 1-3 of 6 complete)
 - `frontend/src/components/inventory/InventoryStockTable.tsx` - cross-product stock table
 - `frontend/src/components/inventory/PendingAdjustmentsTable.tsx` - pending adjustments queue
 - `frontend/src/components/inventory/AdjustmentApproveModal.tsx` - approve/reject modal
+- `frontend/src/components/inventory/MovementLogTable.tsx` - movement history table
 - `frontend/src/hooks/useInventory.ts` - React Query hooks for inventory API
 
 ## Files Modified
