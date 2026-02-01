@@ -350,7 +350,26 @@ async function main() {
     },
   });
 
+  // Create sales user
+  const salesPassword = await bcrypt.hash('sales123', BCRYPT_ROUNDS);
+
+  const salesUser = await prisma.user.upsert({
+    where: { email: 'sales@nusaf.co.za' },
+    update: {},
+    create: {
+      email: 'sales@nusaf.co.za',
+      password: salesPassword,
+      firstName: 'Sales',
+      lastName: 'User',
+      role: 'SALES',
+      companyId: adminCompany.id,
+      primaryWarehouse: 'JHB',
+      isActive: true,
+    },
+  });
+
   console.log(`Created test user: ${testUser.email} (password: password123)`);
+  console.log(`Created sales user: ${salesUser.email} (password: sales123)`);
   console.log(`Created admin user: ${adminUser.email} (password: admin123)`);
 
   console.log('Seed completed successfully!');
