@@ -1,39 +1,74 @@
 # Current Session
 
 ## Active Task
-None - Build fix complete
+None - Gap Analysis Complete
 
 ## Status
 COMPLETE | Ready for next task
 
-## Previous Task Completed
-TASK-013D Inventory Operations Dashboard (COMPLETE) + Build Fix
-
 ## What Was Accomplished This Session
 
-### Build Fix (Complete)
-Fixed TypeScript compilation errors that were causing Vercel build to fail:
+### 1. Fixed TypeScript Build Errors
+- Removed non-existent `isAuthenticated` from auth store destructuring
+- Fixed StockFilterChips prop: `value` → `selected`
+- Added missing `totalPages` prop to Pagination components
 
-1. **`isAuthenticated` error** - The `AuthStore` interface doesn't have an `isAuthenticated` property. Fixed by:
-   - Removing `isAuthenticated` from destructuring in `inventory/page.tsx`
-   - Replacing usage with `!!user` (derive authentication from user presence)
-   - Removing from useEffect dependency array
+### 2. Created SYSTEM-BLUEPRINT.md
+Comprehensive system documentation covering:
+- 29 database models grouped by domain
+- 118 API endpoints catalogued
+- 22 frontend pages + 72 components
+- User flows with diagrams
+- Gap analysis summary
 
-2. **StockFilterChips prop error** - The component expects `selected` not `value`. Fixed by:
-   - Changing `value={statusFilter}` to `selected={statusFilter}`
-   - Importing `StockFilterValue` type
-   - Changing state type from `string` to `StockFilterValue`
+### 3. Created GAP-ANALYSIS.md
+Detailed analysis for fulfillment orchestration:
+- Identified missing schema (ProductType, BomItem, PurchaseOrder, GRV)
+- Identified missing capabilities (Product editing, Supplier CRUD)
+- Created dependency map
+- Proposed build order with 8 new tasks (TASK-017 through TASK-022A)
+- Estimated ~17 days of development
 
-3. **Pagination missing totalPages** - Fixed in 3 components:
-   - `InventoryStockTable.tsx` - Added `totalPages={Math.ceil(rows.length / pageSize)}`
-   - `MovementLogTable.tsx` - Added `totalPages={data.pagination.totalPages}`
-   - `ReorderSettingsTable.tsx` - Added `totalPages={Math.ceil(filteredItems.length / pageSize)}`
+## Files Created This Session
+- `SYSTEM-BLUEPRINT.md` - Complete system documentation
+- `GAP-ANALYSIS.md` - Fulfillment orchestration gap analysis
 
-## Files Modified (This Session)
+## Files Modified This Session
 - `frontend/src/app/(portal)/inventory/page.tsx` - Fixed isAuthenticated error
-- `frontend/src/components/inventory/InventoryStockTable.tsx` - Fixed StockFilterChips prop and Pagination
-- `frontend/src/components/inventory/MovementLogTable.tsx` - Added totalPages to Pagination
-- `frontend/src/components/inventory/ReorderSettingsTable.tsx` - Added totalPages to Pagination
+- `frontend/src/components/inventory/InventoryStockTable.tsx` - Fixed props
+- `frontend/src/components/inventory/MovementLogTable.tsx` - Added totalPages
+- `frontend/src/components/inventory/ReorderSettingsTable.tsx` - Added totalPages
+
+## Key Findings from Gap Analysis
+
+### Missing for Orchestration
+| Gap | Priority |
+|-----|----------|
+| Product.productType field | Critical |
+| BomItem model | High |
+| PurchaseOrder/GRV models | High |
+| Stock Allocation Service | Critical |
+| Product Editing UI | Medium |
+| Supplier CRUD | Medium |
+
+### Proposed New Tasks
+- TASK-017: Supplier CRUD
+- TASK-018: Product Editing
+- TASK-018A: Product Type Field
+- TASK-019: BOM Schema & API
+- TASK-019A: BOM UI
+- TASK-020: Purchase Orders
+- TASK-020A: Goods Receipt (GRV)
+- TASK-020B: PO UI
+- TASK-021: Stock Allocation Service
+- TASK-021A: BOM Explosion Service
+- TASK-022: Orchestration Engine
+- TASK-022A: Orchestration Review UI
+
+## Next Steps
+1. Review GAP-ANALYSIS.md and prioritize tasks
+2. Quick wins: Add productType field (15 min)
+3. Decide: Start with TASK-018A (productType) or TASK-017 (Supplier CRUD)?
 
 ## Test Accounts
 | Role | Email | Password |
@@ -42,14 +77,9 @@ Fixed TypeScript compilation errors that were causing Vercel build to fail:
 | Sales | sales@nusaf.co.za | sales123 |
 | Admin | admin@nusaf.co.za | admin123 |
 
-## Next Steps
-1. Check backlog in TASKS.md for next task
-2. Options: TASK-012-2E (Customer Portal), TASK-012-2F (Analytics), TASK-011b (Sales Dashboard), etc.
-
 ## Context for Next Session
-Build fix is pushed. Vercel should now successfully deploy the inventory dashboard.
+Two major documents created:
+- SYSTEM-BLUEPRINT.md shows what's built
+- GAP-ANALYSIS.md shows what's missing for orchestration
 
-The inventory system is now feature-complete with:
-- Product detail page inventory tab (TASK-013B)
-- Product list stock indicators (TASK-013C)
-- Inventory operations dashboard (TASK-013D)
+The recommended starting point is TASK-018A (Product Type Field) as it unblocks everything else for fulfillment orchestration.
