@@ -232,14 +232,25 @@ export async function getProductInventorySummary(productId: string) {
  * Get stock summary for multiple products (for product list with stockSummary)
  * Returns a map of productId -> { totalOnHand, totalAvailable, status }
  */
-export async function getProductsStockSummary(productIds: string[]) {
+export async function getProductsStockSummary(
+  productIds: string[],
+  warehouseId?: 'JHB' | 'CT' | null
+) {
   if (productIds.length === 0) {
     return new Map<string, { totalOnHand: number; totalAvailable: number; status: StockStatus }>();
   }
 
-  // Fetch all stock levels for the given products
+  // Build where clause - optionally filter by warehouse
+  const where: { productId: { in: string[] }; warehouseId?: string } = {
+    productId: { in: productIds },
+  };
+  if (warehouseId) {
+    where.warehouseId = warehouseId;
+  }
+
+  // Fetch stock levels for the given products (optionally filtered by warehouse)
   const stockLevels = await prisma.stockLevel.findMany({
-    where: { productId: { in: productIds } },
+    where,
     include: {
       product: {
         select: {

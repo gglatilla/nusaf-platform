@@ -9,15 +9,27 @@ import {
   ProductSearch,
   Pagination,
   ProductDetailModal,
-  StockStatusFilter,
   ProductSort,
+  StockFilterChips,
+  WarehouseSelector,
+  ViewToggle,
+  ProductTable,
 } from '@/components/products';
 import { useProducts, useCategories } from '@/hooks/useProducts';
-import type { CatalogProduct, StockStatus } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth-store';
+import type { CatalogProduct } from '@/lib/api';
+import type { StockFilterValue } from '@/components/products/StockFilterChips';
+import type { WarehouseValue } from '@/components/products/WarehouseSelector';
+import type { ViewMode } from '@/components/products/ViewToggle';
 
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuthStore();
+
+  // Role-based feature flags
+  const isInternal = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
+  const showQuantity = !!isInternal; // Internal users see numbers, customers see text
 
   // Read URL params
   const urlCategoryId = searchParams.get('categoryId');
@@ -25,16 +37,14 @@ export default function ProductsPage() {
   const urlSearch = searchParams.get('search') || '';
   const urlPage = parseInt(searchParams.get('page') || '1', 10);
   const urlPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-  const urlStockStatus = searchParams.get('stockStatus') || '';
+  const urlStockStatus = (searchParams.get('stockStatus') || 'ALL') as StockFilterValue;
   const urlSort = searchParams.get('sort') || '';
+  const urlWarehouse = (searchParams.get('warehouse') || user?.primaryWarehouse || 'ALL') as WarehouseValue;
+  const urlView = (searchParams.get('view') || 'grid') as ViewMode;
 
-  // Parse stock status filter from URL (comma-separated)
-  const parseStockStatus = (value: string): StockStatus[] => {
-    if (!value) return [];
-    return value.split(',').filter((s): s is StockStatus =>
-      ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'ON_ORDER', 'OVERSTOCK'].includes(s)
-    );
-  };
+  // Validate stockStatus from URL
+  const validStockStatuses: StockFilterValue[] = ['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'ON_ORDER'];
+  const initialStockStatus = validStockStatuses.includes(urlStockStatus) ? urlStockStatus : 'ALL';
 
   // Local state for filters (synced from URL)
   const [categoryId, setCategoryId] = useState<string | null>(urlCategoryId);
@@ -42,8 +52,10 @@ export default function ProductsPage() {
   const [search, setSearch] = useState(urlSearch);
   const [page, setPage] = useState(urlPage);
   const [pageSize, setPageSize] = useState(urlPageSize);
-  const [stockStatus, setStockStatus] = useState<StockStatus[]>(parseStockStatus(urlStockStatus));
+  const [stockFilter, setStockFilter] = useState<StockFilterValue>(initialStockStatus);
   const [sortBy, setSortBy] = useState(urlSort);
+  const [warehouse, setWarehouse] = useState<WarehouseValue>(urlWarehouse);
+  const [viewMode, setViewMode] = useState<ViewMode>(urlView);
 
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
@@ -60,8 +72,9 @@ export default function ProductsPage() {
     search: search || undefined,
     page,
     pageSize,
-    stockStatus: stockStatus.length > 0 ? stockStatus.join(',') : undefined,
+    stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
     sort: sortBy || undefined,
+    warehouseId: warehouse !== 'ALL' ? warehouse : undefined,
   });
 
   const products = productsData?.products ?? [];
@@ -81,8 +94,10 @@ export default function ProductsPage() {
       search?: string;
       page?: number;
       pageSize?: number;
-      stockStatus?: StockStatus[];
+      stockStatus?: StockFilterValue;
       sort?: string;
+      warehouse?: WarehouseValue;
+      view?: ViewMode;
     }) => {
       const newParams = new URLSearchParams();
 
@@ -91,35 +106,39 @@ export default function ProductsPage() {
       const newSearch = params.search ?? search;
       const newPage = params.page ?? page;
       const newPageSize = params.pageSize ?? pageSize;
-      const newStockStatus = params.stockStatus ?? stockStatus;
+      const newStockStatus = params.stockStatus ?? stockFilter;
       const newSort = params.sort ?? sortBy;
+      const newWarehouse = params.warehouse ?? warehouse;
+      const newView = params.view ?? viewMode;
 
       if (newCategoryId) newParams.set('categoryId', newCategoryId);
       if (newSubCategoryId) newParams.set('subCategoryId', newSubCategoryId);
       if (newSearch) newParams.set('search', newSearch);
       if (newPage > 1) newParams.set('page', newPage.toString());
       if (newPageSize !== 20) newParams.set('pageSize', newPageSize.toString());
-      if (newStockStatus.length > 0) newParams.set('stockStatus', newStockStatus.join(','));
+      if (newStockStatus !== 'ALL') newParams.set('stockStatus', newStockStatus);
       if (newSort) newParams.set('sort', newSort);
+      if (newWarehouse !== 'ALL') newParams.set('warehouse', newWarehouse);
+      if (newView !== 'grid') newParams.set('view', newView);
 
       const queryString = newParams.toString();
       router.push(queryString ? `/products?${queryString}` : '/products', { scroll: false });
     },
-    [categoryId, subCategoryId, search, page, pageSize, stockStatus, sortBy, router]
+    [categoryId, subCategoryId, search, page, pageSize, stockFilter, sortBy, warehouse, viewMode, router]
   );
 
   // Handle category change
   const handleCategoryChange = (newCategoryId: string | null, newSubCategoryId: string | null) => {
     setCategoryId(newCategoryId);
     setSubCategoryId(newSubCategoryId);
-    setPage(1); // Reset to first page
+    setPage(1);
     updateUrl({ categoryId: newCategoryId, subCategoryId: newSubCategoryId, page: 1 });
   };
 
   // Handle search change
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
-    setPage(1); // Reset to first page
+    setPage(1);
     updateUrl({ search: newSearch, page: 1 });
   };
 
@@ -127,29 +146,41 @@ export default function ProductsPage() {
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     updateUrl({ page: newPage });
-    // Scroll to top of product grid
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle page size change
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setPage(1); // Reset to first page when changing page size
+    setPage(1);
     updateUrl({ pageSize: newPageSize, page: 1 });
   };
 
-  // Handle stock status filter change
-  const handleStockStatusChange = (newStockStatus: StockStatus[]) => {
-    setStockStatus(newStockStatus);
-    setPage(1); // Reset to first page
-    updateUrl({ stockStatus: newStockStatus, page: 1 });
+  // Handle stock filter change
+  const handleStockFilterChange = (newFilter: StockFilterValue) => {
+    setStockFilter(newFilter);
+    setPage(1);
+    updateUrl({ stockStatus: newFilter, page: 1 });
   };
 
   // Handle sort change
   const handleSortChange = (newSort: string) => {
     setSortBy(newSort);
-    setPage(1); // Reset to first page
+    setPage(1);
     updateUrl({ sort: newSort, page: 1 });
+  };
+
+  // Handle warehouse change
+  const handleWarehouseChange = (newWarehouse: WarehouseValue) => {
+    setWarehouse(newWarehouse);
+    setPage(1);
+    updateUrl({ warehouse: newWarehouse, page: 1 });
+  };
+
+  // Handle view mode change
+  const handleViewChange = (newView: ViewMode) => {
+    setViewMode(newView);
+    updateUrl({ view: newView });
   };
 
   // Handle clear filters
@@ -157,8 +188,9 @@ export default function ProductsPage() {
     setCategoryId(null);
     setSubCategoryId(null);
     setSearch('');
-    setStockStatus([]);
+    setStockFilter('ALL');
     setSortBy('');
+    setWarehouse(user?.primaryWarehouse as WarehouseValue || 'ALL');
     setPage(1);
     router.push('/products', { scroll: false });
   };
@@ -176,16 +208,26 @@ export default function ProductsPage() {
         title="Products"
         description="Browse our product catalog"
         actions={
-          <div className="w-full sm:w-72">
-            <ProductSearch value={search} onChange={handleSearchChange} />
+          <div className="flex items-center gap-4">
+            {/* Warehouse selector - internal users only */}
+            {isInternal && (
+              <WarehouseSelector value={warehouse} onChange={handleWarehouseChange} />
+            )}
+            <div className="w-full sm:w-72">
+              <ProductSearch value={search} onChange={handleSearchChange} />
+            </div>
+            {/* View toggle - internal users only */}
+            {isInternal && (
+              <ViewToggle view={viewMode} onChange={handleViewChange} />
+            )}
           </div>
         }
       />
 
       <div className="p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filter sidebar */}
-          <aside className="lg:w-64 flex-shrink-0 space-y-4">
+          {/* Filter sidebar - Categories only */}
+          <aside className="lg:w-64 flex-shrink-0">
             <div className="bg-white rounded-lg border border-slate-200 p-4">
               <h2 className="text-sm font-semibold text-slate-900 mb-3">Categories</h2>
               <CategoryFilter
@@ -194,13 +236,6 @@ export default function ProductsPage() {
                 selectedSubCategoryId={subCategoryId}
                 onCategoryChange={handleCategoryChange}
                 isLoading={isLoadingCategories}
-              />
-            </div>
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h2 className="text-sm font-semibold text-slate-900 mb-3">Stock Status</h2>
-              <StockStatusFilter
-                selected={stockStatus}
-                onChange={handleStockStatusChange}
               />
             </div>
           </aside>
@@ -213,17 +248,32 @@ export default function ProductsPage() {
               </div>
             ) : (
               <>
-                {/* Sort dropdown */}
-                <div className="flex justify-end mb-4">
-                  <ProductSort value={sortBy} onChange={handleSortChange} />
+                {/* Filter chips and sort */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                  <StockFilterChips selected={stockFilter} onChange={handleStockFilterChange} />
+                  {viewMode === 'grid' && (
+                    <ProductSort value={sortBy} onChange={handleSortChange} />
+                  )}
                 </div>
 
-                <ProductGrid
-                  products={products}
-                  isLoading={isLoadingProducts}
-                  onViewDetails={handleViewDetails}
-                  onClearFilters={handleClearFilters}
-                />
+                {/* Product display - grid or table */}
+                {viewMode === 'grid' ? (
+                  <ProductGrid
+                    products={products}
+                    isLoading={isLoadingProducts}
+                    onViewDetails={handleViewDetails}
+                    onClearFilters={handleClearFilters}
+                    showQuantity={showQuantity}
+                  />
+                ) : (
+                  <ProductTable
+                    products={products}
+                    isLoading={isLoadingProducts}
+                    onRowClick={handleViewDetails}
+                    sortBy={sortBy}
+                    onSortChange={handleSortChange}
+                  />
+                )}
 
                 {/* Pagination */}
                 {!isLoadingProducts && pagination.totalPages > 1 && (

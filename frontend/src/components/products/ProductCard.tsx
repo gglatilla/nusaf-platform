@@ -3,14 +3,15 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import type { CatalogProduct } from '@/lib/api';
-import { StockStatusBadge } from '@/components/inventory/StockStatusBadge';
+import { StockIndicator } from './StockIndicator';
 
 interface ProductCardProps {
   product: CatalogProduct;
   onViewDetails?: (product: CatalogProduct) => void;
+  showQuantity?: boolean;
 }
 
-export const ProductCard = memo(function ProductCard({ product, onViewDetails }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, onViewDetails, showQuantity = true }: ProductCardProps) {
   const formattedPrice = product.price
     ? new Intl.NumberFormat('en-ZA', {
         style: 'currency',
@@ -20,8 +21,8 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all">
-      {/* Supplier and stock badges */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Supplier badge */}
+      <div className="mb-3">
         <span
           className={cn(
             'px-2 py-1 text-xs font-medium rounded',
@@ -35,9 +36,6 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
         >
           {product.supplier.name}
         </span>
-        {product.stockSummary && (
-          <StockStatusBadge status={product.stockSummary.status} size="sm" />
-        )}
       </div>
 
       {/* SKU */}
@@ -49,7 +47,7 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
       </h3>
 
       {/* Price */}
-      <div className="mb-4">
+      <div className="mb-2">
         {product.hasPrice ? (
           <>
             <p className="text-lg font-bold text-slate-900">{formattedPrice}</p>
@@ -59,6 +57,17 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails }:
           <p className="text-sm text-slate-500 italic">Price on Request</p>
         )}
       </div>
+
+      {/* Stock indicator */}
+      {product.stockSummary && (
+        <div className="mb-4">
+          <StockIndicator
+            available={product.stockSummary.totalAvailable}
+            status={product.stockSummary.status}
+            showQuantity={showQuantity}
+          />
+        </div>
+      )}
 
       {/* View details button */}
       <button

@@ -58,11 +58,10 @@ router.get('/', authenticate, async (req, res) => {
       : [];
     const hasStockStatusFilter = stockStatusFilter.length > 0;
 
-    // Parse warehouseId filter (reserved for future use with per-warehouse filtering)
-    const _warehouseFilter = typeof warehouseId === 'string' && ['JHB', 'CT'].includes(warehouseId.toUpperCase())
-      ? warehouseId.toUpperCase()
+    // Parse warehouseId filter for per-warehouse stock data
+    const warehouseFilter = typeof warehouseId === 'string' && ['JHB', 'CT'].includes(warehouseId.toUpperCase())
+      ? (warehouseId.toUpperCase() as 'JHB' | 'CT')
       : null;
-    void _warehouseFilter; // TODO: Implement per-warehouse stock filtering
 
     // Parse sort param
     const sortParam = typeof sort === 'string' ? sort : '';
@@ -152,11 +151,11 @@ router.get('/', authenticate, async (req, res) => {
       }),
     ]);
 
-    // Fetch stock summaries if needed
+    // Fetch stock summaries if needed (optionally filtered by warehouse)
     let stockSummaryMap = new Map<string, { totalOnHand: number; totalAvailable: number; status: StockStatus }>();
     if (needStockData && products.length > 0) {
       const productIds = products.map((p) => p.id);
-      stockSummaryMap = await getProductsStockSummary(productIds);
+      stockSummaryMap = await getProductsStockSummary(productIds, warehouseFilter);
     }
 
     // Transform products

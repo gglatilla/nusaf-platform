@@ -10,9 +10,10 @@ interface ProductGridProps {
   isLoading?: boolean;
   onViewDetails?: (product: CatalogProduct) => void;
   onClearFilters?: () => void;
+  showQuantity?: boolean;
 }
 
-export const ProductGrid = memo(function ProductGrid({ products, isLoading, onViewDetails, onClearFilters }: ProductGridProps) {
+export const ProductGrid = memo(function ProductGrid({ products, isLoading, onViewDetails, onClearFilters, showQuantity }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -48,7 +49,7 @@ export const ProductGrid = memo(function ProductGrid({ products, isLoading, onVi
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} onViewDetails={onViewDetails} />
+        <ProductCard key={product.id} product={product} onViewDetails={onViewDetails} showQuantity={showQuantity} />
       ))}
     </div>
   );

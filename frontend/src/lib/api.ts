@@ -270,6 +270,7 @@ export interface ProductsQueryParams {
   sort?: string;
   include?: string;
   stockStatus?: string;
+  warehouseId?: string;
 }
 
 // Recalculate prices response
@@ -1074,6 +1075,7 @@ class ApiClient {
     if (params.sort) searchParams.set('sort', params.sort);
     if (params.include) searchParams.set('include', params.include);
     if (params.stockStatus) searchParams.set('stockStatus', params.stockStatus);
+    if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
 
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/products?${queryString}` : '/products';
