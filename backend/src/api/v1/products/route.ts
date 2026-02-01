@@ -22,6 +22,22 @@ import {
 } from '../../../services/product.service';
 import { createStockAdjustmentSchema } from '../../../utils/validation/inventory';
 import { createProductSchema, updateProductSchema } from '../../../utils/validation/products';
+import {
+  addBomComponentSchema,
+  updateBomComponentSchema,
+  checkBomStockQuerySchema,
+  explodeBomQuerySchema,
+} from '../../../utils/validation/bom';
+import {
+  getBom,
+  addBomComponent,
+  updateBomComponent,
+  removeBomComponent,
+  explodeBom,
+  checkBomStock,
+  getWhereUsed,
+  copyBom,
+} from '../../../services/bom.service';
 import { Warehouse } from '@prisma/client';
 import type { CustomerTier } from '@prisma/client';
 
@@ -927,6 +943,327 @@ router.post('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', 
       error: {
         code: 'PRODUCT_ADJUSTMENT_CREATE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to create adjustment',
+      },
+    });
+  }
+});
+
+// ============================================
+// BOM (BILL OF MATERIALS) ROUTES
+// ============================================
+
+/**
+ * GET /api/v1/products/:productId/bom
+ * Get BOM components for a product
+ * Query params:
+ *   - include: 'exploded' to get flattened tree
+ *   - quantity: multiplier for exploded view (default 1)
+ *   - maxDepth: max recursion depth for exploded view (default 10)
+ *   - includeOptional: include optional items in exploded view (default true)
+ */
+router.get('/:productId/bom', authenticate, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const include = req.query.include as string | undefined;
+
+    // Check if exploded view is requested
+    if (include?.toLowerCase() === 'exploded') {
+      const queryResult = explodeBomQuerySchema.safeParse(req.query);
+      if (!queryResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid query parameters',
+            details: queryResult.error.errors,
+          },
+        });
+      }
+
+      const { quantity, maxDepth, includeOptional } = queryResult.data;
+      const result = await explodeBom(productId, quantity, { maxDepth, includeOptional });
+
+      if (!result.success) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: result.error },
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          productId,
+          explodedComponents: result.data,
+        },
+      });
+    }
+
+    // Default: return direct BOM items
+    const result = await getBom(productId);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        productId,
+        components: result.data,
+      },
+    });
+  } catch (error) {
+    console.error('Get BOM error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to get BOM',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/bom
+ * Add a component to a product's BOM
+ */
+router.post('/:productId/bom', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId } = req.params;
+
+    const bodyResult = addBomComponentSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await addBomComponent(productId, bodyResult.data, authReq.user.id);
+
+    if (!result.success) {
+      const statusCode = result.error?.includes('not found') ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: { code: 'BOM_ADD_FAILED', message: result.error },
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Add BOM component error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_ADD_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to add BOM component',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/products/:productId/bom/:componentId
+ * Update a BOM component
+ */
+router.patch('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId, componentId } = req.params;
+
+    const bodyResult = updateBomComponentSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await updateBomComponent(productId, componentId, bodyResult.data, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Update BOM component error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update BOM component',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/products/:productId/bom/:componentId
+ * Remove a component from BOM
+ */
+router.delete('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId, componentId } = req.params;
+
+    const result = await removeBomComponent(productId, componentId, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Remove BOM component error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to remove BOM component',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/bom/stock-check
+ * Check stock availability for all BOM components
+ */
+router.get('/:productId/bom/stock-check', authenticate, async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const queryResult = checkBomStockQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid query parameters',
+          details: queryResult.error.errors,
+        },
+      });
+    }
+
+    const { quantity, warehouse } = queryResult.data;
+    const result = await checkBomStock(productId, quantity, warehouse as Warehouse);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Check BOM stock error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_STOCK_CHECK_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to check BOM stock',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/where-used
+ * Get products that use this as a component
+ */
+router.get('/:productId/where-used', authenticate, async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const result = await getWhereUsed(productId);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        productId,
+        usedIn: result.data,
+      },
+    });
+  } catch (error) {
+    console.error('Get where used error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'WHERE_USED_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to get where used',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/bom/copy-from/:sourceId
+ * Copy BOM from another product
+ */
+router.post('/:productId/bom/copy-from/:sourceId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId, sourceId } = req.params;
+
+    const result = await copyBom(productId, sourceId, authReq.user.id);
+
+    if (!result.success) {
+      const statusCode = result.error?.includes('not found') ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: { code: 'BOM_COPY_FAILED', message: result.error },
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Copy BOM error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BOM_COPY_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to copy BOM',
       },
     });
   }
