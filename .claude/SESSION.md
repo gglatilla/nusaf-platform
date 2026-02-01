@@ -1,85 +1,54 @@
 # Current Session
 
 ## Active Task
-None - Gap Analysis Complete
+[TASK-017] Supplier CRUD [Master Data, Backend, UI]
 
 ## Status
-COMPLETE | Ready for next task
+IN_PROGRESS | 80% complete
 
-## What Was Accomplished This Session
+## Micro-tasks
+- [x] MT-1: Create Prisma migration for Supplier extensions
+- [x] MT-2: Verify migration and update Prisma Client
+- [x] MT-3: Create Supplier service layer
+- [x] MT-4: Create SupplierContact service layer
+- [x] MT-5: Create Supplier API routes
+- [x] MT-6: Create SupplierContact API routes
+- [x] MT-7: Add Zod validation schemas
+- [x] MT-8: Create Supplier list page (`/admin/suppliers`)
+- [ ] MT-9: Create Supplier detail page (`/admin/suppliers/[id]`)
+- [x] MT-10: Create Supplier form modal
+- [ ] MT-11: Create Contacts tab and contact form modal
+- [x] MT-12: Wire up API hooks and navigation
 
-### 1. Fixed TypeScript Build Errors
-- Removed non-existent `isAuthenticated` from auth store destructuring
-- Fixed StockFilterChips prop: `value` → `selected`
-- Added missing `totalPages` prop to Pagination components
+## Decisions Made
+- Navigation: Suppliers in Admin section of sidebar
+- Access: Sales can view, Admin only for create/edit/delete
+- Country field: Free text (not dropdown)
+- Used idempotent migration SQL with IF NOT EXISTS checks
+- Used `prisma migrate resolve --applied` to handle migration state conflicts
 
-### 2. Created SYSTEM-BLUEPRINT.md
-Comprehensive system documentation covering:
-- 29 database models grouped by domain
-- 118 API endpoints catalogued
-- 22 frontend pages + 72 components
-- User flows with diagrams
-- Gap analysis summary
+## Files Modified
+### Backend
+- backend/prisma/schema.prisma (extended Supplier model, added SupplierContact)
+- backend/prisma/migrations/20260201100000_add_supplier_contact_fields/migration.sql
+- backend/src/services/supplier.service.ts (created)
+- backend/src/utils/validation/suppliers.ts (created)
+- backend/src/api/v1/suppliers/route.ts (created)
+- backend/src/index.ts (registered supplier routes)
 
-### 3. Created GAP-ANALYSIS.md
-Detailed analysis for fulfillment orchestration:
-- Identified missing schema (ProductType, BomItem, PurchaseOrder, GRV)
-- Identified missing capabilities (Product editing, Supplier CRUD)
-- Created dependency map
-- Proposed build order with 8 new tasks (TASK-017 through TASK-022A)
-- Estimated ~17 days of development
-
-## Files Created This Session
-- `SYSTEM-BLUEPRINT.md` - Complete system documentation
-- `GAP-ANALYSIS.md` - Fulfillment orchestration gap analysis
-
-## Files Modified This Session
-- `frontend/src/app/(portal)/inventory/page.tsx` - Fixed isAuthenticated error
-- `frontend/src/components/inventory/InventoryStockTable.tsx` - Fixed props
-- `frontend/src/components/inventory/MovementLogTable.tsx` - Added totalPages
-- `frontend/src/components/inventory/ReorderSettingsTable.tsx` - Added totalPages
-
-## Key Findings from Gap Analysis
-
-### Missing for Orchestration
-| Gap | Priority |
-|-----|----------|
-| Product.productType field | Critical |
-| BomItem model | High |
-| PurchaseOrder/GRV models | High |
-| Stock Allocation Service | Critical |
-| Product Editing UI | Medium |
-| Supplier CRUD | Medium |
-
-### Proposed New Tasks
-- TASK-017: Supplier CRUD
-- TASK-018: Product Editing
-- TASK-018A: Product Type Field
-- TASK-019: BOM Schema & API
-- TASK-019A: BOM UI
-- TASK-020: Purchase Orders
-- TASK-020A: Goods Receipt (GRV)
-- TASK-020B: PO UI
-- TASK-021: Stock Allocation Service
-- TASK-021A: BOM Explosion Service
-- TASK-022: Orchestration Engine
-- TASK-022A: Orchestration Review UI
+### Frontend
+- frontend/src/lib/api.ts (added Supplier types and API methods)
+- frontend/src/lib/navigation.ts (added Suppliers nav item)
+- frontend/src/hooks/useSuppliers.ts (created - React Query hooks)
+- frontend/src/app/(portal)/admin/suppliers/page.tsx (created - list page)
+- frontend/src/components/suppliers/SupplierListTable.tsx (created)
+- frontend/src/components/suppliers/SupplierFormModal.tsx (created)
 
 ## Next Steps
-1. Review GAP-ANALYSIS.md and prioritize tasks
-2. Quick wins: Add productType field (15 min)
-3. Decide: Start with TASK-018A (productType) or TASK-017 (Supplier CRUD)?
-
-## Test Accounts
-| Role | Email | Password |
-|------|-------|----------|
-| Customer | test@example.com | password123 |
-| Sales | sales@nusaf.co.za | sales123 |
-| Admin | admin@nusaf.co.za | admin123 |
+1. Create supplier detail page at frontend/src/app/(portal)/admin/suppliers/[id]/page.tsx
+2. Add Contacts tab component to show/manage supplier contacts
+3. Create ContactFormModal for add/edit contacts
+4. Test full flow end-to-end
 
 ## Context for Next Session
-Two major documents created:
-- SYSTEM-BLUEPRINT.md shows what's built
-- GAP-ANALYSIS.md shows what's missing for orchestration
-
-The recommended starting point is TASK-018A (Product Type Field) as it unblocks everything else for fulfillment orchestration.
+TASK-017 is 80% complete. Backend is fully done with all 8 API endpoints. Frontend has list page with search/filter/pagination and create/edit modal working. Remaining work is the supplier detail page with contacts management.
