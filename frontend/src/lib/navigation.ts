@@ -12,6 +12,7 @@ import {
   Truck,
   AlertTriangle,
   Archive,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -49,6 +50,7 @@ export const mainNavigation: NavItem[] = [
  */
 export const adminNavigation: NavItem[] = [
   { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
+  { name: 'Inventory', href: '/inventory', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Pricing', href: '/admin/settings', icon: Euro, roles: ['ADMIN', 'MANAGER'] },
 ];
 

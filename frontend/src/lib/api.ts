@@ -249,6 +249,142 @@ export interface CreateStockAdjustmentData {
   reason: string;
 }
 
+// Inventory dashboard types
+export interface InventorySummary {
+  totalProducts: number;
+  belowReorderPoint: number;
+  pendingAdjustments: number;
+  movementsToday: number;
+}
+
+export interface StockLevelsQueryParams {
+  location?: string;
+  categoryId?: string;
+  lowStockOnly?: boolean;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StockLevelItem {
+  id: string;
+  productId: string;
+  product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    category?: { name: string };
+  };
+  location: 'JHB' | 'CT';
+  onHand: number;
+  softReserved: number;
+  hardReserved: number;
+  onOrder: number;
+  available: number;
+  status: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'ON_ORDER' | 'OVERSTOCK';
+  reorderPoint: number | null;
+  reorderQuantity: number | null;
+  minimumStock: number | null;
+  maximumStock: number | null;
+}
+
+export interface StockLevelsResponse {
+  stockLevels: StockLevelItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface StockAdjustmentsQueryParams {
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  location?: string;
+  reason?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StockAdjustmentLine {
+  id: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  currentQuantity: number;
+  adjustedQuantity: number;
+  difference: number;
+  notes: string | null;
+}
+
+export interface StockAdjustment {
+  id: string;
+  adjustmentNumber: string;
+  location: 'JHB' | 'CT';
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  lines: StockAdjustmentLine[];
+  createdBy: string;
+  createdAt: string;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  rejectedAt: string | null;
+  rejectedBy: string | null;
+  rejectionReason: string | null;
+}
+
+export interface StockAdjustmentsResponse {
+  adjustments: StockAdjustment[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface StockMovementsQueryParams {
+  location?: string;
+  movementType?: string;
+  productId?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StockMovementItem {
+  id: string;
+  productId: string;
+  warehouseId: string;
+  warehouseName: string;
+  type: string;
+  quantity: number;
+  referenceType: string | null;
+  referenceId: string | null;
+  notes: string | null;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface StockMovementsResponse {
+  movements: StockMovementItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface UpdateReorderSettingsData {
+  reorderPoint?: number | null;
+  reorderQuantity?: number | null;
+  minimumStock?: number | null;
+  maximumStock?: number | null;
+}
+
 export interface ProductsResponse {
   products: CatalogProduct[];
   pagination: {
@@ -1118,6 +1254,106 @@ class ApiClient {
         body: JSON.stringify(data),
       }
     );
+  }
+
+  // Inventory dashboard endpoints
+
+  /**
+   * Get inventory summary counts for the dashboard
+   */
+  async getInventorySummary(): Promise<ApiResponse<InventorySummary>> {
+    return this.request<ApiResponse<InventorySummary>>('/inventory/summary');
+  }
+
+  /**
+   * Get stock levels with filtering and pagination
+   */
+  async getStockLevels(params: StockLevelsQueryParams = {}): Promise<ApiResponse<StockLevelsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.location) searchParams.set('location', params.location);
+    if (params.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params.lowStockOnly) searchParams.set('lowStockOnly', 'true');
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/inventory/stock?${queryString}` : '/inventory/stock';
+    return this.request<ApiResponse<StockLevelsResponse>>(endpoint);
+  }
+
+  /**
+   * Get stock adjustments with filtering and pagination
+   */
+  async getStockAdjustments(params: StockAdjustmentsQueryParams = {}): Promise<ApiResponse<StockAdjustmentsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.reason) searchParams.set('reason', params.reason);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/inventory/adjustments?${queryString}` : '/inventory/adjustments';
+    return this.request<ApiResponse<StockAdjustmentsResponse>>(endpoint);
+  }
+
+  /**
+   * Get a single stock adjustment by ID
+   */
+  async getStockAdjustmentById(id: string): Promise<ApiResponse<StockAdjustment>> {
+    return this.request<ApiResponse<StockAdjustment>>(`/inventory/adjustments/${id}`);
+  }
+
+  /**
+   * Approve a stock adjustment
+   */
+  async approveStockAdjustment(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/adjustments/${id}/approve`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Reject a stock adjustment
+   */
+  async rejectStockAdjustment(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/adjustments/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  /**
+   * Get stock movements with filtering and pagination
+   */
+  async getStockMovements(params: StockMovementsQueryParams = {}): Promise<ApiResponse<StockMovementsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.location) searchParams.set('location', params.location);
+    if (params.movementType) searchParams.set('movementType', params.movementType);
+    if (params.productId) searchParams.set('productId', params.productId);
+    if (params.startDate) searchParams.set('startDate', params.startDate);
+    if (params.endDate) searchParams.set('endDate', params.endDate);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/inventory/movements?${queryString}` : '/inventory/movements';
+    return this.request<ApiResponse<StockMovementsResponse>>(endpoint);
+  }
+
+  /**
+   * Update reorder settings for a product at a specific location
+   */
+  async updateReorderSettings(
+    productId: string,
+    location: string,
+    data: UpdateReorderSettingsData
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/stock/${productId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ location, ...data }),
+    });
   }
 
   // Admin settings endpoints

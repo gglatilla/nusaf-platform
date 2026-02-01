@@ -3,11 +3,10 @@
 ---
 
 ## Current
-(none)
+- [TASK-013D] Inventory operations dashboard [Inventory, UI/Frontend] (IN_PROGRESS)
 
 ## Up Next
-- [TASK-013C] Product list stock badges [Inventory, UI/Frontend]
-- [TASK-013D] Inventory operations dashboard [Inventory, UI/Frontend]
+(none)
 
 ## Backlog
 - [TASK-012-2E] Order Fulfillment — Customer Portal [Orders, UI/Frontend]
@@ -43,6 +42,7 @@
 - [TASK-013] Inventory tracking backend (StockLevel, StockMovement, StockAdjustment, StockReservation services + API) ✓
 - [TASK-013A] Unified Product-Inventory API — backend API unification ✓
 - [TASK-013B] Product page Inventory tab ✓
+- [TASK-013C] Product list stock badges ✓
 
 ---
 

@@ -25,10 +25,39 @@ import {
   getProductReservations,
   releaseReservation,
   releaseExpiredSoftReservations,
+  getInventorySummary,
 } from '../../../services/inventory.service';
 import { Warehouse } from '@prisma/client';
 
 const router = Router();
+
+// ============================================
+// INVENTORY DASHBOARD SUMMARY
+// ============================================
+
+/**
+ * GET /api/v1/inventory/summary
+ * Get inventory summary counts for the dashboard
+ */
+router.get('/summary', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (_req, res) => {
+  try {
+    const summary = await getInventorySummary();
+
+    return res.json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    console.error('Get inventory summary error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SUMMARY_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch inventory summary',
+      },
+    });
+  }
+});
 
 // ============================================
 // STOCK LEVEL ENDPOINTS

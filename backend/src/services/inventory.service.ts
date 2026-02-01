@@ -1657,3 +1657,76 @@ export async function releaseExpiredSoftReservations(): Promise<{ releasedCount:
 
   return { releasedCount };
 }
+
+// ============================================
+// INVENTORY DASHBOARD SUMMARY
+// ============================================
+
+/**
+ * Get inventory summary counts for the dashboard
+ * Returns:
+ * - totalProducts: count of products with stock levels
+ * - belowReorderPoint: count of products below reorder point (LOW_STOCK or OUT_OF_STOCK)
+ * - pendingAdjustments: count of adjustments awaiting approval
+ * - movementsToday: count of stock movements created today
+ */
+export async function getInventorySummary() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [
+    totalProducts,
+    belowReorderCount,
+    pendingAdjustments,
+    movementsToday,
+  ] = await Promise.all([
+    // Count products that have at least one stock level
+    prisma.stockLevel.groupBy({
+      by: ['productId'],
+    }).then((groups) => groups.length),
+
+    // Count products that are LOW_STOCK or OUT_OF_STOCK across any location
+    // We need to check each stock level individually
+    prisma.stockLevel.findMany({
+      include: {
+        product: {
+          select: {
+            id: true,
+            defaultReorderPoint: true,
+            defaultMaxStock: true,
+          },
+        },
+      },
+    }).then((stockLevels) => {
+      // Get unique products that are below reorder point
+      const productsBelow = new Set<string>();
+      for (const sl of stockLevels) {
+        const available = sl.onHand - sl.hardReserved;
+        const effectiveReorderPoint = sl.reorderPoint ?? sl.product.defaultReorderPoint ?? 0;
+        if (available <= 0 || (effectiveReorderPoint > 0 && available <= effectiveReorderPoint)) {
+          productsBelow.add(sl.productId);
+        }
+      }
+      return productsBelow.size;
+    }),
+
+    // Count pending adjustments
+    prisma.stockAdjustment.count({
+      where: { status: 'PENDING' },
+    }),
+
+    // Count movements created today
+    prisma.stockMovement.count({
+      where: {
+        createdAt: { gte: today },
+      },
+    }),
+  ]);
+
+  return {
+    totalProducts,
+    belowReorderPoint: belowReorderCount,
+    pendingAdjustments,
+    movementsToday,
+  };
+}
