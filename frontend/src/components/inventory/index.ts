@@ -9,3 +9,5 @@ export { InventoryStockTable } from './InventoryStockTable';
 export { PendingAdjustmentsTable } from './PendingAdjustmentsTable';
 export { AdjustmentApproveModal } from './AdjustmentApproveModal';
 export { MovementLogTable } from './MovementLogTable';
+export { ReorderSettingsTable } from './ReorderSettingsTable';
+export { EditReorderModal } from './EditReorderModal';

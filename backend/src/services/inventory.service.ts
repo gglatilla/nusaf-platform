@@ -1730,3 +1730,69 @@ export async function getInventorySummary() {
     movementsToday,
   };
 }
+
+// ============================================
+// REORDER SETTINGS MANAGEMENT
+// ============================================
+
+/**
+ * Update reorder settings for a product at a specific location
+ */
+export async function updateReorderSettings(
+  productId: string,
+  location: Warehouse,
+  settings: {
+    reorderPoint?: number | null;
+    reorderQuantity?: number | null;
+    minimumStock?: number | null;
+    maximumStock?: number | null;
+  },
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check if stock level exists
+    const stockLevel = await prisma.stockLevel.findUnique({
+      where: { productId_location: { productId, location } },
+    });
+
+    if (!stockLevel) {
+      // Create stock level if it doesn't exist
+      await prisma.stockLevel.create({
+        data: {
+          productId,
+          location,
+          onHand: 0,
+          softReserved: 0,
+          hardReserved: 0,
+          onOrder: 0,
+          reorderPoint: settings.reorderPoint ?? null,
+          reorderQuantity: settings.reorderQuantity ?? null,
+          minimumStock: settings.minimumStock ?? null,
+          maximumStock: settings.maximumStock ?? null,
+          createdBy: userId,
+          updatedBy: userId,
+        },
+      });
+    } else {
+      // Update existing stock level
+      await prisma.stockLevel.update({
+        where: { productId_location: { productId, location } },
+        data: {
+          reorderPoint: settings.reorderPoint !== undefined ? settings.reorderPoint : stockLevel.reorderPoint,
+          reorderQuantity: settings.reorderQuantity !== undefined ? settings.reorderQuantity : stockLevel.reorderQuantity,
+          minimumStock: settings.minimumStock !== undefined ? settings.minimumStock : stockLevel.minimumStock,
+          maximumStock: settings.maximumStock !== undefined ? settings.maximumStock : stockLevel.maximumStock,
+          updatedBy: userId,
+        },
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update reorder settings error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update reorder settings',
+    };
+  }
+}

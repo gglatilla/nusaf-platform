@@ -6,7 +6,13 @@ import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { InventorySummaryCards, InventoryStockTable, PendingAdjustmentsTable, MovementLogTable } from '@/components/inventory';
+import {
+  InventorySummaryCards,
+  InventoryStockTable,
+  PendingAdjustmentsTable,
+  MovementLogTable,
+  ReorderSettingsTable,
+} from '@/components/inventory';
 import { cn } from '@/lib/utils';
 
 type TabType = 'stock' | 'adjustments' | 'movements' | 'settings';
@@ -137,11 +143,5 @@ function MovementLogTab() {
 }
 
 function ReorderSettingsTab({ canEdit }: { canEdit: boolean }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500">
-      <p className="text-lg font-medium text-slate-900 mb-2">Reorder Settings</p>
-      <p>Per-warehouse reorder configuration coming in Phase 5</p>
-      {canEdit && <p className="text-xs mt-2 text-primary-600">You can edit reorder settings</p>}
-    </div>
-  );
+  return <ReorderSettingsTable canEdit={canEdit} />;
 }

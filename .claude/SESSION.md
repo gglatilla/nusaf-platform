@@ -4,7 +4,7 @@
 [TASK-013D] Inventory Operations Dashboard
 
 ## Status
-IN_PROGRESS | 65% complete (Phases 1-4 of 6 complete)
+IN_PROGRESS | 85% complete (Phases 1-5 of 6 complete)
 
 ## Micro-tasks
 ### Phase 1: Page Setup & Summary Cards (COMPLETE)
@@ -29,10 +29,11 @@ IN_PROGRESS | 65% complete (Phases 1-4 of 6 complete)
 - [x] Create `MovementLogTable.tsx`
 - [x] Add filters: date range (7d/30d/90d/all), movement type, search
 
-### Phase 5: Reorder Settings Tab
-- [ ] Create `ReorderSettingsTable.tsx`
-- [ ] Create `EditReorderModal.tsx`
-- [ ] Add API endpoint: `PATCH /api/v1/products/:productId/stock/:location`
+### Phase 5: Reorder Settings Tab (COMPLETE)
+- [x] Create `ReorderSettingsTable.tsx`
+- [x] Create `EditReorderModal.tsx`
+- [x] Add API endpoint: `PATCH /api/v1/inventory/stock/:productId`
+- [x] Add `updateReorderSettings()` service function
 
 ### Phase 6: Navigation & Polish
 - [ ] Add "Inventory" to sidebar navigation
@@ -45,6 +46,8 @@ IN_PROGRESS | 65% complete (Phases 1-4 of 6 complete)
 - `frontend/src/components/inventory/PendingAdjustmentsTable.tsx` - pending adjustments queue
 - `frontend/src/components/inventory/AdjustmentApproveModal.tsx` - approve/reject modal
 - `frontend/src/components/inventory/MovementLogTable.tsx` - movement history table
+- `frontend/src/components/inventory/ReorderSettingsTable.tsx` - reorder settings table
+- `frontend/src/components/inventory/EditReorderModal.tsx` - edit reorder settings modal
 - `frontend/src/hooks/useInventory.ts` - React Query hooks for inventory API
 
 ## Files Modified

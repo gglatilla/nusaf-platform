@@ -26,6 +26,7 @@ import {
   releaseReservation,
   releaseExpiredSoftReservations,
   getInventorySummary,
+  updateReorderSettings,
 } from '../../../services/inventory.service';
 import { Warehouse } from '@prisma/client';
 
@@ -178,6 +179,68 @@ router.get('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER', 'S
       error: {
         code: 'PRODUCT_STOCK_ERROR',
         message: error instanceof Error ? error.message : 'Failed to fetch product stock',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/inventory/stock/:productId
+ * Update reorder settings for a product at a specific location
+ */
+router.patch('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId } = req.params;
+    const { location, reorderPoint, reorderQuantity, minimumStock, maximumStock } = req.body;
+
+    // Validate location
+    if (!location || !['JHB', 'CT'].includes(location)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid or missing location' },
+      });
+    }
+
+    // Validate at least one field is being updated
+    if (
+      reorderPoint === undefined &&
+      reorderQuantity === undefined &&
+      minimumStock === undefined &&
+      maximumStock === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'No fields to update' },
+      });
+    }
+
+    // Update the stock level
+    const result = await updateReorderSettings(
+      productId,
+      location as Warehouse,
+      { reorderPoint, reorderQuantity, minimumStock, maximumStock },
+      authReq.user.id
+    );
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Reorder settings updated successfully' },
+    });
+  } catch (error) {
+    console.error('Update reorder settings error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'UPDATE_REORDER_SETTINGS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update reorder settings',
       },
     });
   }
