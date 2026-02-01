@@ -270,6 +270,7 @@ export function MovementLogTable() {
           page={page}
           pageSize={pageSize}
           totalItems={data.pagination.totalItems}
+          totalPages={data.pagination.totalPages}
           onPageChange={setPage}
           onPageSizeChange={(size) => {
             setPageSize(size);

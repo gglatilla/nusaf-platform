@@ -214,6 +214,7 @@ export function ReorderSettingsTable({ canEdit }: ReorderSettingsTableProps) {
             page={page}
             pageSize={pageSize}
             totalItems={filteredItems.length}
+            totalPages={Math.ceil(filteredItems.length / pageSize)}
             onPageChange={setPage}
             onPageSizeChange={(size) => {
               setPageSize(size);

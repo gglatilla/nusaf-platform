@@ -27,19 +27,19 @@ const tabs: { id: TabType; label: string }[] = [
 export default function InventoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { user, isLoading: authLoading } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('stock');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Route protection - redirect customers
   useEffect(() => {
-    if (!authLoading && isAuthenticated && user?.role === 'CUSTOMER') {
+    if (!authLoading && user && user.role === 'CUSTOMER') {
       router.push('/dashboard');
     }
-  }, [user, isAuthenticated, authLoading, router]);
+  }, [user, authLoading, router]);
 
   // Show loading while checking auth
-  if (authLoading || !isAuthenticated) {
+  if (authLoading || !user) {
     return (
       <div className="p-6 lg:p-8">
         <div className="animate-pulse space-y-6">

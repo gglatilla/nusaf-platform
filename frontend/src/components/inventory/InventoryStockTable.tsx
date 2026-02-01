@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
 import { useStockLevels } from '@/hooks/useInventory';
 import { StockStatusBadge, type StockStatus } from './StockStatusBadge';
-import { StockFilterChips } from '@/components/products/StockFilterChips';
+import { StockFilterChips, type StockFilterValue } from '@/components/products/StockFilterChips';
 import { Pagination } from '@/components/products/Pagination';
 import { cn } from '@/lib/utils';
 import type { StockLevelItem } from '@/lib/api';
@@ -124,7 +124,7 @@ function TableSkeleton() {
 
 export function InventoryStockTable() {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StockFilterValue>('ALL');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [sortField, setSortField] = useState<SortField>('sku');
@@ -237,7 +237,7 @@ export function InventoryStockTable() {
           />
         </div>
         <StockFilterChips
-          value={statusFilter}
+          selected={statusFilter}
           onChange={(value) => {
             setStatusFilter(value);
             setPage(1);
@@ -324,6 +324,7 @@ export function InventoryStockTable() {
           page={page}
           pageSize={pageSize}
           totalItems={rows.length}
+          totalPages={Math.ceil(rows.length / pageSize)}
           onPageChange={setPage}
           onPageSizeChange={(size) => {
             setPageSize(size);
