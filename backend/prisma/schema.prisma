@@ -349,6 +349,10 @@ model Product {
   stockMovements    StockMovement[]
   stockReservations StockReservation[]
 
+  // BOM Relations
+  bomComponents  BomItem[] @relation("ParentProduct")    // Components needed to build this product
+  usedInProducts BomItem[] @relation("ComponentProduct") // Products that use this as a component
+
   // Audit
   createdAt DateTime  @default(now()) @map("created_at")
   createdBy String?   @map("created_by")
@@ -1327,4 +1331,33 @@ model Document {
   @@index([orderId])
   @@index([type])
   @@map("documents")
+}
+
+// ============================================
+// BILL OF MATERIALS ENTITIES
+// ============================================
+
+model BomItem {
+  id                 String   @id @default(cuid())
+  parentProductId    String   @map("parent_product_id")
+  parentProduct      Product  @relation("ParentProduct", fields: [parentProductId], references: [id])
+  componentProductId String   @map("component_product_id")
+  componentProduct   Product  @relation("ComponentProduct", fields: [componentProductId], references: [id])
+
+  quantity     Decimal  @db.Decimal(10, 4)
+  unitOverride String?  @map("unit_override")
+  notes        String?
+  sortOrder    Int      @default(0) @map("sort_order")
+  isOptional   Boolean  @default(false) @map("is_optional")
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([parentProductId, componentProductId])
+  @@index([parentProductId])
+  @@index([componentProductId])
+  @@map("bom_items")
 }
