@@ -6,14 +6,14 @@
 (none)
 
 ## Up Next
-- [TASK-017] Supplier CRUD [Master Data, Backend, UI]
+- [TASK-019] BOM Schema & API [Master Data, Backend]
 
 ## Backlog
 
 ### Phase A: Master Data Management (Foundation)
-- [TASK-017] Supplier CRUD [Master Data, Backend, UI]
-- [TASK-018] Product Editing [Master Data, Backend, UI]
-- [TASK-018A] Product Type Field [Master Data, Schema]
+- [TASK-017] Supplier CRUD [Master Data, Backend, UI] ✓
+- [TASK-018] Product Editing [Master Data, Backend, UI] ✓
+- [TASK-018A] Product Type Field [Master Data, Schema] ✓ (merged into TASK-018)
 
 ### Phase B: Bill of Materials
 - [TASK-019] BOM Schema & API [Master Data, Backend]
@@ -96,6 +96,8 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-013B] Product page Inventory tab ✓
 - [TASK-013C] Product list stock badges ✓
 - [TASK-013D] Inventory operations dashboard ✓
+- [TASK-017] Supplier CRUD ✓
+- [TASK-018] Product Editing (includes TASK-018A) ✓
 
 ---
 
