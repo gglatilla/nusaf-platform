@@ -4,7 +4,7 @@
 [TASK-013D] Inventory Operations Dashboard
 
 ## Status
-IN_PROGRESS | 35% complete (Phases 1-2 of 6 complete)
+IN_PROGRESS | 50% complete (Phases 1-3 of 6 complete)
 
 ## Micro-tasks
 ### Phase 1: Page Setup & Summary Cards (COMPLETE)
@@ -20,10 +20,10 @@ IN_PROGRESS | 35% complete (Phases 1-2 of 6 complete)
 - [x] Connect to existing GET /api/v1/inventory/stock
 - [x] Group stock levels by product showing JHB/CT columns
 
-### Phase 3: Pending Adjustments Tab
-- [ ] Create `PendingAdjustmentsTable.tsx`
-- [ ] Create `AdjustmentApproveModal.tsx`
-- [ ] Wire approve/reject to existing API endpoints
+### Phase 3: Pending Adjustments Tab (COMPLETE)
+- [x] Create `PendingAdjustmentsTable.tsx`
+- [x] Create `AdjustmentApproveModal.tsx`
+- [x] Wire approve/reject to existing API endpoints
 
 ### Phase 4: Movement Log Tab
 - [ ] Create `MovementLogTable.tsx`
@@ -42,6 +42,8 @@ IN_PROGRESS | 35% complete (Phases 1-2 of 6 complete)
 - `frontend/src/app/(portal)/inventory/page.tsx` - main inventory dashboard page
 - `frontend/src/components/inventory/InventorySummaryCards.tsx` - 4 stat cards component
 - `frontend/src/components/inventory/InventoryStockTable.tsx` - cross-product stock table
+- `frontend/src/components/inventory/PendingAdjustmentsTable.tsx` - pending adjustments queue
+- `frontend/src/components/inventory/AdjustmentApproveModal.tsx` - approve/reject modal
 - `frontend/src/hooks/useInventory.ts` - React Query hooks for inventory API
 
 ## Files Modified

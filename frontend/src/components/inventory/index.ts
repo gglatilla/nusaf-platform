@@ -6,3 +6,5 @@ export { AdjustStockModal } from './AdjustStockModal';
 export { InventorySettings } from './InventorySettings';
 export { InventorySummaryCards } from './InventorySummaryCards';
 export { InventoryStockTable } from './InventoryStockTable';
+export { PendingAdjustmentsTable } from './PendingAdjustmentsTable';
+export { AdjustmentApproveModal } from './AdjustmentApproveModal';

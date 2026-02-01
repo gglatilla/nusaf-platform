@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { InventorySummaryCards, InventoryStockTable } from '@/components/inventory';
+import { InventorySummaryCards, InventoryStockTable, PendingAdjustmentsTable } from '@/components/inventory';
 import { cn } from '@/lib/utils';
 
 type TabType = 'stock' | 'adjustments' | 'movements' | 'settings';
@@ -129,13 +129,7 @@ function StockLevelsTab() {
 }
 
 function PendingAdjustmentsTab({ canApprove }: { canApprove: boolean }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500">
-      <p className="text-lg font-medium text-slate-900 mb-2">Pending Adjustments</p>
-      <p>Approval queue coming in Phase 3</p>
-      {canApprove && <p className="text-xs mt-2 text-primary-600">You can approve/reject adjustments</p>}
-    </div>
-  );
+  return <PendingAdjustmentsTable canApprove={canApprove} />;
 }
 
 function MovementLogTab() {
