@@ -13,3 +13,7 @@ export type { WarehouseValue } from './WarehouseSelector';
 export { ViewToggle } from './ViewToggle';
 export type { ViewMode } from './ViewToggle';
 export { ProductTable } from './ProductTable';
+export { BomTable } from './BomTable';
+export { AddComponentModal } from './AddComponentModal';
+export { WhereUsedSection } from './WhereUsedSection';
+export { ProductBomTab } from './ProductBomTab';

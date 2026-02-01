@@ -15,10 +15,11 @@ import {
   InventorySettings,
 } from '@/components/inventory';
 import { ProductFormModal } from '@/components/products/ProductFormModal';
+import { ProductBomTab } from '@/components/products/ProductBomTab';
 import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
 
-type TabType = 'details' | 'inventory' | 'pricing' | 'images';
+type TabType = 'details' | 'inventory' | 'pricing' | 'images' | 'bom';
 
 function LoadingSkeleton() {
   return (
@@ -97,6 +98,7 @@ export default function ProductDetailPage() {
     { id: 'pricing', label: 'Pricing', show: isInternalUser ?? false },
     { id: 'images', label: 'Images', show: true },
     { id: 'inventory', label: 'Inventory', show: canSeeInventory ?? false },
+    { id: 'bom', label: 'Bill of Materials', show: isInternalUser ?? false },
   ];
 
   return (
@@ -320,6 +322,14 @@ export default function ProductDetailPage() {
           canAdjustStock={canAdjustStock ?? false}
           userPrimaryWarehouse={user?.primaryWarehouse ?? null}
           userRole={(user?.role as 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER') ?? 'CUSTOMER'}
+        />
+      )}
+
+      {activeTab === 'bom' && isInternalUser && (
+        <ProductBomTab
+          productId={product.id}
+          productSku={product.nusafSku}
+          canEdit={canEditProduct ?? false}
         />
       )}
 

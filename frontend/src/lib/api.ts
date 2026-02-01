@@ -317,6 +317,71 @@ export interface UpdateProductData {
   leadTimeDays?: number | null;
 }
 
+// ============================================
+// BOM (BILL OF MATERIALS) TYPES
+// ============================================
+
+export interface BomItemData {
+  id: string;
+  componentProductId: string;
+  componentProduct: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    unitOfMeasure: string;
+  };
+  quantity: number;
+  unitOverride: string | null;
+  notes: string | null;
+  sortOrder: number;
+  isOptional: boolean;
+  hasOwnBom: boolean;
+}
+
+export interface AddBomComponentInput {
+  componentProductId: string;
+  quantity: number;
+  unitOverride?: string | null;
+  notes?: string | null;
+  sortOrder?: number;
+  isOptional?: boolean;
+}
+
+export interface UpdateBomComponentInput {
+  quantity?: number;
+  unitOverride?: string | null;
+  notes?: string | null;
+  sortOrder?: number;
+  isOptional?: boolean;
+}
+
+export interface BomStockCheckResult {
+  canFulfill: boolean;
+  components: Array<{
+    productId: string;
+    nusafSku: string;
+    description: string;
+    requiredQuantity: number;
+    availableQuantity: number;
+    shortfall: number;
+    isOptional: boolean;
+  }>;
+  optionalComponents: Array<{
+    productId: string;
+    nusafSku: string;
+    description: string;
+    requiredQuantity: number;
+    availableQuantity: number;
+  }>;
+}
+
+export interface WhereUsedItem {
+  id: string;
+  nusafSku: string;
+  description: string;
+  quantity: number;
+}
+
 export interface CreateStockAdjustmentData {
   warehouseId: string;
   adjustmentType: 'ADD' | 'REMOVE' | 'SET';
@@ -2112,6 +2177,68 @@ class ApiClient {
   async deleteProduct(id: string): Promise<void> {
     await this.request(`/products/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // BOM (BILL OF MATERIALS) METHODS
+  // ============================================
+
+  async getProductBom(
+    productId: string
+  ): Promise<ApiResponse<{ productId: string; components: BomItemData[] }>> {
+    return this.request(`/products/${productId}/bom`);
+  }
+
+  async addBomComponent(
+    productId: string,
+    data: AddBomComponentInput
+  ): Promise<ApiResponse<BomItemData>> {
+    return this.request(`/products/${productId}/bom`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateBomComponent(
+    productId: string,
+    componentId: string,
+    data: UpdateBomComponentInput
+  ): Promise<ApiResponse<BomItemData>> {
+    return this.request(`/products/${productId}/bom/${componentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeBomComponent(productId: string, componentId: string): Promise<void> {
+    await this.request(`/products/${productId}/bom/${componentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async checkBomStock(
+    productId: string,
+    quantity: number,
+    warehouse: 'JHB' | 'CT'
+  ): Promise<ApiResponse<BomStockCheckResult>> {
+    return this.request(
+      `/products/${productId}/bom/stock-check?quantity=${quantity}&warehouse=${warehouse}`
+    );
+  }
+
+  async getWhereUsed(
+    productId: string
+  ): Promise<ApiResponse<{ productId: string; usedIn: WhereUsedItem[] }>> {
+    return this.request(`/products/${productId}/where-used`);
+  }
+
+  async copyBom(
+    targetProductId: string,
+    sourceProductId: string
+  ): Promise<ApiResponse<{ copiedCount: number }>> {
+    return this.request(`/products/${targetProductId}/bom/copy-from/${sourceProductId}`, {
+      method: 'POST',
     });
   }
 }
