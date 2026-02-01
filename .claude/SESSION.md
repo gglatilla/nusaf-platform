@@ -1,7 +1,7 @@
 # Current Session
 
 ## Active Task
-TASK-013C Product List Stock Badges (COMPLETE)
+TASK-013C Product List UX Redesign (COMPLETE)
 
 ## Status
 COMPLETE | 100%
@@ -9,29 +9,54 @@ COMPLETE | 100%
 ## Previous Task Completed
 TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
 
-## Completed Micro-tasks
-- [x] Extend API types - add `stockSummary` to CatalogProduct, extend ProductsQueryParams
-- [x] Update useProducts hook - always include stockSummary
-- [x] Add StockStatusBadge to ProductCard (top-right corner)
-- [x] Create StockStatusFilter component (sidebar checkboxes)
-- [x] Create ProductSort component (dropdown above grid)
-- [x] Integrate in Products page (state, URL sync, wire up)
-- [x] Export new components
+## Completed Micro-tasks (TASK-013C Redesign)
+- [x] Backend: Implement warehouse filtering in products API (warehouseId param)
+- [x] Frontend: Add warehouseId to API types
+- [x] Create StockIndicator component (subtle below-price indicator with colored dot)
+- [x] Create StockFilterChips component (single-select horizontal chips)
+- [x] Create WarehouseSelector component (dropdown for internal users)
+- [x] Create ViewToggle component (grid/table toggle icons)
+- [x] Create ProductTable component (4-column sortable table)
+- [x] Update ProductCard - remove old badge, add StockIndicator below price
+- [x] Update ProductGrid - add showQuantity prop passthrough
+- [x] Refactor Products page with role-based UI
+- [x] Delete obsolete StockStatusFilter component
+- [x] Update component exports
 
 ## Files Modified
-- `frontend/src/lib/api.ts` - added stockSummary to CatalogProduct, extended ProductsQueryParams
-- `frontend/src/hooks/useProducts.ts` - always includes stockSummary
-- `frontend/src/components/products/ProductCard.tsx` - displays StockStatusBadge
-- `frontend/src/components/products/StockStatusFilter.tsx` (NEW) - checkbox filter
-- `frontend/src/components/products/ProductSort.tsx` (NEW) - sort dropdown
-- `frontend/src/app/(portal)/products/page.tsx` - full integration
-- `frontend/src/components/products/index.ts` - exports
+- `backend/src/api/v1/products/route.ts` - warehouse filtering
+- `backend/src/services/inventory.service.ts` - warehouse-specific stock queries
+- `frontend/src/lib/api.ts` - added warehouseId to ProductsQueryParams
+- `frontend/src/components/products/StockIndicator.tsx` (NEW) - dot + text indicator
+- `frontend/src/components/products/StockFilterChips.tsx` (NEW) - single-select chips
+- `frontend/src/components/products/WarehouseSelector.tsx` (NEW) - warehouse dropdown
+- `frontend/src/components/products/ViewToggle.tsx` (NEW) - grid/table toggle
+- `frontend/src/components/products/ProductTable.tsx` (NEW) - sortable table view
+- `frontend/src/components/products/ProductCard.tsx` - uses StockIndicator
+- `frontend/src/components/products/ProductGrid.tsx` - showQuantity prop
+- `frontend/src/app/(portal)/products/page.tsx` - complete role-based redesign
+- `frontend/src/components/products/StockStatusFilter.tsx` (DELETED)
+- `frontend/src/components/products/index.ts` - updated exports
 
 ## What Was Built
-- Stock status badges appear on each product card (In Stock, Low Stock, Out of Stock, On Order, Overstock)
-- Stock status filter in sidebar (checkbox list)
-- Sort dropdown above product grid (name, price, availability)
-- All filters/sorting sync to URL and persist on page refresh
+Role-based product listing UX:
+
+**Customer View:**
+- Grid view only (no toggle)
+- Stock indicator shows "● X available" below price
+- No warehouse selector
+- Single-select filter chips: All, In Stock, Low Stock, Out of Stock, On Order
+
+**Admin/Sales View:**
+- Grid/Table view toggle
+- Warehouse selector defaulting to user's primaryWarehouse
+- Table view with 4 sortable columns (SKU, Description, Price, Available)
+- Row click opens modal (same as card click)
+- Stock shows numbers, not text
+
+**All Users:**
+- All filters/sorting/view mode sync to URL
+- Warehouse filter affects stock numbers shown
 
 ## Next Steps
 1. Move to TASK-013D: Inventory Operations Dashboard
@@ -42,5 +67,11 @@ TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
    - Per-warehouse reorder settings editing
 
 ## Context for Next Session
-TASK-013C is complete. Backend already supports all the API params used.
+TASK-013C redesign is complete. The product list now has:
+- Role-based views (customers vs internal users)
+- Warehouse-specific stock filtering
+- Grid/table toggle for internal users
+- Single-select filter chips instead of sidebar checkboxes
+- Subtle below-price stock indicators instead of corner badges
+
 Ready to start TASK-013D (Inventory Operations Dashboard).
