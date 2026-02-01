@@ -4,7 +4,7 @@
 [TASK-017] Supplier CRUD [Master Data, Backend, UI]
 
 ## Status
-IN_PROGRESS | 80% complete
+COMPLETE | 100%
 
 ## Micro-tasks
 - [x] MT-1: Create Prisma migration for Supplier extensions
@@ -15,9 +15,9 @@ IN_PROGRESS | 80% complete
 - [x] MT-6: Create SupplierContact API routes
 - [x] MT-7: Add Zod validation schemas
 - [x] MT-8: Create Supplier list page (`/admin/suppliers`)
-- [ ] MT-9: Create Supplier detail page (`/admin/suppliers/[id]`)
+- [x] MT-9: Create Supplier detail page (`/admin/suppliers/[id]`)
 - [x] MT-10: Create Supplier form modal
-- [ ] MT-11: Create Contacts tab and contact form modal
+- [x] MT-11: Create Contacts tab and contact form modal
 - [x] MT-12: Wire up API hooks and navigation
 
 ## Decisions Made
@@ -41,14 +41,17 @@ IN_PROGRESS | 80% complete
 - frontend/src/lib/navigation.ts (added Suppliers nav item)
 - frontend/src/hooks/useSuppliers.ts (created - React Query hooks)
 - frontend/src/app/(portal)/admin/suppliers/page.tsx (created - list page)
+- frontend/src/app/(portal)/admin/suppliers/[id]/page.tsx (created - detail page)
 - frontend/src/components/suppliers/SupplierListTable.tsx (created)
 - frontend/src/components/suppliers/SupplierFormModal.tsx (created)
+- frontend/src/components/suppliers/ContactFormModal.tsx (created)
 
 ## Next Steps
-1. Create supplier detail page at frontend/src/app/(portal)/admin/suppliers/[id]/page.tsx
-2. Add Contacts tab component to show/manage supplier contacts
-3. Create ContactFormModal for add/edit contacts
-4. Test full flow end-to-end
+TASK-017 is complete. Ready for next task.
 
 ## Context for Next Session
-TASK-017 is 80% complete. Backend is fully done with all 8 API endpoints. Frontend has list page with search/filter/pagination and create/edit modal working. Remaining work is the supplier detail page with contacts management.
+Completed full Supplier CRUD implementation:
+- Backend: 8 API endpoints for supplier and contact management
+- Frontend: List page with search/filter/pagination, detail page with tabs, form modals
+- Full CRUD for both suppliers and contacts
+- Role-based access (Admin for writes, Sales/Manager for reads)
