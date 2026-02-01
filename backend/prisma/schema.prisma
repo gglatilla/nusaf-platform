@@ -196,10 +196,27 @@ model Supplier {
   isLocal     Boolean          @default(false) @map("is_local")
   isActive    Boolean          @default(true) @map("is_active")
 
+  // Contact info
+  email   String?
+  phone   String?
+  website String?
+
+  // Address
+  addressLine1 String? @map("address_line_1")
+  addressLine2 String? @map("address_line_2")
+  city         String?
+  postalCode   String? @map("postal_code")
+
+  // Business terms
+  paymentTerms      String?  @map("payment_terms")
+  minimumOrderValue Decimal? @map("minimum_order_value") @db.Decimal(12, 2)
+  notes             String?
+
   // Relations
   products     Product[]
   skuMappings  SkuMapping[]
   pricingRules PricingRule[]
+  contacts     SupplierContact[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -208,6 +225,25 @@ model Supplier {
   updatedBy String?  @map("updated_by")
 
   @@map("suppliers")
+}
+
+model SupplierContact {
+  id         String   @id @default(cuid())
+  supplierId String   @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  firstName String  @map("first_name")
+  lastName  String  @map("last_name")
+  email     String
+  phone     String?
+  role      String?
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([supplierId])
+  @@map("supplier_contacts")
 }
 
 model Category {
