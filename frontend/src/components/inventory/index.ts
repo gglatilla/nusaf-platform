@@ -5,3 +5,4 @@ export { StockMovementsTable } from './StockMovementsTable';
 export { AdjustStockModal } from './AdjustStockModal';
 export { InventorySettings } from './InventorySettings';
 export { InventorySummaryCards } from './InventorySummaryCards';
+export { InventoryStockTable } from './InventoryStockTable';

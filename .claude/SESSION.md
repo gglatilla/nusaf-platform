@@ -4,7 +4,7 @@
 [TASK-013D] Inventory Operations Dashboard
 
 ## Status
-IN_PROGRESS | 20% complete (Phase 1 of 6 complete)
+IN_PROGRESS | 35% complete (Phases 1-2 of 6 complete)
 
 ## Micro-tasks
 ### Phase 1: Page Setup & Summary Cards (COMPLETE)
@@ -14,10 +14,11 @@ IN_PROGRESS | 20% complete (Phase 1 of 6 complete)
 - [x] Add `useInventorySummary()` React Query hook
 - [x] Add Inventory to sidebar navigation
 
-### Phase 2: Stock Levels Tab
-- [ ] Create `InventoryStockTable.tsx` - cross-product table
-- [ ] Add filters: status, category, search
-- [ ] Connect to existing GET /api/v1/inventory/stock
+### Phase 2: Stock Levels Tab (COMPLETE)
+- [x] Create `InventoryStockTable.tsx` - cross-product table
+- [x] Add filters: status, search
+- [x] Connect to existing GET /api/v1/inventory/stock
+- [x] Group stock levels by product showing JHB/CT columns
 
 ### Phase 3: Pending Adjustments Tab
 - [ ] Create `PendingAdjustmentsTable.tsx`
@@ -40,6 +41,7 @@ IN_PROGRESS | 20% complete (Phase 1 of 6 complete)
 ## Files Created
 - `frontend/src/app/(portal)/inventory/page.tsx` - main inventory dashboard page
 - `frontend/src/components/inventory/InventorySummaryCards.tsx` - 4 stat cards component
+- `frontend/src/components/inventory/InventoryStockTable.tsx` - cross-product stock table
 - `frontend/src/hooks/useInventory.ts` - React Query hooks for inventory API
 
 ## Files Modified

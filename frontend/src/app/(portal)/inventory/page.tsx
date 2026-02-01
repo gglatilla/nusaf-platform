@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { InventorySummaryCards } from '@/components/inventory';
+import { InventorySummaryCards, InventoryStockTable } from '@/components/inventory';
 import { cn } from '@/lib/utils';
 
 type TabType = 'stock' | 'adjustments' | 'movements' | 'settings';
@@ -123,14 +123,9 @@ export default function InventoryPage() {
   );
 }
 
-// Placeholder components for tabs - will be built in subsequent phases
+// Tab components
 function StockLevelsTab() {
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-500">
-      <p className="text-lg font-medium text-slate-900 mb-2">Stock Levels</p>
-      <p>Cross-product stock table coming in Phase 2</p>
-    </div>
-  );
+  return <InventoryStockTable />;
 }
 
 function PendingAdjustmentsTab({ canApprove }: { canApprove: boolean }) {
