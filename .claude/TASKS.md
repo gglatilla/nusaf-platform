@@ -6,7 +6,7 @@
 (none)
 
 ## Up Next
-- [TASK-019A] BOM UI [Master Data, UI]
+- [TASK-020] Purchase Orders [Procurement, Backend]
 
 ## Backlog
 
@@ -17,7 +17,7 @@
 
 ### Phase B: Bill of Materials
 - [TASK-019] BOM Schema & API [Master Data, Backend] ✓
-- [TASK-019A] BOM UI [Master Data, UI]
+- [TASK-019A] BOM UI [Master Data, UI] ✓
 
 ### Phase C: Procurement
 - [TASK-020] Purchase Orders [Procurement, Backend]
@@ -99,6 +99,7 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-017] Supplier CRUD ✓
 - [TASK-018] Product Editing (includes TASK-018A) ✓
 - [TASK-019] BOM Schema & API ✓
+- [TASK-019A] BOM UI ✓
 
 ---
 

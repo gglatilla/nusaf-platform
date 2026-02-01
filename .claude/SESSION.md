@@ -1,71 +1,47 @@
 # Current Session
 
 ## Active Task
-[TASK-019] BOM Schema & API [Master Data, Backend]
+(none)
 
 ## Status
-COMPLETE | 100%
+COMPLETE | TASK-019A finished
 
-## Micro-tasks
-- [x] MT-1: Add BomItem model to schema.prisma with Product relations
-- [x] MT-2: Create and run migration
-- [x] MT-3: Create Zod validation schemas for BOM operations
-- [x] MT-4: Implement `getBom()` function
-- [x] MT-5: Implement `addBomComponent()`
-- [x] MT-6: Implement `updateBomComponent()`
-- [x] MT-7: Implement `removeBomComponent()`
-- [x] MT-8: Implement `validateBomCircular()`
-- [x] MT-9: Wire circular validation into addBomComponent
-- [x] MT-10: Implement `explodeBom()` - recursive
-- [x] MT-11: Implement `checkBomStock()`
-- [x] MT-12: Implement `getWhereUsed()` and `copyBom()`
-- [x] MT-13: Add GET `/products/:id/bom` endpoint
-- [x] MT-14: Add POST `/products/:id/bom` endpoint
-- [x] MT-15: Add PATCH/DELETE `/products/:id/bom/:componentId`
-- [x] MT-16: Add GET `/products/:id/bom/stock-check`
-- [x] MT-17: Add GET `/products/:id/where-used`, POST `copy-from`
-- [x] MT-18: Final commit and push
+## Completed This Session
+- [x] MT-1: Add BOM types to api.ts
+- [x] MT-2: Add BOM API methods to ApiClient
+- [x] MT-3: Create useBom.ts with all BOM hooks
+- [x] MT-4: Create BomTable component
+- [x] MT-5: Create AddComponentModal
+- [x] MT-6: Create WhereUsedSection
+- [x] MT-7: Create ProductBomTab orchestrator
+- [x] MT-8: Add BOM tab to product detail page
+- [x] MT-9: Export components from index.ts
+- [x] MT-10: Final commit and push
 
-## Decisions Made
-- No BOM versioning (simple model, edits in place)
-- Recursive BOM explosion (components can have their own BOMs)
-- Optional items excluded from stock fulfillment check (listed but don't affect canFulfill)
-- BFS algorithm for circular reference detection
+## Files Created
+- frontend/src/hooks/useBom.ts
+- frontend/src/components/products/BomTable.tsx
+- frontend/src/components/products/AddComponentModal.tsx
+- frontend/src/components/products/WhereUsedSection.tsx
+- frontend/src/components/products/ProductBomTab.tsx
 
 ## Files Modified
-### Backend
-- backend/prisma/schema.prisma (added BomItem model, Product relations)
-- backend/prisma/migrations/20260201140000_add_bom_items/migration.sql (created)
-- backend/src/utils/validation/bom.ts (created - Zod schemas)
-- backend/src/services/bom.service.ts (created - all BOM functions)
-- backend/src/api/v1/products/route.ts (added BOM endpoints)
+- frontend/src/lib/api.ts (added BOM types and methods)
+- frontend/src/app/(portal)/products/[id]/page.tsx (added BOM tab)
+- frontend/src/components/products/index.ts (exports)
 
-## API Endpoints Implemented
-| Method | Endpoint | Purpose | Auth |
-|--------|----------|---------|------|
-| GET | `/products/:id/bom` | Get BOM tree | All authenticated |
-| POST | `/products/:id/bom` | Add component | ADMIN |
-| PATCH | `/products/:id/bom/:componentId` | Update component | ADMIN |
-| DELETE | `/products/:id/bom/:componentId` | Remove component | ADMIN |
-| GET | `/products/:id/bom/stock-check` | Check stock | All authenticated |
-| GET | `/products/:id/where-used` | Reverse lookup | All authenticated |
-| POST | `/products/:id/bom/copy-from/:sourceId` | Copy BOM | ADMIN |
+## Decisions Made
+- Add Component: Header button opens modal (consistent with Edit button)
+- Component Search: Simple search-only (no category filter)
+- Where Used: Collapsible section below BOM table
+- BOM tab visible to internal users only, editable by ADMIN only
 
-## Next Steps
-TASK-019 is complete. Ready for next task (TASK-019A: BOM UI).
+## Next Task
+TASK-020: Purchase Orders [Procurement, Backend]
 
 ## Context for Next Session
-Completed TASK-019: BOM Schema & API. The backend now supports:
-- Bill of Materials with parent/component product relationships
-- Recursive BOM explosion (components can have their own BOMs)
-- Circular reference prevention (BFS validation)
-- Stock availability checking for all components
-- Where-used lookup (which products use this component)
-- Copy BOM between products
+TASK-019A (BOM UI) is complete. The BOM system (TASK-019 + TASK-019A) is now fully implemented with:
+- Backend: BOM schema, API endpoints, service functions (circular validation, stock check, BOM explosion)
+- Frontend: BOM tab on product detail page, component picker modal, where-used section
 
-The BOM UI (TASK-019A) should implement:
-- BOM tab on product detail/edit page
-- Component picker modal
-- Quantity editing
-- Where-used view
-- Copy BOM UI
+Next up is Phase C: Procurement — starting with TASK-020 Purchase Orders.
