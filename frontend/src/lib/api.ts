@@ -1063,6 +1063,124 @@ export interface DocumentDownloadResponse {
   filename: string;
 }
 
+// Supplier types
+export type SupplierCurrency = 'EUR' | 'ZAR';
+export type SkuHandling = 'DIRECT' | 'TECOM_CONVERSION' | 'NUSAF_INTERNAL';
+
+export interface SupplierContact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  role: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+  country: string;
+  currency: SupplierCurrency;
+  skuHandling: SkuHandling;
+  isLocal: boolean;
+  isActive: boolean;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  postalCode: string | null;
+  paymentTerms: string | null;
+  minimumOrderValue: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contacts?: SupplierContact[];
+  _count?: {
+    products: number;
+  };
+}
+
+export interface SuppliersListResponse {
+  suppliers: Supplier[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface SuppliersQueryParams {
+  search?: string;
+  isActive?: boolean;
+  currency?: SupplierCurrency;
+  isLocal?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateSupplierData {
+  code: string;
+  name: string;
+  country?: string;
+  currency?: SupplierCurrency;
+  skuHandling: SkuHandling;
+  isLocal?: boolean;
+  email?: string;
+  phone?: string;
+  website?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  postalCode?: string;
+  paymentTerms?: string;
+  minimumOrderValue?: number;
+  notes?: string;
+}
+
+export interface UpdateSupplierData {
+  name?: string;
+  country?: string;
+  currency?: SupplierCurrency;
+  skuHandling?: SkuHandling;
+  isLocal?: boolean;
+  isActive?: boolean;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  postalCode?: string | null;
+  paymentTerms?: string | null;
+  minimumOrderValue?: number | null;
+  notes?: string | null;
+}
+
+export interface CreateContactData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  isPrimary?: boolean;
+}
+
+export interface UpdateContactData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string | null;
+  role?: string | null;
+  isPrimary?: boolean;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -1835,6 +1953,65 @@ class ApiClient {
 
   async deleteDocument(id: string): Promise<void> {
     await this.request(`/documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Supplier endpoints
+  async getSuppliers(params: SuppliersQueryParams = {}): Promise<ApiResponse<SuppliersListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.search) searchParams.set('search', params.search);
+    if (params.isActive !== undefined) searchParams.set('isActive', params.isActive.toString());
+    if (params.currency) searchParams.set('currency', params.currency);
+    if (params.isLocal !== undefined) searchParams.set('isLocal', params.isLocal.toString());
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/suppliers?${queryString}` : '/suppliers';
+    return this.request<ApiResponse<SuppliersListResponse>>(endpoint);
+  }
+
+  async getSupplierById(id: string): Promise<ApiResponse<Supplier>> {
+    return this.request<ApiResponse<Supplier>>(`/suppliers/${id}`);
+  }
+
+  async createSupplier(data: CreateSupplierData): Promise<ApiResponse<Supplier>> {
+    return this.request<ApiResponse<Supplier>>('/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSupplier(id: string, data: UpdateSupplierData): Promise<ApiResponse<Supplier>> {
+    return this.request<ApiResponse<Supplier>>(`/suppliers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSupplier(id: string): Promise<void> {
+    await this.request(`/suppliers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addSupplierContact(supplierId: string, data: CreateContactData): Promise<ApiResponse<SupplierContact>> {
+    return this.request<ApiResponse<SupplierContact>>(`/suppliers/${supplierId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSupplierContact(supplierId: string, contactId: string, data: UpdateContactData): Promise<ApiResponse<SupplierContact>> {
+    return this.request<ApiResponse<SupplierContact>>(`/suppliers/${supplierId}/contacts/${contactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSupplierContact(supplierId: string, contactId: string): Promise<void> {
+    await this.request(`/suppliers/${supplierId}/contacts/${contactId}`, {
       method: 'DELETE',
     });
   }
