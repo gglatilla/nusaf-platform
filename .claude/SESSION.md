@@ -1,51 +1,46 @@
 # Current Session
 
 ## Active Task
-TASK-013C Product List Stock Badges (PLANNED, NOT STARTED)
+TASK-013C Product List Stock Badges (COMPLETE)
 
 ## Status
-PLANNED | Plan approved, ready to implement
+COMPLETE | 100%
 
 ## Previous Task Completed
 TASK-013B Bug Fixes - Inventory Tab Issues (COMPLETE)
-- Missing inventory tables migration
-- API response shape alignment
-- Warehouse breakdown always shows both locations
-- Backend + frontend sort: JHB first
 
-## TASK-013C Plan Summary
-Add stock status badges to product listing page:
+## Completed Micro-tasks
+- [x] Extend API types - add `stockSummary` to CatalogProduct, extend ProductsQueryParams
+- [x] Update useProducts hook - always include stockSummary
+- [x] Add StockStatusBadge to ProductCard (top-right corner)
+- [x] Create StockStatusFilter component (sidebar checkboxes)
+- [x] Create ProductSort component (dropdown above grid)
+- [x] Integrate in Products page (state, URL sync, wire up)
+- [x] Export new components
 
-### Micro-tasks (7 total)
-1. Extend API types - add `stockSummary` to CatalogProduct, extend ProductsQueryParams
-2. Update useProducts hook - always include stockSummary
-3. Add StockStatusBadge to ProductCard (top-right corner)
-4. Create StockStatusFilter component (sidebar checkboxes)
-5. Create ProductSort component (dropdown above grid)
-6. Integrate in Products page (state, URL sync, wire up)
-7. Export new components
+## Files Modified
+- `frontend/src/lib/api.ts` - added stockSummary to CatalogProduct, extended ProductsQueryParams
+- `frontend/src/hooks/useProducts.ts` - always includes stockSummary
+- `frontend/src/components/products/ProductCard.tsx` - displays StockStatusBadge
+- `frontend/src/components/products/StockStatusFilter.tsx` (NEW) - checkbox filter
+- `frontend/src/components/products/ProductSort.tsx` (NEW) - sort dropdown
+- `frontend/src/app/(portal)/products/page.tsx` - full integration
+- `frontend/src/components/products/index.ts` - exports
 
-### Files to Modify
-- `frontend/src/lib/api.ts`
-- `frontend/src/hooks/useProducts.ts`
-- `frontend/src/components/products/ProductCard.tsx`
-- `frontend/src/components/products/StockStatusFilter.tsx` (NEW)
-- `frontend/src/components/products/ProductSort.tsx` (NEW)
-- `frontend/src/app/(portal)/products/page.tsx`
-- `frontend/src/components/products/index.ts`
+## What Was Built
+- Stock status badges appear on each product card (In Stock, Low Stock, Out of Stock, On Order, Overstock)
+- Stock status filter in sidebar (checkbox list)
+- Sort dropdown above product grid (name, price, availability)
+- All filters/sorting sync to URL and persist on page refresh
 
-## Full Plan Location
-See: `C:\Users\Guido\.claude\plans\cryptic-cuddling-parnas.md`
-
-## Next Steps (Exact)
-1. Start with micro-task 1: Extend API types in `frontend/src/lib/api.ts`
-2. Add `stockSummary` optional field to CatalogProduct interface
-3. Add `include` and `stockStatus` to ProductsQueryParams
+## Next Steps
+1. Move to TASK-013D: Inventory Operations Dashboard
+   - Summary cards: total SKUs, items below reorder, pending adjustments
+   - Cross-product stock levels table
+   - Pending adjustments queue
+   - Stock movement audit log
+   - Per-warehouse reorder settings editing
 
 ## Context for Next Session
-TASK-013C is fully planned with 7 micro-tasks. Backend support already exists:
-- `?include=stockSummary` returns stock data per product
-- `?stockStatus=IN_STOCK,LOW_STOCK,...` filters by status
-- `?sort=available:asc|desc` sorts by availability
-
-Ready to start implementation with micro-task 1.
+TASK-013C is complete. Backend already supports all the API params used.
+Ready to start TASK-013D (Inventory Operations Dashboard).
