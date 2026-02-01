@@ -15,7 +15,13 @@ import {
   createStockAdjustment,
   type StockStatus,
 } from '../../../services/inventory.service';
+import {
+  createProduct,
+  updateProduct,
+  softDeleteProduct,
+} from '../../../services/product.service';
 import { createStockAdjustmentSchema } from '../../../utils/validation/inventory';
+import { createProductSchema, updateProductSchema } from '../../../utils/validation/products';
 import { Warehouse } from '@prisma/client';
 import type { CustomerTier } from '@prisma/client';
 
@@ -424,86 +430,87 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 /**
- * PATCH /api/v1/products/:id
- * Update product inventory defaults (admin/manager only)
- * Body: { defaultReorderPoint, defaultReorderQty, defaultMinStock, defaultMaxStock, leadTimeDays }
+ * POST /api/v1/products
+ * Create a new product manually (admin only)
  */
-router.patch('/:id', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const { id } = req.params;
-    const {
-      defaultReorderPoint,
-      defaultReorderQty,
-      defaultMinStock,
-      defaultMaxStock,
-      leadTimeDays,
-    } = req.body;
 
-    // Verify product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id },
-      select: { id: true, isActive: true, deletedAt: true },
-    });
-
-    if (!existingProduct || !existingProduct.isActive || existingProduct.deletedAt) {
-      return res.status(404).json({
+    // Validate request body
+    const bodyResult = createProductSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Product not found' },
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
       });
     }
 
-    // Build update data (only include fields that are present in body)
-    const updateData: Prisma.ProductUpdateInput = {
-      updatedBy: authReq.user.id,
-    };
+    const result = await createProduct(bodyResult.data, authReq.user.id);
 
-    if (defaultReorderPoint !== undefined) {
-      updateData.defaultReorderPoint = defaultReorderPoint === null ? null : Number(defaultReorderPoint);
-    }
-    if (defaultReorderQty !== undefined) {
-      updateData.defaultReorderQty = defaultReorderQty === null ? null : Number(defaultReorderQty);
-    }
-    if (defaultMinStock !== undefined) {
-      updateData.defaultMinStock = defaultMinStock === null ? null : Number(defaultMinStock);
-    }
-    if (defaultMaxStock !== undefined) {
-      updateData.defaultMaxStock = defaultMaxStock === null ? null : Number(defaultMaxStock);
-    }
-    if (leadTimeDays !== undefined) {
-      updateData.leadTimeDays = leadTimeDays === null ? null : Number(leadTimeDays);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CREATE_FAILED', message: result.error },
+      });
     }
 
-    // Update product
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        nusafSku: true,
-        defaultReorderPoint: true,
-        defaultReorderQty: true,
-        defaultMinStock: true,
-        defaultMaxStock: true,
-        leadTimeDays: true,
-        updatedAt: true,
+    return res.status(201).json({
+      success: true,
+      data: result.product,
+    });
+  } catch (error) {
+    console.error('Create product error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_CREATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to create product',
       },
     });
+  }
+});
+
+/**
+ * PATCH /api/v1/products/:id
+ * Update a product (admin only)
+ * Supports all product fields including pricing, classification, and inventory defaults
+ */
+router.patch('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Validate request body
+    const bodyResult = updateProductSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await updateProduct(id, bodyResult.data, authReq.user.id);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Product not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: { code: statusCode === 404 ? 'NOT_FOUND' : 'UPDATE_FAILED', message: result.error },
+      });
+    }
 
     return res.json({
       success: true,
-      data: {
-        id: updatedProduct.id,
-        nusafSku: updatedProduct.nusafSku,
-        inventoryDefaults: {
-          reorderPoint: updatedProduct.defaultReorderPoint,
-          reorderQty: updatedProduct.defaultReorderQty,
-          minStock: updatedProduct.defaultMinStock,
-          maxStock: updatedProduct.defaultMaxStock,
-          leadTimeDays: updatedProduct.leadTimeDays,
-        },
-        updatedAt: updatedProduct.updatedAt,
-      },
+      data: result.product,
     });
   } catch (error) {
     console.error('Update product error:', error);
@@ -512,6 +519,41 @@ router.patch('/:id', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, 
       error: {
         code: 'PRODUCT_UPDATE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to update product',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/products/:id
+ * Soft delete a product (admin only)
+ */
+router.delete('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await softDeleteProduct(id, authReq.user.id);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Product not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: { code: statusCode === 404 ? 'NOT_FOUND' : 'DELETE_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Product deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete product',
       },
     });
   }

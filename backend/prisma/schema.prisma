@@ -182,6 +182,13 @@ enum UnitOfMeasure {
   BX
 }
 
+enum ProductType {
+  STOCK_ONLY
+  ASSEMBLY_REQUIRED
+  MADE_TO_ORDER
+  KIT
+}
+
 // ============================================
 // PRODUCT CATALOG ENTITIES
 // ============================================
@@ -314,6 +321,17 @@ model Product {
   defaultMinStock     Int? @map("default_min_stock")     // Safety stock level
   defaultMaxStock     Int? @map("default_max_stock")     // Max storage capacity
   leadTimeDays        Int? @map("lead_time_days")        // Supplier lead time
+
+  // Product classification (for orchestration)
+  productType      ProductType @default(STOCK_ONLY) @map("product_type")
+  assemblyLeadDays Int?        @map("assembly_lead_days") // Days to assemble/manufacture
+  isConfigurable   Boolean     @default(false) @map("is_configurable")
+
+  // Extended product info
+  longDescription String?  @map("long_description")
+  weight          Decimal? @db.Decimal(10, 3) // Weight in kg
+  dimensionsJson  Json?    @map("dimensions_json") // { length, width, height, unit }
+  imageUrl        String?  @map("image_url")
 
   // Supplier
   supplierId String   @map("supplier_id")
