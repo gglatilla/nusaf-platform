@@ -1,6 +1,12 @@
 -- ============================================
--- FIXED MIGRATION: Transaction-safe enum change
+-- IDEMPOTENT MIGRATION: GRV Models + WAREHOUSE Role
 -- ============================================
+
+-- Clean up any partial state from previous failed attempts
+DROP TABLE IF EXISTS grv_lines CASCADE;
+DROP TABLE IF EXISTS goods_received_vouchers CASCADE;
+DROP TABLE IF EXISTS grv_counter CASCADE;
+DROP TYPE IF EXISTS "UserRole_new" CASCADE;
 
 -- Step 1: Create new UserRole enum with WAREHOUSE value
 CREATE TYPE "UserRole_new" AS ENUM ('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE', 'CUSTOMER');
