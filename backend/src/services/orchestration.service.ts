@@ -13,6 +13,7 @@
 
 import { Warehouse, FulfillmentPolicy, JobType, ProductType } from '@prisma/client';
 import { prisma } from '../config/database';
+import { checkBomStock } from './bom.service';
 
 // ============================================
 // COMMON TYPES
@@ -537,7 +538,7 @@ async function processOrderLine(
  * Implemented in MT-4
  */
 async function processAssemblyLine(
-  _line: {
+  line: {
     id: string;
     lineNumber: number;
     productId: string;
@@ -545,7 +546,7 @@ async function processAssemblyLine(
     productDescription: string;
     quantityOrdered: number;
   },
-  _product: {
+  product: {
     id: string;
     nusafSku: string;
     description: string;
@@ -554,14 +555,148 @@ async function processAssemblyLine(
     costPrice: unknown;
     supplier: { id: string; code: string; name: string; currency: string } | null;
   },
-  _plan: OrchestrationPlan,
-  _purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
+  plan: OrchestrationPlan,
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
 ): Promise<void> {
-  // TODO: Implement in MT-4
-  // 1. Explode BOM using bom.service.explodeBom()
-  // 2. Check component stock using bom.service.checkBomStock()
-  // 3. Add to plan.jobCards
-  // 4. If component shortages, add to purchaseOrdersBySupplier
+  // Assembly always happens in JHB
+  const assemblyWarehouse: Warehouse = 'JHB';
+
+  // Check component stock (this internally explodes the BOM)
+  const stockCheck = await checkBomStock(product.id, line.quantityOrdered, assemblyWarehouse);
+
+  if (!stockCheck.success || !stockCheck.data) {
+    plan.warnings.push(`Failed to check BOM stock for ${product.nusafSku}: ${stockCheck.error}`);
+    return;
+  }
+
+  const bomResult = stockCheck.data;
+
+  // Determine job type based on product type
+  const jobType: JobType =
+    product.productType === 'ASSEMBLY_REQUIRED' ? 'ASSEMBLY' : 'MACHINING';
+
+  // Build component plans from stock check result
+  const componentPlans: JobCardComponentPlan[] = bomResult.components.map(comp => ({
+    productId: comp.productId,
+    productSku: comp.nusafSku,
+    productDescription: comp.description,
+    requiredQuantity: comp.requiredQuantity,
+    availableQuantity: comp.availableQuantity,
+    shortfall: comp.shortfall,
+    sourceWarehouse: assemblyWarehouse,
+  }));
+
+  // Build component shortfall list for PO generation
+  const shortfallComponents: ComponentShortfall[] = bomResult.components
+    .filter(comp => comp.shortfall > 0)
+    .map(comp => ({
+      productId: comp.productId,
+      productSku: comp.nusafSku,
+      productDescription: comp.description,
+      requiredQuantity: comp.requiredQuantity,
+      availableQuantity: comp.availableQuantity,
+      shortfall: comp.shortfall,
+      supplierId: null, // Will be looked up below
+      supplierName: null,
+    }));
+
+  // Create job card plan
+  const jobCardPlan: JobCardPlan = {
+    orderLineId: line.id,
+    productId: product.id,
+    productSku: product.nusafSku,
+    productDescription: product.description,
+    productType: product.productType,
+    quantity: line.quantityOrdered,
+    jobType,
+    components: componentPlans,
+    componentAvailability: {
+      allComponentsAvailable: bomResult.canFulfill,
+      componentsWithShortfall: shortfallComponents,
+    },
+  };
+
+  plan.jobCards.push(jobCardPlan);
+  plan.summary.linesRequiringAssembly++;
+
+  // If components have shortfall, add to purchase orders
+  if (!bomResult.canFulfill) {
+    for (const comp of bomResult.components.filter(c => c.shortfall > 0)) {
+      await addComponentToPurchaseOrders(
+        comp.productId,
+        comp.shortfall,
+        line.id,
+        purchaseOrdersBySupplier
+      );
+    }
+  }
+}
+
+/**
+ * Add a component shortage to purchase orders (grouped by supplier)
+ */
+async function addComponentToPurchaseOrders(
+  productId: string,
+  quantity: number,
+  sourceOrderLineId: string,
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
+): Promise<void> {
+  // Get product with supplier info
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      nusafSku: true,
+      description: true,
+      costPrice: true,
+      supplierId: true,
+      supplier: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          currency: true,
+        },
+      },
+    },
+  });
+
+  if (!product || !product.supplier) {
+    // Cannot create PO without supplier
+    return;
+  }
+
+  const supplierId = product.supplier.id;
+
+  // Get or create supplier entry in map
+  let supplierPO = purchaseOrdersBySupplier.get(supplierId);
+  if (!supplierPO) {
+    supplierPO = {
+      supplierId: product.supplier.id,
+      supplierCode: product.supplier.code,
+      supplierName: product.supplier.name,
+      currency: product.supplier.currency,
+      reason: PurchaseOrderReason.COMPONENT_SHORTAGE,
+      lines: [],
+    };
+    purchaseOrdersBySupplier.set(supplierId, supplierPO);
+  }
+
+  // Check if product already has a line (might happen with multiple job cards)
+  const existingLine = supplierPO.lines.find(l => l.productId === productId);
+  if (existingLine) {
+    existingLine.quantity += quantity;
+  } else {
+    supplierPO.lines.push({
+      productId: product.id,
+      productSku: product.nusafSku,
+      productDescription: product.description,
+      quantity,
+      sourceType: 'JOB_CARD_COMPONENT',
+      sourceId: sourceOrderLineId,
+      estimatedUnitCost: Number(product.costPrice) || 0,
+    });
+  }
 }
 
 /**
