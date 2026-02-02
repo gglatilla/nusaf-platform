@@ -1,72 +1,64 @@
 # Current Session
 
 ## Active Task
-[TASK-020A] Goods Receipt (GRV) [Procurement, Backend]
+[TASK-020B] Procurement UI [Procurement, UI]
 
 ## Status
-COMPLETE | 100%
+IN_PROGRESS | 0%
 
-## Completed Micro-tasks
-- [x] MT-1: Add WAREHOUSE role to UserRole enum
-- [x] MT-2: Add GRV schema to Prisma (GoodsReceivedVoucher, GrvLine, GrvCounter)
-- [x] MT-3: Run database migration
-- [x] MT-4: Create validation schemas
-- [x] MT-5: Create GRV service — Core functions
-- [x] MT-6: Create GRV service — Stock integration
-- [x] MT-7: Create API routes
-- [x] MT-8: Register routes in index.ts
+## Plan Reference
+See: `~/.claude/plans/witty-wibbling-valley.md`
 
-## Files Created
-- backend/prisma/migrations/20260202_add_grv_models/migration.sql
-- backend/src/utils/validation/goods-receipts.ts
-- backend/src/services/grv.service.ts
-- backend/src/api/v1/goods-receipts/route.ts
+## Micro-tasks
+### Phase 1: API Layer & Hooks (Foundation)
+- [ ] MT-1: Create API client functions for PO endpoints
+- [ ] MT-2: Create API client functions for GRV endpoints
+- [ ] MT-3: Create React Query hooks (usePurchaseOrders, usePurchaseOrder, useGRVs, etc.)
 
-## Files Modified
-- backend/prisma/schema.prisma (WAREHOUSE role, GRV models)
-- backend/src/api/v1/purchase-orders/route.ts (added GRV routes)
-- backend/src/index.ts (registered goods-receipts routes)
+### Phase 2: Purchase Order List Page
+- [ ] MT-4: Create POStatusBadge component
+- [ ] MT-5: Create POListTable component
+- [ ] MT-6: Create /purchase-orders list page with filters
+
+### Phase 3: Purchase Order Detail Page
+- [ ] MT-7: Create PO detail page layout
+- [ ] MT-8: Create POLineTable component (read-only)
+- [ ] MT-9: Create PO workflow action buttons (submit, approve, reject, send, acknowledge)
+
+### Phase 4: Create/Edit Purchase Order
+- [ ] MT-10: Create AddPOLineModal (product search + quantity + cost)
+- [ ] MT-11: Create CreatePOModal or page (supplier select, delivery location, add lines)
+- [ ] MT-12: Wire up PO editing (add/update/remove lines on DRAFT POs)
+
+### Phase 5: GRV Management
+- [ ] MT-13: Create GRVStatusBadge component (if needed)
+- [ ] MT-14: Create ReceiveGoodsModal (select lines, enter quantities received/rejected)
+- [ ] MT-15: Create GRVListTable component
+- [ ] MT-16: Create /goods-receipts list page
+- [ ] MT-17: Create GRV detail page
+
+### Phase 6: Integration & Polish
+- [ ] MT-18: Add Procurement section to sidebar navigation
+- [ ] MT-19: Add "Receive Goods" button on PO detail page
+- [ ] MT-20: Test end-to-end flow
 
 ## Decisions Made
-- GRV Workflow: Single-step (create GRV → stock immediately updated)
-- Rejections: Record only — rejected qty doesn't affect stock, PO line remains unfulfilled
-- Partial Receipts: Multiple GRVs per PO line allowed
-- Permissions: ADMIN + WAREHOUSE (new role) can create GRVs
-- GRV Number Format: GRV-YYYY-NNNNN
+1. **Sidebar**: New collapsible "Procurement" section (separate from Operations)
+2. **Skip approval**: ADMIN/MANAGER can send PO directly; PURCHASER needs approval first
+3. **Email**: Always required when sending PO to supplier
+4. **GRV access**: "Receive Goods" button on PO detail opens modal
+
+## Files to Create
+- frontend/src/lib/api/purchase-orders.ts
+- frontend/src/lib/api/goods-receipts.ts
+- frontend/src/hooks/usePurchaseOrders.ts
+- frontend/src/hooks/useGoodsReceipts.ts
+- frontend/src/components/purchase-orders/*.tsx
+- frontend/src/components/goods-receipts/*.tsx
+- frontend/src/app/(portal)/purchase-orders/page.tsx
+- frontend/src/app/(portal)/purchase-orders/[id]/page.tsx
+- frontend/src/app/(portal)/goods-receipts/page.tsx
+- frontend/src/app/(portal)/goods-receipts/[id]/page.tsx
 
 ## Next Steps
-TASK-020A complete. Ready for:
-- TASK-020B: Procurement UI — frontend for PO and GRV management
-
-## Implementation Summary
-
-### Database Models Added
-- WAREHOUSE role added to UserRole enum
-- GoodsReceivedVoucher: grvNumber, purchaseOrderId, location, receivedBy, notes
-- GrvLine: poLineId, productId, quantityExpected, quantityReceived, quantityRejected
-- GrvCounter: for GRV-YYYY-NNNNN number generation
-
-### GRV Service (grv.service.ts)
-- `generateGRVNumber()` — GRV-YYYY-NNNNN format
-- `createGoodsReceipt()` — single-step: creates GRV, updates PO lines, updates stock
-- `getGoodsReceiptById()`, `getGoodsReceipts()`, `getGoodsReceiptsForPO()`
-- `getPOReceivingSummary()` — what's received vs outstanding
-
-### Stock Integration
-On GRV creation (in transaction):
-1. Create GRV header and lines
-2. For each line:
-   - Update PurchaseOrderLine.quantityReceived
-   - StockLevel.onHand += quantityReceived
-   - StockLevel.onOrder -= quantityReceived
-   - Create StockMovement.RECEIPT
-3. Update PO status (PARTIALLY_RECEIVED or RECEIVED)
-
-### API Endpoints
-- POST /api/v1/goods-receipts — Create GRV (ADMIN, WAREHOUSE)
-- GET /api/v1/goods-receipts — List with filters
-- GET /api/v1/goods-receipts/:id — Get by ID
-- GET /api/v1/goods-receipts/po/:purchaseOrderId — GRVs for a PO
-- GET /api/v1/goods-receipts/po/:purchaseOrderId/summary — Receiving summary
-- GET /api/v1/purchase-orders/:id/goods-receipts — GRVs for a PO (on PO route)
-- GET /api/v1/purchase-orders/:id/receiving-summary — Receiving summary (on PO route)
+Starting MT-1: Create API client functions for PO endpoints

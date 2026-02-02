@@ -1321,6 +1321,250 @@ export interface UpdateContactData {
   isPrimary?: boolean;
 }
 
+// ============================================
+// PURCHASE ORDER TYPES
+// ============================================
+
+export type PurchaseOrderStatus =
+  | 'DRAFT'
+  | 'PENDING_APPROVAL'
+  | 'SENT'
+  | 'ACKNOWLEDGED'
+  | 'PARTIALLY_RECEIVED'
+  | 'RECEIVED'
+  | 'CLOSED'
+  | 'CANCELLED';
+
+export interface PurchaseOrderLine {
+  id: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityOrdered: number;
+  quantityReceived: number;
+  unitCost: number;
+  lineTotal: number;
+  salesOrderLineId: string | null;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  supplierId: string;
+  supplier: {
+    id: string;
+    code: string;
+    name: string;
+    email: string | null;
+    currency: SupplierCurrency;
+  };
+  status: PurchaseOrderStatus;
+  deliveryLocation: Warehouse;
+  expectedDate: string | null;
+  currency: SupplierCurrency;
+  subtotal: number;
+  total: number;
+  sourceOrderId: string | null;
+  internalNotes: string | null;
+  supplierNotes: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  rejectedAt: string | null;
+  rejectedBy: string | null;
+  rejectionReason: string | null;
+  sentAt: string | null;
+  sentBy: string | null;
+  lines: PurchaseOrderLine[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}
+
+export interface PurchaseOrderListItem {
+  id: string;
+  poNumber: string;
+  supplierName: string;
+  supplierCode: string;
+  status: PurchaseOrderStatus;
+  deliveryLocation: Warehouse;
+  lineCount: number;
+  total: number;
+  currency: SupplierCurrency;
+  expectedDate: string | null;
+  createdAt: string;
+}
+
+export interface PurchaseOrdersListResponse {
+  purchaseOrders: PurchaseOrderListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface PurchaseOrdersQueryParams {
+  status?: PurchaseOrderStatus;
+  supplierId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreatePurchaseOrderData {
+  supplierId: string;
+  deliveryLocation?: Warehouse;
+  expectedDate?: string;
+  internalNotes?: string;
+  supplierNotes?: string;
+  sourceOrderId?: string;
+}
+
+export interface UpdatePurchaseOrderData {
+  deliveryLocation?: Warehouse;
+  expectedDate?: string | null;
+  internalNotes?: string | null;
+  supplierNotes?: string | null;
+}
+
+export interface AddPurchaseOrderLineData {
+  productId: string;
+  quantityOrdered: number;
+  unitCost: number;
+}
+
+export interface UpdatePurchaseOrderLineData {
+  quantityOrdered?: number;
+  unitCost?: number;
+}
+
+export interface RejectPurchaseOrderData {
+  reason: string;
+}
+
+export interface SendPurchaseOrderData {
+  emailTo?: string;
+  emailCc?: string[];
+  message?: string;
+}
+
+export interface SendPurchaseOrderResponse {
+  emailSent: boolean;
+  recipientEmail: string;
+  emailError?: string;
+}
+
+// ============================================
+// GOODS RECEIVED VOUCHER (GRV) TYPES
+// ============================================
+
+export interface GrvLine {
+  id: string;
+  lineNumber: number;
+  poLineId: string;
+  productId: string;
+  productSku: string;
+  quantityExpected: number;
+  quantityReceived: number;
+  quantityRejected: number;
+  rejectionReason: string | null;
+}
+
+export interface GoodsReceivedVoucher {
+  id: string;
+  grvNumber: string;
+  purchaseOrderId: string;
+  purchaseOrder: {
+    id: string;
+    poNumber: string;
+    supplier: {
+      id: string;
+      code: string;
+      name: string;
+    };
+  };
+  location: Warehouse;
+  receivedAt: string;
+  receivedBy: string;
+  receivedByName: string;
+  notes: string | null;
+  lines: GrvLine[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GrvListItem {
+  id: string;
+  grvNumber: string;
+  poNumber: string;
+  supplierName: string;
+  location: Warehouse;
+  lineCount: number;
+  totalReceived: number;
+  totalRejected: number;
+  receivedAt: string;
+  receivedByName: string;
+}
+
+export interface GrvsListResponse {
+  goodsReceipts: GrvListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface GrvsQueryParams {
+  purchaseOrderId?: string;
+  location?: Warehouse;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateGrvLineInput {
+  poLineId: string;
+  quantityReceived: number;
+  quantityRejected?: number;
+  rejectionReason?: string;
+}
+
+export interface CreateGrvData {
+  purchaseOrderId: string;
+  location?: Warehouse;
+  notes?: string;
+  lines: CreateGrvLineInput[];
+}
+
+export interface ReceivingSummaryLine {
+  poLineId: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityOrdered: number;
+  quantityReceived: number;
+  quantityRejected: number;
+  outstanding: number;
+}
+
+export interface ReceivingSummary {
+  poId: string;
+  poNumber: string;
+  status: PurchaseOrderStatus;
+  totalQuantityOrdered: number;
+  totalQuantityReceived: number;
+  totalQuantityRejected: number;
+  lines: ReceivingSummaryLine[];
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -2240,6 +2484,166 @@ class ApiClient {
     return this.request(`/products/${targetProductId}/bom/copy-from/${sourceProductId}`, {
       method: 'POST',
     });
+  }
+
+  // ============================================
+  // PURCHASE ORDER METHODS
+  // ============================================
+
+  async getPurchaseOrders(params: PurchaseOrdersQueryParams = {}): Promise<ApiResponse<PurchaseOrdersListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.supplierId) searchParams.set('supplierId', params.supplierId);
+    if (params.startDate) searchParams.set('startDate', params.startDate);
+    if (params.endDate) searchParams.set('endDate', params.endDate);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/purchase-orders?${queryString}` : '/purchase-orders';
+    return this.request<ApiResponse<PurchaseOrdersListResponse>>(endpoint);
+  }
+
+  async getPurchaseOrderById(id: string): Promise<ApiResponse<PurchaseOrder>> {
+    return this.request<ApiResponse<PurchaseOrder>>(`/purchase-orders/${id}`);
+  }
+
+  async createPurchaseOrder(data: CreatePurchaseOrderData): Promise<ApiResponse<PurchaseOrder>> {
+    return this.request<ApiResponse<PurchaseOrder>>('/purchase-orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePurchaseOrder(id: string, data: UpdatePurchaseOrderData): Promise<ApiResponse<PurchaseOrder>> {
+    return this.request<ApiResponse<PurchaseOrder>>(`/purchase-orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async cancelPurchaseOrder(id: string): Promise<void> {
+    await this.request(`/purchase-orders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // PO Line management
+  async addPurchaseOrderLine(poId: string, data: AddPurchaseOrderLineData): Promise<ApiResponse<PurchaseOrderLine>> {
+    return this.request<ApiResponse<PurchaseOrderLine>>(`/purchase-orders/${poId}/lines`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePurchaseOrderLine(poId: string, lineId: string, data: UpdatePurchaseOrderLineData): Promise<ApiResponse<PurchaseOrderLine>> {
+    return this.request<ApiResponse<PurchaseOrderLine>>(`/purchase-orders/${poId}/lines/${lineId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removePurchaseOrderLine(poId: string, lineId: string): Promise<void> {
+    await this.request(`/purchase-orders/${poId}/lines/${lineId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // PO Workflow actions
+  async submitPurchaseOrder(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-orders/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async approvePurchaseOrder(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-orders/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async rejectPurchaseOrder(id: string, data: RejectPurchaseOrderData): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-orders/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendPurchaseOrder(id: string, data: SendPurchaseOrderData = {}): Promise<ApiResponse<SendPurchaseOrderResponse>> {
+    return this.request<ApiResponse<SendPurchaseOrderResponse>>(`/purchase-orders/${id}/send`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async acknowledgePurchaseOrder(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-orders/${id}/acknowledge`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async downloadPurchaseOrderPdf(id: string): Promise<Blob> {
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/purchase-orders/${id}/pdf`;
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new ApiError('Failed to download PDF', 'PDF_DOWNLOAD_ERROR', response.status);
+    }
+    return response.blob();
+  }
+
+  // PO GRV-related
+  async getPurchaseOrderGrvs(poId: string): Promise<ApiResponse<GoodsReceivedVoucher[]>> {
+    return this.request<ApiResponse<GoodsReceivedVoucher[]>>(`/purchase-orders/${poId}/goods-receipts`);
+  }
+
+  async getPurchaseOrderReceivingSummary(poId: string): Promise<ApiResponse<ReceivingSummary>> {
+    return this.request<ApiResponse<ReceivingSummary>>(`/purchase-orders/${poId}/receiving-summary`);
+  }
+
+  // ============================================
+  // GOODS RECEIVED VOUCHER (GRV) METHODS
+  // ============================================
+
+  async getGoodsReceipts(params: GrvsQueryParams = {}): Promise<ApiResponse<GrvsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.purchaseOrderId) searchParams.set('purchaseOrderId', params.purchaseOrderId);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.startDate) searchParams.set('startDate', params.startDate);
+    if (params.endDate) searchParams.set('endDate', params.endDate);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/goods-receipts?${queryString}` : '/goods-receipts';
+    return this.request<ApiResponse<GrvsListResponse>>(endpoint);
+  }
+
+  async getGoodsReceiptById(id: string): Promise<ApiResponse<GoodsReceivedVoucher>> {
+    return this.request<ApiResponse<GoodsReceivedVoucher>>(`/goods-receipts/${id}`);
+  }
+
+  async createGoodsReceipt(data: CreateGrvData): Promise<ApiResponse<GoodsReceivedVoucher>> {
+    return this.request<ApiResponse<GoodsReceivedVoucher>>('/goods-receipts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getGoodsReceiptsForPO(poId: string): Promise<ApiResponse<GoodsReceivedVoucher[]>> {
+    return this.request<ApiResponse<GoodsReceivedVoucher[]>>(`/goods-receipts/po/${poId}`);
+  }
+
+  async getReceivingSummary(poId: string): Promise<ApiResponse<ReceivingSummary>> {
+    return this.request<ApiResponse<ReceivingSummary>>(`/goods-receipts/po/${poId}/summary`);
   }
 }
 

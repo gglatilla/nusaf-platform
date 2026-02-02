@@ -3,10 +3,10 @@
 ---
 
 ## Current
-(none)
+- [TASK-020B] Procurement UI [Procurement, UI] (IN_PROGRESS)
 
 ## Up Next
-- [TASK-020B] Procurement UI [Procurement, UI]
+(none)
 
 ## Backlog
 
