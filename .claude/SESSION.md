@@ -1,74 +1,72 @@
 # Current Session
 
 ## Active Task
-[TASK-015] Public Website Homepage ✓ COMPLETE
+[FIX] Vercel Build Error - Server/Client Component Boundaries ✓ COMPLETE
 
 ## Status
 COMPLETE | 100%
 
 ## Summary
 
-Built the public marketing website homepage for Nusaf Dynamic Technologies with a guest quote basket system.
+Fixed Vercel build error by implementing proper Server/Client component boundaries using URL-based modal state.
 
-### What Was Built
+### Problem
+Vercel build failed with:
+```
+Error: ENOENT: no such file or directory, lstat '/vercel/path0/frontend/.next/server/app/(website)/page_client-reference-manifest.js'
+```
 
-**Route Structure:**
-- `(website)` route group for public pages
-- Server component layout.tsx with SEO metadata
-- Client component template.tsx with UI (header, footer, modal)
-- Homepage with 5 sections
+Root cause: `HomePageClient` was a Client Component importing Server Components directly, breaking Next.js manifest generation.
 
-**Components Created (`frontend/src/components/website/`):**
-- `WebsiteHeader.tsx` - Sticky header with nav, mobile menu, quote basket
-- `WebsiteFooter.tsx` - Dark footer with contact info
-- `MobileNavDrawer.tsx` - Slide-out mobile navigation
-- `GuestQuoteBasket.tsx` - Shopping cart dropdown with quantity controls
-- `QuoteRequestModal.tsx` - Form for capturing guest contact info
-- `QuoteModalContext.tsx` - Context for sharing modal state
-- `Button.tsx` - Reusable button with variants
-- `Container.tsx` - Max-width wrapper
+### Solution: URL-Based Modal State
 
-**Homepage Sections (`frontend/src/components/website/sections/`):**
-- `HeroSection.tsx` - Headline, subheadline, dual CTAs
-- `ValuePropsSection.tsx` - 4 value prop cards with icons
-- `ProductCategoriesSection.tsx` - Category cards linking to catalog
-- `TrustedBySection.tsx` - Placeholder client logos
-- `CTABannerSection.tsx` - Full-width blue CTA banner
+Instead of React state (`useState`), the modal now uses URL query parameters (`?modal=quote`). This allows all static sections to remain Server Components.
 
-**Guest Quote Store (`frontend/src/stores/guest-quote-store.ts`):**
-- Zustand store with localStorage persistence
-- Session ID generation for guest tracking
-- Add/remove/update quantity actions
+**New Architecture:**
+```
+page.tsx (Server Component)
+├── WebsiteHeader (Server Component)
+│   ├── Static nav links
+│   ├── MobileMenuWrapper (Client - hamburger + drawer)
+│   └── GuestQuoteBasket (Client - cart dropdown)
+├── HeroSection (Server - "Request Quote" is a Link to ?modal=quote)
+├── ValuePropsSection (Server - static content)
+├── ProductCategoriesSection (Server - static cards)
+├── TrustedBySection (Server - static logos)
+├── CTABannerSection (Server - "Request Quote" is a Link)
+├── WebsiteFooter (Server - static links)
+└── QuoteModalWrapper (Client - reads ?modal=quote from URL)
+```
 
-**Backend API (`backend/src/api/v1/public/quote-requests/`):**
-- POST endpoint for creating QuoteRequest records
-- Validation with Zod schema
-- No authentication required (public endpoint)
+### Files Changed
+- `frontend/src/app/(website)/page.tsx` - Rewritten as Server Component
+- `frontend/src/components/website/HomePageClient.tsx` - **DELETED**
+- `frontend/src/components/website/QuoteModalWrapper.tsx` - **CREATED** (Client)
+- `frontend/src/components/website/MobileMenuWrapper.tsx` - **CREATED** (Client)
+- `frontend/src/components/website/WebsiteHeader.tsx` - Converted to Server Component
+- `frontend/src/components/website/GuestQuoteBasket.tsx` - Changed button to Link
+- `frontend/src/components/website/sections/HeroSection.tsx` - Converted to Server Component
+- `frontend/src/components/website/sections/CTABannerSection.tsx` - Converted to Server Component
+- `frontend/src/components/website/index.ts` - Updated exports
 
-**Middleware Updated (`frontend/src/middleware.ts`):**
-- Extended portal routes list for proper redirection
-- Public domain serves website, app.nusaf.net serves portal
+### Benefits
+- Proper server-side rendering for all static content
+- Smaller JavaScript bundle (84.3 kB First Load)
+- SEO-friendly (static prerendering)
+- Modal works with browser back button
+- Shareable quote URL (`/?modal=quote`)
 
-### Files Created
-- frontend/src/app/(website)/layout.tsx
-- frontend/src/app/(website)/template.tsx
-- frontend/src/app/(website)/page.tsx
-- frontend/src/components/website/*.tsx (11 files)
-- frontend/src/components/website/sections/*.tsx (5 files)
-- frontend/src/stores/guest-quote-store.ts
-- backend/src/api/v1/public/quote-requests/route.ts
-- backend/src/utils/validation/public-quote-request.ts
+### Verification
+- Local build: ✓ Passed (`npm run build`)
+- Pushed to GitHub: ✓ Commit b4cd138
+- **Pending**: Clear Vercel build cache and verify deployment
 
-### Files Modified
-- frontend/src/middleware.ts
-- frontend/src/components/website/index.ts
-- backend/src/index.ts
-
-## Next Task
-Check TASKS.md for the next available task (TASK-016: Public Website Product Pages)
+## Next Steps
+1. User should clear Vercel build cache (Project Settings → Build Cache)
+2. Verify Vercel deployment succeeds
+3. Test URL-based modal functionality on deployed site
 
 ## Context for Next Session
-- TASK-015 (Public Website Homepage) is complete
-- Guest quote basket system is fully functional
-- QuoteRequest model already exists in schema
-- Next logical task is TASK-016 (Public Website Product Pages) to complete the public site
+- TASK-015 (Public Website Homepage) is functionally complete
+- Server/Client boundaries now properly implemented
+- Next logical task is TASK-016 (Public Website Product Pages)
