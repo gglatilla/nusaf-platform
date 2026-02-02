@@ -6,7 +6,7 @@
 (none)
 
 ## Up Next
-- [TASK-020] Purchase Orders [Procurement, Backend]
+- [TASK-020B] Procurement UI [Procurement, UI]
 
 ## Backlog
 
@@ -20,8 +20,8 @@
 - [TASK-019A] BOM UI [Master Data, UI] ✓
 
 ### Phase C: Procurement
-- [TASK-020] Purchase Orders [Procurement, Backend]
-- [TASK-020A] Goods Receipt (GRV) [Procurement, Backend]
+- [TASK-020] Purchase Orders [Procurement, Backend] ✓
+- [TASK-020A] Goods Receipt (GRV) [Procurement, Backend] ✓
 - [TASK-020B] Procurement UI [Procurement, UI]
 
 ### Phase D: Fulfillment Orchestration
@@ -100,6 +100,8 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-018] Product Editing (includes TASK-018A) ✓
 - [TASK-019] BOM Schema & API ✓
 - [TASK-019A] BOM UI ✓
+- [TASK-020] Purchase Orders ✓
+- [TASK-020A] Goods Receipt (GRV) ✓
 
 ---
 
