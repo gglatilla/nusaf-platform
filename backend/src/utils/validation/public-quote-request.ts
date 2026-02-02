@@ -9,6 +9,8 @@ export const createPublicQuoteRequestSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().max(50, 'Phone number too long').nullable().optional(),
   notes: z.string().max(2000, 'Notes must be less than 2000 characters').nullable().optional(),
+  // Honeypot field - must be empty. Named "website" to look like a legitimate field to bots
+  website: z.string().max(0, 'This field must be empty').optional(),
   cartData: z.object({
     sessionId: z.string().min(1, 'Session ID is required'),
     items: z

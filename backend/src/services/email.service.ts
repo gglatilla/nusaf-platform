@@ -269,3 +269,287 @@ www.nusaf.co.za
 
   return { subject, html, text };
 }
+
+// ============================================
+// QUOTE REQUEST EMAILS
+// ============================================
+
+export interface QuoteRequestItem {
+  sku: string;
+  name: string;
+  quantity: number;
+  notes?: string;
+}
+
+export interface QuoteRequestNotificationData {
+  requestId: string;
+  customerName: string;
+  customerEmail: string;
+  customerCompany: string;
+  customerPhone?: string;
+  customerNotes?: string;
+  items: QuoteRequestItem[];
+  submittedAt: Date;
+}
+
+/**
+ * Send notification email to sales team when a new quote request is received
+ */
+export async function sendQuoteRequestNotification(
+  data: QuoteRequestNotificationData
+): Promise<EmailResult> {
+  const salesEmail = process.env.SALES_EMAIL || 'sales@nusaf.co.za';
+
+  const itemsHtml = data.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #dee2e6;"><code>${item.sku}</code></td>
+        <td style="padding: 10px; border: 1px solid #dee2e6;">${item.name}</td>
+        <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">${item.quantity}</td>
+        <td style="padding: 10px; border: 1px solid #dee2e6;">${item.notes || '-'}</td>
+      </tr>
+    `
+    )
+    .join('');
+
+  const itemsText = data.items
+    .map((item) => `  - ${item.sku}: ${item.name} x${item.quantity}${item.notes ? ` (${item.notes})` : ''}`)
+    .join('\n');
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f59e0b; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">New Quote Request</h1>
+  </div>
+
+  <div style="padding: 25px 20px; background-color: #ffffff;">
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      A new quote request has been submitted from the website.
+    </p>
+
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px;">
+      Customer Information
+    </h3>
+    <table style="width: 100%; margin-bottom: 25px;">
+      <tr>
+        <td style="padding: 8px 0; width: 140px;"><strong>Name:</strong></td>
+        <td style="padding: 8px 0;">${data.customerName}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Company:</strong></td>
+        <td style="padding: 8px 0;">${data.customerCompany}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Email:</strong></td>
+        <td style="padding: 8px 0;"><a href="mailto:${data.customerEmail}" style="color: #1a5f7a;">${data.customerEmail}</a></td>
+      </tr>
+      ${data.customerPhone ? `
+      <tr>
+        <td style="padding: 8px 0;"><strong>Phone:</strong></td>
+        <td style="padding: 8px 0;"><a href="tel:${data.customerPhone}" style="color: #1a5f7a;">${data.customerPhone}</a></td>
+      </tr>
+      ` : ''}
+      <tr>
+        <td style="padding: 8px 0;"><strong>Submitted:</strong></td>
+        <td style="padding: 8px 0;">${data.submittedAt.toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+      </tr>
+    </table>
+
+    ${data.customerNotes ? `
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px;">
+      Customer Notes
+    </h3>
+    <p style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #1a5f7a; margin-bottom: 25px;">
+      ${data.customerNotes}
+    </p>
+    ` : ''}
+
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px;">
+      Requested Items (${data.items.length})
+    </h3>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+      <thead>
+        <tr style="background-color: #1a5f7a; color: white;">
+          <th style="padding: 12px 10px; text-align: left;">SKU</th>
+          <th style="padding: 12px 10px; text-align: left;">Product</th>
+          <th style="padding: 12px 10px; text-align: center;">Qty</th>
+          <th style="padding: 12px 10px; text-align: left;">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <p style="text-align: center;">
+      <a href="${process.env.PORTAL_URL || 'https://app.nusaf.net'}/admin/quote-requests/${data.requestId}"
+         style="display: inline-block; padding: 12px 30px; background-color: #1a5f7a; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        View in Portal
+      </a>
+    </p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0;">
+      Request ID: ${data.requestId}<br>
+      This is an automated notification from the Nusaf website.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+NEW QUOTE REQUEST
+${'='.repeat(50)}
+
+Customer Information:
+- Name: ${data.customerName}
+- Company: ${data.customerCompany}
+- Email: ${data.customerEmail}
+${data.customerPhone ? `- Phone: ${data.customerPhone}` : ''}
+- Submitted: ${data.submittedAt.toLocaleString('en-ZA')}
+
+${data.customerNotes ? `Customer Notes:\n${data.customerNotes}\n` : ''}
+Requested Items (${data.items.length}):
+${itemsText}
+
+Request ID: ${data.requestId}
+
+View in portal: ${process.env.PORTAL_URL || 'https://app.nusaf.net'}/admin/quote-requests/${data.requestId}
+  `.trim();
+
+  return sendEmail({
+    to: salesEmail,
+    subject: `[Quote Request] ${data.customerCompany} - ${data.items.length} item${data.items.length === 1 ? '' : 's'}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send confirmation email to customer after quote request submission
+ */
+export async function sendQuoteRequestConfirmation(
+  data: QuoteRequestNotificationData
+): Promise<EmailResult> {
+  const itemsHtml = data.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #dee2e6;">${item.name}</td>
+        <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">${item.quantity}</td>
+      </tr>
+    `
+    )
+    .join('');
+
+  const itemsText = data.items.map((item) => `  - ${item.name} x${item.quantity}`).join('\n');
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #1a5f7a; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">Quote Request Received</h1>
+  </div>
+
+  <div style="padding: 25px 20px; background-color: #ffffff;">
+    <p>Dear ${data.customerName},</p>
+
+    <p>Thank you for your quote request. We have received your enquiry and our sales team will be in touch within <strong>1-2 business days</strong>.</p>
+
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px; margin-top: 25px;">
+      Request Summary
+    </h3>
+    <p style="margin-bottom: 5px;"><strong>Reference:</strong> ${data.requestId.slice(0, 8).toUpperCase()}</p>
+    <p style="margin-bottom: 15px;"><strong>Company:</strong> ${data.customerCompany}</p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+      <thead>
+        <tr style="background-color: #f8f9fa;">
+          <th style="padding: 12px 10px; text-align: left; border: 1px solid #dee2e6;">Product</th>
+          <th style="padding: 12px 10px; text-align: center; border: 1px solid #dee2e6; width: 80px;">Quantity</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <p>If you have any urgent requirements or questions, please don't hesitate to contact us:</p>
+
+    <table style="margin: 20px 0;">
+      <tr>
+        <td style="padding: 5px 15px 5px 0;"><strong>Email:</strong></td>
+        <td><a href="mailto:sales@nusaf.co.za" style="color: #1a5f7a;">sales@nusaf.co.za</a></td>
+      </tr>
+      <tr>
+        <td style="padding: 5px 15px 5px 0;"><strong>Phone:</strong></td>
+        <td><a href="tel:+27115921962" style="color: #1a5f7a;">+27 11 592 1962</a></td>
+      </tr>
+    </table>
+
+    <p style="margin-top: 30px;">
+      Kind regards,<br>
+      <strong>The Nusaf Team</strong>
+    </p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0 0 10px 0;">
+      <strong>Nusaf Dynamic Technologies (Pty) Ltd</strong><br>
+      Johannesburg, South Africa
+    </p>
+    <p style="margin: 0;">
+      <a href="https://www.nusaf.co.za" style="color: #1a5f7a;">www.nusaf.co.za</a>
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Dear ${data.customerName},
+
+Thank you for your quote request. We have received your enquiry and our sales team will be in touch within 1-2 business days.
+
+REQUEST SUMMARY
+${'='.repeat(40)}
+Reference: ${data.requestId.slice(0, 8).toUpperCase()}
+Company: ${data.customerCompany}
+
+Items:
+${itemsText}
+
+If you have any urgent requirements or questions, please don't hesitate to contact us:
+- Email: sales@nusaf.co.za
+- Phone: +27 11 592 1962
+
+Kind regards,
+The Nusaf Team
+
+---
+Nusaf Dynamic Technologies (Pty) Ltd
+Johannesburg, South Africa
+www.nusaf.co.za
+  `.trim();
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `Quote Request Received - Nusaf Dynamic Technologies`,
+    html,
+    text,
+  });
+}

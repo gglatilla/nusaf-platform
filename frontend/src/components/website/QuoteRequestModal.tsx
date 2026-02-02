@@ -22,6 +22,7 @@ const quoteRequestSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   phone: z.string().optional(),
   notes: z.string().max(2000, 'Message must be less than 2000 characters').optional(),
+  website: z.string().optional(), // Honeypot field - must remain empty
 });
 
 type QuoteRequestFormData = z.infer<typeof quoteRequestSchema>;
@@ -63,6 +64,7 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
           email: data.email,
           phone: data.phone || null,
           notes: data.notes || null,
+          website: data.website || '', // Honeypot
           cartData: {
             sessionId,
             items: items.map((item) => ({
@@ -236,6 +238,18 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
                   {errors.notes && (
                     <p className="mt-1 text-sm text-red-500">{errors.notes.message}</p>
                   )}
+                </div>
+
+                {/* Honeypot field - hidden from users, visible to bots */}
+                <div className="absolute -left-[9999px] opacity-0 pointer-events-none" aria-hidden="true">
+                  <label htmlFor="website">Website</label>
+                  <input
+                    id="website"
+                    type="text"
+                    {...register('website')}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
                 </div>
 
                 {/* Submit Error */}

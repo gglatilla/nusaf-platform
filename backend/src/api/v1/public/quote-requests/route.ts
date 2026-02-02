@@ -4,6 +4,11 @@ import {
   createPublicQuoteRequestSchema,
   CreatePublicQuoteRequestInput,
 } from '../../../../utils/validation/public-quote-request';
+import { quoteRequestLimiter } from '../../../../middleware/rate-limit';
+import {
+  sendQuoteRequestNotification,
+  sendQuoteRequestConfirmation,
+} from '../../../../services/email.service';
 import { ZodError } from 'zod';
 
 const router = Router();
@@ -11,13 +16,28 @@ const router = Router();
 /**
  * POST /api/v1/public/quote-requests
  * Create a guest quote request (no authentication required)
+ * Rate limited: 3 requests per IP per 15 minutes
  */
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+router.post('/', quoteRequestLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const validatedData: CreatePublicQuoteRequestInput = createPublicQuoteRequestSchema.parse(
       req.body
     );
+
+    // Check honeypot - if filled, silently reject (looks like success to bot)
+    if (validatedData.website) {
+      console.log('[QuoteRequest] Honeypot triggered - bot detected');
+      // Return fake success to not alert the bot
+      res.status(201).json({
+        success: true,
+        data: {
+          requestId: 'honeypot-' + Date.now(),
+          message: 'Quote request submitted successfully. Our team will contact you shortly.',
+        },
+      });
+      return;
+    }
 
     // Check that at least some items exist (double validation)
     if (!validatedData.cartData.items || validatedData.cartData.items.length === 0) {
@@ -46,10 +66,42 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    // Log the quote request for sales team notification (could be enhanced with email/webhook)
+    // Log the quote request
     console.log(
       `[QuoteRequest] New guest quote request: ${quoteRequest.id} from ${validatedData.email} (${validatedData.companyName})`
     );
+
+    // Prepare email data
+    const emailData = {
+      requestId: quoteRequest.id,
+      customerName: validatedData.name,
+      customerEmail: validatedData.email,
+      customerCompany: validatedData.companyName,
+      customerPhone: validatedData.phone || undefined,
+      customerNotes: validatedData.notes || undefined,
+      items: validatedData.cartData.items.map((item) => ({
+        sku: item.nusafSku,
+        name: item.description,
+        quantity: item.quantity,
+      })),
+      submittedAt: quoteRequest.createdAt,
+    };
+
+    // Send emails asynchronously (don't block the response)
+    Promise.all([
+      sendQuoteRequestNotification(emailData),
+      sendQuoteRequestConfirmation(emailData),
+    ]).then((results) => {
+      const [notificationResult, confirmationResult] = results;
+      if (!notificationResult.success) {
+        console.error('[QuoteRequest] Failed to send notification email:', notificationResult.error);
+      }
+      if (!confirmationResult.success) {
+        console.error('[QuoteRequest] Failed to send confirmation email:', confirmationResult.error);
+      }
+    }).catch((error) => {
+      console.error('[QuoteRequest] Error sending emails:', error);
+    });
 
     res.status(201).json({
       success: true,
