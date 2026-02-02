@@ -1565,6 +1565,162 @@ export interface ReceivingSummary {
   lines: ReceivingSummaryLine[];
 }
 
+// ============================================
+// FULFILLMENT ORCHESTRATION TYPES
+// ============================================
+
+export type FulfillmentPolicy = 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION';
+
+export interface PickingSlipPlanLine {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantityToPick: number;
+}
+
+export interface PickingSlipPlan {
+  warehouse: Warehouse;
+  lines: PickingSlipPlanLine[];
+  isTransferSource: boolean;
+}
+
+export interface JobCardComponentPlan {
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  requiredQuantity: number;
+  availableQuantity: number;
+  shortfall: number;
+  sourceWarehouse: Warehouse;
+}
+
+export interface ComponentAvailability {
+  allComponentsAvailable: boolean;
+  componentsWithShortfall: Array<{
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    requiredQuantity: number;
+    availableQuantity: number;
+    shortfall: number;
+    supplierId: string | null;
+    supplierName: string | null;
+  }>;
+}
+
+export interface JobCardPlan {
+  orderLineId: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  productType: ProductType;
+  quantity: number;
+  jobType: JobType;
+  components: JobCardComponentPlan[];
+  componentAvailability: ComponentAvailability;
+}
+
+export interface TransferPlanLine {
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+}
+
+export interface TransferPlan {
+  fromWarehouse: Warehouse;
+  toWarehouse: Warehouse;
+  lines: TransferPlanLine[];
+  linkedPickingSlipIndex: number;
+}
+
+export interface PurchaseOrderPlanLine {
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  sourceType: 'ORDER_LINE' | 'JOB_CARD_COMPONENT';
+  sourceId: string;
+  estimatedUnitCost: number;
+}
+
+export interface PurchaseOrderPlan {
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+  currency: SupplierCurrency;
+  reason: 'FINISHED_GOODS_BACKORDER' | 'COMPONENT_SHORTAGE';
+  lines: PurchaseOrderPlanLine[];
+}
+
+export interface OrchestrationSummary {
+  totalOrderLines: number;
+  linesFromStock: number;
+  linesRequiringAssembly: number;
+  linesRequiringTransfer: number;
+  linesBackordered: number;
+  pickingSlipsToCreate: number;
+  jobCardsToCreate: number;
+  transfersToCreate: number;
+  purchaseOrdersToCreate: number;
+  canFulfillCompletely: boolean;
+  immediatelyFulfillablePercent: number;
+}
+
+export interface OrchestrationPlan {
+  orderId: string;
+  orderNumber: string;
+  customerWarehouse: Warehouse;
+  effectivePolicy: FulfillmentPolicy;
+  canProceed: boolean;
+  blockedReason?: string;
+  pickingSlips: PickingSlipPlan[];
+  jobCards: JobCardPlan[];
+  transfers: TransferPlan[];
+  purchaseOrders: PurchaseOrderPlan[];
+  summary: OrchestrationSummary;
+  generatedAt: string;
+  warnings: string[];
+}
+
+export interface ExecutionResultDocument {
+  id: string;
+  number: string;
+}
+
+export interface ExecutionResultPickingSlip extends ExecutionResultDocument {
+  warehouse: Warehouse;
+}
+
+export interface ExecutionResultPurchaseOrder extends ExecutionResultDocument {
+  supplierId: string;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  error?: string;
+  createdDocuments: {
+    pickingSlips: ExecutionResultPickingSlip[];
+    jobCards: ExecutionResultDocument[];
+    transferRequests: ExecutionResultDocument[];
+    purchaseOrders: ExecutionResultPurchaseOrder[];
+  };
+  reservationsCreated: number;
+  orderStatusUpdated: string;
+}
+
+export interface GenerateFulfillmentPlanData {
+  policyOverride?: FulfillmentPolicy;
+}
+
+export interface ExecuteFulfillmentPlanData {
+  plan: OrchestrationPlan;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -2644,6 +2800,52 @@ class ApiClient {
 
   async getReceivingSummary(poId: string): Promise<ApiResponse<ReceivingSummary>> {
     return this.request<ApiResponse<ReceivingSummary>>(`/goods-receipts/po/${poId}/summary`);
+  }
+
+  // ============================================
+  // FULFILLMENT ORCHESTRATION METHODS
+  // ============================================
+
+  /**
+   * Generate a fulfillment plan for an order (preview only, no documents created)
+   */
+  async generateFulfillmentPlan(
+    orderId: string,
+    data: GenerateFulfillmentPlanData = {}
+  ): Promise<ApiResponse<OrchestrationPlan>> {
+    return this.request<ApiResponse<OrchestrationPlan>>(`/orders/${orderId}/fulfillment-plan`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Execute a fulfillment plan (creates all documents)
+   */
+  async executeFulfillmentPlan(
+    orderId: string,
+    data: ExecuteFulfillmentPlanData
+  ): Promise<ApiResponse<ExecutionResult>> {
+    return this.request<ApiResponse<ExecutionResult>>(`/orders/${orderId}/fulfillment-plan/execute`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Update the fulfillment policy override for an order
+   */
+  async updateOrderFulfillmentPolicy(
+    orderId: string,
+    policy: FulfillmentPolicy | null
+  ): Promise<ApiResponse<{ fulfillmentPolicyOverride: FulfillmentPolicy | null }>> {
+    return this.request<ApiResponse<{ fulfillmentPolicyOverride: FulfillmentPolicy | null }>>(
+      `/orders/${orderId}/fulfillment-policy`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ fulfillmentPolicyOverride: policy }),
+      }
+    );
   }
 }
 

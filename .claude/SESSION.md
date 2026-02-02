@@ -1,85 +1,88 @@
 # Current Session
 
 ## Active Task
-[TASK-022] Fulfillment Orchestration Engine ✓ COMPLETE
+[TASK-022A] Fulfillment Orchestration UI
 
 ## Status
-COMPLETE | 100%
+IN_PROGRESS | 90% complete
 
 ## Summary
 
-Built the Fulfillment Orchestration Engine that ties together allocation, BOM explosion, and document creation to automatically generate and execute fulfillment plans when orders are confirmed.
+Building the UI for the Fulfillment Orchestration Engine that allows users to preview and execute fulfillment plans from the order detail page.
 
 ### What Was Built
 
-**Schema Changes:**
-- Added `FulfillmentPolicy` enum: SHIP_PARTIAL, SHIP_COMPLETE, SALES_DECISION
-- Added `Company.fulfillmentPolicy` (default: SHIP_COMPLETE)
-- Added `SalesOrder.fulfillmentPolicyOverride` (nullable)
+**TypeScript Types (api.ts):**
+- `FulfillmentPolicy` type
+- `OrchestrationPlan`, `PickingSlipPlan`, `JobCardPlan`, `TransferPlan`, `PurchaseOrderPlan`
+- `OrchestrationSummary`
+- `ExecutionResult` and related types
+- API methods: `generateFulfillmentPlan`, `executeFulfillmentPlan`, `updateOrderFulfillmentPolicy`
 
-**orchestration.service.ts (1200+ lines):**
-- `generateFulfillmentPlan(options)` - Preview what documents will be created
-- `executeFulfillmentPlan(options)` - Create all documents in a transaction
+**React Query Hooks (useFulfillment.ts):**
+- `useGenerateFulfillmentPlan()` - mutation to generate plan
+- `useExecuteFulfillmentPlan()` - mutation to execute plan with cache invalidation
+- `useUpdateFulfillmentPolicy()` - mutation to update policy override
 
-**Plan Generation Logic:**
-- Loads order with lines and company
-- Resolves effective policy (order override → company → default)
-- For each line:
-  - Assembly products: Explodes BOM, checks component stock, creates job card plan
-  - Stock products: Runs allocation, creates picking slip and transfer plans
-- Groups purchase orders by supplier (finished goods backorders + component shortages)
-- Applies policy checks (SHIP_COMPLETE blocks if backorders exist)
+**UI Components (components/fulfillment/):**
+- `FulfillmentPlanSummary.tsx` - Progress bar and stats display
+- `FulfillmentPolicySelector.tsx` - Radio buttons for policy selection
+- `PlanSection.tsx` - Collapsible accordion wrapper
+- `PickingSlipPlanSection.tsx` - Display picking slips by warehouse
+- `JobCardPlanSection.tsx` - Display job cards with component availability
+- `TransferPlanSection.tsx` - Display transfer requests
+- `PurchaseOrderPlanSection.tsx` - Display purchase orders by supplier
+- `FulfillmentPlanModal.tsx` - Main modal integrating all components
+- `ExecutionResultModal.tsx` - Success modal with created document links
+- `index.ts` - Exports for all components
 
-**Plan Execution:**
-- Validates order still CONFIRMED and plan not stale
-- Creates in a single transaction:
-  - Picking slips with lines
-  - Hard reservations for picked items
-  - Job cards for assembly
-  - Component reservations
-  - Transfer requests (JHB → CT)
-  - Draft purchase orders
-- Updates order status to PROCESSING
-
-**API Endpoints:**
-- `POST /api/v1/orders/:id/fulfillment-plan` - Generate plan (preview)
-- `POST /api/v1/orders/:id/fulfillment-plan/execute` - Execute plan
-- `PATCH /api/v1/orders/:id/fulfillment-policy` - Update policy override
-
-### Files Created/Modified
-- `backend/prisma/schema.prisma` - FulfillmentPolicy enum + fields
-- `backend/prisma/migrations/20260202100000_add_fulfillment_policy/migration.sql`
-- `backend/src/services/orchestration.service.ts` (NEW - 1200+ lines)
-- `backend/src/utils/validation/orchestration.ts` (NEW)
-- `backend/src/api/v1/orders/route.ts` - Added 3 endpoints
+**Order Detail Page Integration:**
+- Added "Generate Fulfillment Plan" button (shows when order.status === 'CONFIRMED')
+- Added FulfillmentPlanModal with state management
+- Uses Boxes icon for the button
 
 ### Micro-tasks Completed
-- [x] MT-1: Schema changes (FulfillmentPolicy enum + fields)
-- [x] MT-2: Create orchestration.service.ts with types
-- [x] MT-3: generateFulfillmentPlan scaffolding + policy resolution
-- [x] MT-4: processAssemblyLine (BOM explosion + component check)
-- [x] MT-5: processStockLine (allocation + backorder handling)
-- [x] MT-6: Consolidation, policy checks, summary (done in MT-3)
-- [x] MT-7: executeFulfillmentPlan scaffolding + validation
-- [x] MT-8: Document creation (picking slips, job cards, transfers)
-- [x] MT-9: PO creation + order status update
-- [x] MT-10: Validation schemas + API endpoints
+- [x] MT-1: TypeScript types and API methods
+- [x] MT-2: React Query hooks
+- [x] MT-3: FulfillmentPlanSummary component
+- [x] MT-4: FulfillmentPolicySelector component
+- [x] MT-5: PlanSection component
+- [x] MT-6: PickingSlipPlanSection component
+- [x] MT-7: JobCardPlanSection component
+- [x] MT-8: TransferPlanSection and PurchaseOrderPlanSection
+- [x] MT-9: FulfillmentPlanModal component
+- [x] MT-10: ExecutionResultModal component
+- [x] MT-11: Integration with order detail page
+- [ ] MT-12: Manual testing and polish
 
-## Next Task
-TASK-022A: Fulfillment Orchestration UI
+## Files Created
+- `frontend/src/hooks/useFulfillment.ts`
+- `frontend/src/components/fulfillment/FulfillmentPlanSummary.tsx`
+- `frontend/src/components/fulfillment/FulfillmentPolicySelector.tsx`
+- `frontend/src/components/fulfillment/PlanSection.tsx`
+- `frontend/src/components/fulfillment/PickingSlipPlanSection.tsx`
+- `frontend/src/components/fulfillment/JobCardPlanSection.tsx`
+- `frontend/src/components/fulfillment/TransferPlanSection.tsx`
+- `frontend/src/components/fulfillment/PurchaseOrderPlanSection.tsx`
+- `frontend/src/components/fulfillment/FulfillmentPlanModal.tsx`
+- `frontend/src/components/fulfillment/ExecutionResultModal.tsx`
+- `frontend/src/components/fulfillment/index.ts`
+
+## Files Modified
+- `frontend/src/lib/api.ts` - Added orchestration types and API methods
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` - Added button and modal
 
 ## Next Steps (Exact)
-1. Read TASK-022A spec in TASKS.md
-2. Read UI skills: domain/ui-ux-webapp, foundation/ui-component-system
-3. Create plan for orchestration UI:
-   - "Generate Fulfillment Plan" button on order detail page
-   - Plan preview modal showing picking slips, job cards, transfers, POs
-   - Approve/Execute button
-   - Execution result display
-4. Break into micro-tasks and implement
+1. Start backend and frontend servers
+2. Navigate to a CONFIRMED order
+3. Click "Generate Fulfillment Plan" button
+4. Test plan generation and policy switching
+5. Test plan execution
+6. Verify document links work
+7. Fix any UI issues found during testing
 
 ## Context for Next Session
-- TASK-022 backend is complete and working
-- Next is TASK-022A UI which consumes the orchestration API
+- All UI components are built and TypeScript passes
+- Ready for manual testing
+- The orchestration backend (TASK-022) is already complete
 - Key endpoints: POST /orders/:id/fulfillment-plan, POST /orders/:id/fulfillment-plan/execute
-- OrchestrationPlan type defined in orchestration.service.ts

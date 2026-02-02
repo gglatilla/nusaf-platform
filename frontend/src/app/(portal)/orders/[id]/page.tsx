@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench, Truck } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench, Truck, Boxes } from 'lucide-react';
 import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
@@ -19,6 +19,7 @@ import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
 import { CreateTransferRequestModal } from '@/components/transfer-requests/CreateTransferRequestModal';
 import { TransferRequestStatusBadge } from '@/components/transfer-requests/TransferRequestStatusBadge';
 import { OrderDocumentsSection } from '@/components/documents';
+import { FulfillmentPlanModal } from '@/components/fulfillment/FulfillmentPlanModal';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -75,6 +76,7 @@ export default function OrderDetailPage() {
   const [showGeneratePickingSlipModal, setShowGeneratePickingSlipModal] = useState(false);
   const [showCreateJobCardModal, setShowCreateJobCardModal] = useState(false);
   const [showCreateTransferRequestModal, setShowCreateTransferRequestModal] = useState(false);
+  const [showFulfillmentPlanModal, setShowFulfillmentPlanModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -107,6 +109,9 @@ export default function OrderDetailPage() {
   // Can create transfer requests if order is CONFIRMED or PROCESSING
   const hasTransferRequests = transferRequests && transferRequests.length > 0;
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
+
+  // Can generate fulfillment plan if order is CONFIRMED
+  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -200,6 +205,16 @@ export default function OrderDetailPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
+          {canGenerateFulfillmentPlan && (
+            <button
+              onClick={() => setShowFulfillmentPlanModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
+            >
+              <Boxes className="h-4 w-4" />
+              Generate Fulfillment Plan
+            </button>
+          )}
+
           {canGeneratePickingSlips && (
             <button
               onClick={() => setShowGeneratePickingSlipModal(true)}
@@ -620,6 +635,13 @@ export default function OrderDetailPage() {
         orderLines={order.lines}
         onCreateTransfer={handleCreateTransferRequest}
         isCreating={generateTransferRequest.isPending}
+      />
+
+      {/* Fulfillment Plan Modal */}
+      <FulfillmentPlanModal
+        isOpen={showFulfillmentPlanModal}
+        onClose={() => setShowFulfillmentPlanModal(false)}
+        orderId={orderId}
       />
     </div>
   );
