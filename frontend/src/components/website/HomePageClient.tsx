@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { WebsiteHeader, WebsiteFooter } from '@/components/website';
+import { WebsiteHeader } from './WebsiteHeader';
+import { WebsiteFooter } from './WebsiteFooter';
 import { QuoteRequestModal } from '@/components/website/QuoteRequestModal';
 import {
   HeroSection,
