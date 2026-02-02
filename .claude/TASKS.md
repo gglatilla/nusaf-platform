@@ -6,7 +6,8 @@
 (none)
 
 ## Up Next
-- [TASK-021] Stock Allocation Service [Fulfillment, Backend]
+- [TASK-021A] BOM Explosion Service [Fulfillment, Backend]
+- [TASK-022] Fulfillment Orchestration Engine [Fulfillment, Backend]
 
 ## Backlog
 
@@ -103,6 +104,7 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-020] Purchase Orders ✓
 - [TASK-020A] Goods Receipt (GRV) ✓
 - [TASK-020B] Procurement UI ✓
+- [TASK-021] Stock Allocation Service ✓
 
 ---
 
