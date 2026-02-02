@@ -4,7 +4,7 @@
 TASK-016 Phase 2: Public Website Product Pages
 
 ## Status
-IN_PROGRESS | 85%
+IN_PROGRESS | 95%
 
 ## Summary
 
@@ -28,11 +28,16 @@ Building the public-facing product catalog for the Nusaf website. Products are d
   - CrossReferenceTab.tsx
 - [x] MT-11: AddToQuoteButton - `frontend/src/components/website/products/AddToQuoteButton.tsx`
 - [x] MT-12: Product Detail Page - `frontend/src/app/(website)/products/p/[sku]/page.tsx`
+- [x] MT-13: Cross-Reference Search Enhancement - Badge showing "Matched via: [Brand SKU]"
 
 ### Remaining Micro-Tasks
 
-- [ ] MT-13: Cross-Reference Search Enhancement - Badge showing "Matched via: [Competitor SKU]"
 - [ ] MT-14: Testing & Polish - Test all breakpoints, states, integration
+
+## Commits
+
+- `fc57f58` - TASK-016 Phase 2: Public Website Product Pages - MT-1 through MT-12
+- `c176a97` - TASK-016 Phase 2: MT-13 - Cross-reference search highlighting
 
 ## Files Created
 
@@ -62,24 +67,23 @@ Building the public-facing product catalog for the Nusaf website. Products are d
 ## Files Modified
 
 - `frontend/src/components/website/index.ts` - Added exports for products and product-detail
-
-## Decisions Made
-
-1. URL Structure: `/products/p/[sku]` for product detail to avoid conflicts with category slugs
-2. Server Components by default with `'use client'` only for search, add-to-quote, tabs
-3. URL-based state for filters, pagination, search
-4. Hardcoded categories matching ProductCategoriesSection
+- `frontend/src/lib/api.ts` - Added public products API types and methods
 
 ## Next Steps
 
-1. MT-13: Enhance search results to show cross-reference matches with badge
-2. MT-14: Test all breakpoints and functionality
-3. Commit and push changes
+1. MT-14: Test all pages in browser
+   - Test `/products` page loads with product grid
+   - Test search functionality (SKU and competitor part numbers)
+   - Test category filter
+   - Test pagination
+   - Test `/products/p/[sku]` product detail page
+   - Test tabs (Description, Specifications, Documents, Cross-Reference)
+   - Test "Add to Quote" functionality
+   - Test mobile responsiveness
 
 ## Context for Next Session
 
-- Phase 2 is 85% complete
-- All core components and pages are built
-- TypeScript compiles successfully
-- Need to test the pages with real data
-- Need to implement cross-reference match highlighting in search results
+- Phase 2 is 95% complete
+- All components and pages are built and TypeScript compiles
+- Need to test with real/mock data in browser
+- May need backend to be running for full testing
