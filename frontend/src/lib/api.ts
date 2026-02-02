@@ -225,7 +225,9 @@ export interface PublicProductDetail extends Omit<PublicProduct, 'primaryImage'>
 
 export interface PublicProductsParams {
   categoryId?: string;
+  categoryCode?: string;  // Category code (e.g., "C") or slug (e.g., "conveyor-components")
   subCategoryId?: string;
+  subCategoryCode?: string;  // Subcategory code (e.g., "C-001") or slug (e.g., "bases")
   search?: string;
   page?: number;
   pageSize?: number;
@@ -3033,7 +3035,9 @@ class ApiClient {
   ): Promise<ApiResponse<PublicProductsResponse>> {
     const searchParams = new URLSearchParams();
     if (params.categoryId) searchParams.append('categoryId', params.categoryId);
+    if (params.categoryCode) searchParams.append('categoryCode', params.categoryCode);
     if (params.subCategoryId) searchParams.append('subCategoryId', params.subCategoryId);
+    if (params.subCategoryCode) searchParams.append('subCategoryCode', params.subCategoryCode);
     if (params.search) searchParams.append('search', params.search);
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());

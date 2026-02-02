@@ -5,11 +5,85 @@ import { prisma } from '../../../../config/database';
 const router = Router();
 
 /**
+ * Convert a name to a URL-friendly slug
+ * "Conveyor Components" -> "conveyor-components"
+ */
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * Find category ID by code or slug
+ */
+async function findCategoryId(codeOrSlug: string): Promise<string | null> {
+  // First try exact code match (e.g., "C", "L", "P")
+  let category = await prisma.category.findFirst({
+    where: {
+      isActive: true,
+      code: { equals: codeOrSlug.toUpperCase(), mode: 'insensitive' },
+    },
+    select: { id: true },
+  });
+
+  if (category) return category.id;
+
+  // Try slug match
+  const allCategories = await prisma.category.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+  });
+
+  const matched = allCategories.find((cat) => toSlug(cat.name) === codeOrSlug.toLowerCase());
+  return matched?.id || null;
+}
+
+/**
+ * Find subcategory ID by code or slug within a category
+ */
+async function findSubCategoryId(
+  codeOrSlug: string,
+  categoryId?: string
+): Promise<string | null> {
+  // Try exact code match (e.g., "C-001", "L-003")
+  const whereClause: Prisma.SubCategoryWhereInput = {
+    isActive: true,
+    code: { equals: codeOrSlug.toUpperCase(), mode: 'insensitive' },
+  };
+  if (categoryId) {
+    whereClause.categoryId = categoryId;
+  }
+
+  let subCategory = await prisma.subCategory.findFirst({
+    where: whereClause,
+    select: { id: true },
+  });
+
+  if (subCategory) return subCategory.id;
+
+  // Try slug match
+  const subCategories = await prisma.subCategory.findMany({
+    where: {
+      isActive: true,
+      ...(categoryId ? { categoryId } : {}),
+    },
+    select: { id: true, name: true },
+  });
+
+  const matched = subCategories.find((sub) => toSlug(sub.name) === codeOrSlug.toLowerCase());
+  return matched?.id || null;
+}
+
+/**
  * GET /api/v1/public/products
  * List published products (no prices, no auth required)
  * Query params:
- *   - categoryId: filter by category
- *   - subCategoryId: filter by subcategory
+ *   - categoryId: filter by category ID
+ *   - categoryCode: filter by category code or slug (e.g., "C" or "conveyor-components")
+ *   - subCategoryId: filter by subcategory ID
+ *   - subCategoryCode: filter by subcategory code or slug (e.g., "C-001" or "bases")
  *   - search: search by SKU or description
  *   - page: page number (default 1)
  *   - pageSize: items per page (default 20, max 100)
@@ -18,7 +92,9 @@ router.get('/', async (req, res) => {
   try {
     const {
       categoryId,
+      categoryCode,
       subCategoryId,
+      subCategoryCode,
       search,
       page = '1',
       pageSize = '20',
@@ -34,12 +110,28 @@ router.get('/', async (req, res) => {
       isPublished: true,
     };
 
+    // Resolve category filter (ID takes priority, then code/slug)
+    let resolvedCategoryId: string | null = null;
     if (categoryId && typeof categoryId === 'string') {
-      where.categoryId = categoryId;
+      resolvedCategoryId = categoryId;
+    } else if (categoryCode && typeof categoryCode === 'string') {
+      resolvedCategoryId = await findCategoryId(categoryCode);
     }
 
+    if (resolvedCategoryId) {
+      where.categoryId = resolvedCategoryId;
+    }
+
+    // Resolve subcategory filter (ID takes priority, then code/slug)
+    let resolvedSubCategoryId: string | null = null;
     if (subCategoryId && typeof subCategoryId === 'string') {
-      where.subCategoryId = subCategoryId;
+      resolvedSubCategoryId = subCategoryId;
+    } else if (subCategoryCode && typeof subCategoryCode === 'string') {
+      resolvedSubCategoryId = await findSubCategoryId(subCategoryCode, resolvedCategoryId || undefined);
+    }
+
+    if (resolvedSubCategoryId) {
+      where.subCategoryId = resolvedSubCategoryId;
     }
 
     // Search by SKU or description
