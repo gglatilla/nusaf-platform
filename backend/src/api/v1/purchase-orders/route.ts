@@ -21,7 +21,8 @@ import {
   submitForApproval,
   approvePurchaseOrder,
   rejectPurchaseOrder,
-  markAsSent,
+  sendToSupplier,
+  getPurchaseOrderPDF,
   acknowledgePurchaseOrder,
 } from '../../../services/purchase-order.service';
 
@@ -526,6 +527,7 @@ router.post(
 /**
  * POST /api/v1/purchase-orders/:id/send
  * Send purchase order to supplier
+ * - Generates PDF and emails to supplier
  * - ADMIN/MANAGER can send directly from DRAFT
  * - PURCHASER can only send after approval
  */
@@ -570,8 +572,8 @@ router.post(
         }
       }
 
-      // Mark as sent (in future, this would trigger PDF generation and email)
-      const result = await markAsSent(id, authReq.user.id);
+      // Send to supplier (generates PDF, sends email, updates status)
+      const result = await sendToSupplier(id, bodyResult.data, authReq.user.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -580,13 +582,14 @@ router.post(
         });
       }
 
-      // TODO: Implement PDF generation and email sending
-      // const pdfBuffer = await generatePurchaseOrderPDF(id);
-      // await sendEmail({ to: po.supplier.email, ... });
-
       return res.json({
         success: true,
         message: 'Purchase order sent to supplier',
+        data: {
+          emailSent: result.data?.emailSent,
+          recipientEmail: result.data?.recipientEmail,
+          emailError: result.data?.emailError,
+        },
       });
     } catch (error) {
       console.error('Send PO error:', error);
@@ -643,7 +646,6 @@ router.post(
 /**
  * GET /api/v1/purchase-orders/:id/pdf
  * Download purchase order PDF
- * TODO: Implement PDF generation
  */
 router.get(
   '/:id/pdf',
@@ -661,16 +663,19 @@ router.get(
         });
       }
 
-      // TODO: Implement PDF generation
-      // const pdfBuffer = await generatePurchaseOrderPDF(id);
-      // res.setHeader('Content-Type', 'application/pdf');
-      // res.setHeader('Content-Disposition', `attachment; filename="${po.poNumber}.pdf"`);
-      // return res.send(pdfBuffer);
+      const result = await getPurchaseOrderPDF(id);
 
-      return res.status(501).json({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'PDF generation not yet implemented' },
-      });
+      if (!result.success || !result.data) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'PDF_GENERATION_FAILED', message: result.error || 'Failed to generate PDF' },
+        });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${po.poNumber}.pdf"`);
+      res.setHeader('Content-Length', result.data.length);
+      return res.send(result.data);
     } catch (error) {
       console.error('Download PO PDF error:', error);
       return res.status(500).json({

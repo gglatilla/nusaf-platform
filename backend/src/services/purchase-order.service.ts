@@ -1,12 +1,15 @@
 import { Prisma, PurchaseOrderStatus, Warehouse, SupplierCurrency } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
+import { generatePurchaseOrderPDF } from './pdf.service';
+import { sendEmail, generatePurchaseOrderEmail } from './email.service';
 import type {
   CreatePurchaseOrderInput,
   UpdatePurchaseOrderInput,
   AddPurchaseOrderLineInput,
   UpdatePurchaseOrderLineInput,
   PurchaseOrderListQuery,
+  SendPurchaseOrderInput,
 } from '../utils/validation/purchase-orders';
 
 // ============================================
@@ -671,31 +674,47 @@ export async function rejectPurchaseOrder(
 // SEND TO SUPPLIER
 // ============================================
 
+export interface SendToSupplierResult {
+  emailSent: boolean;
+  emailError?: string;
+  recipientEmail: string;
+}
+
 /**
- * Mark purchase order as sent (updates status to SENT)
- * Note: PDF generation and email sending should be called separately
+ * Send purchase order to supplier
+ * - Validates the PO can be sent
+ * - Generates PDF
+ * - Sends email with PDF attachment
+ * - Updates status to SENT
  */
-export async function markAsSent(
+export async function sendToSupplier(
   id: string,
+  options: SendPurchaseOrderInput,
   userId: string
-): Promise<ServiceResult<void>> {
+): Promise<ServiceResult<SendToSupplierResult>> {
+  // Get PO with supplier and lines
   const po = await prisma.purchaseOrder.findUnique({
     where: { id },
-    include: { lines: true },
+    include: {
+      supplier: {
+        select: { id: true, code: true, name: true, currency: true, email: true },
+      },
+      lines: {
+        orderBy: { lineNumber: 'asc' },
+      },
+    },
   });
 
   if (!po) {
     return { success: false, error: 'Purchase order not found' };
   }
 
-  // Can only send from DRAFT (for ADMIN/MANAGER) or after approval (PENDING_APPROVAL with approvedAt set)
+  // Validate status - can only send from DRAFT (ADMIN/MANAGER) or approved PENDING_APPROVAL
   if (po.status === 'DRAFT') {
-    // Direct send - only for ADMIN/MANAGER (checked at route level)
     if (po.lines.length === 0) {
       return { success: false, error: 'Cannot send purchase order with no lines' };
     }
   } else if (po.status === 'PENDING_APPROVAL') {
-    // Must be approved first
     if (!po.approvedAt) {
       return { success: false, error: 'Purchase order must be approved before sending' };
     }
@@ -703,6 +722,52 @@ export async function markAsSent(
     return { success: false, error: `Cannot send purchase order with status ${po.status}` };
   }
 
+  // Determine recipient email
+  const recipientEmail = options.emailTo || po.supplier.email;
+  if (!recipientEmail) {
+    return { success: false, error: 'No email address available for supplier' };
+  }
+
+  // Prepare PO data for PDF generation
+  const poData: PurchaseOrderData = mapPurchaseOrderToData(po);
+
+  // Generate PDF
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generatePurchaseOrderPDF(poData);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    return { success: false, error: 'Failed to generate PDF' };
+  }
+
+  // Generate email content
+  const emailContent = generatePurchaseOrderEmail({
+    poNumber: po.poNumber,
+    supplierName: po.supplier.name,
+    expectedDate: po.expectedDate,
+    totalAmount: Number(po.total),
+    currency: po.currency,
+    lineCount: po.lines.length,
+    customMessage: options.message,
+  });
+
+  // Send email with PDF attachment
+  const emailResult = await sendEmail({
+    to: recipientEmail,
+    cc: options.emailCc,
+    subject: emailContent.subject,
+    html: emailContent.html,
+    text: emailContent.text,
+    attachments: [
+      {
+        filename: `${po.poNumber}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
+  });
+
+  // Update PO status regardless of email result (we attempted to send)
   await prisma.purchaseOrder.update({
     where: { id },
     data: {
@@ -713,7 +778,45 @@ export async function markAsSent(
     },
   });
 
-  return { success: true };
+  return {
+    success: true,
+    data: {
+      emailSent: emailResult.success,
+      emailError: emailResult.error,
+      recipientEmail,
+    },
+  };
+}
+
+/**
+ * Generate PDF for a purchase order (without sending)
+ */
+export async function getPurchaseOrderPDF(id: string): Promise<ServiceResult<Buffer>> {
+  const po = await prisma.purchaseOrder.findUnique({
+    where: { id },
+    include: {
+      supplier: {
+        select: { id: true, code: true, name: true, currency: true, email: true },
+      },
+      lines: {
+        orderBy: { lineNumber: 'asc' },
+      },
+    },
+  });
+
+  if (!po) {
+    return { success: false, error: 'Purchase order not found' };
+  }
+
+  const poData: PurchaseOrderData = mapPurchaseOrderToData(po);
+
+  try {
+    const pdfBuffer = await generatePurchaseOrderPDF(poData);
+    return { success: true, data: pdfBuffer };
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    return { success: false, error: 'Failed to generate PDF' };
+  }
 }
 
 /**
