@@ -258,6 +258,42 @@ export interface PublicProductSearchResponse {
   searchTerm: string;
 }
 
+// ============================================
+// PUBLIC CATEGORIES API TYPES (No Auth Required)
+// ============================================
+
+export interface PublicSubCategory {
+  id: string;
+  code: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productCount: number;
+}
+
+export interface PublicCategory {
+  id: string;
+  code: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productCount: number;
+  subCategories: PublicSubCategory[];
+}
+
+export interface PublicCategoriesResponse {
+  categories: PublicCategory[];
+}
+
+export interface PublicCategoryWithParent extends PublicSubCategory {
+  category: {
+    id: string;
+    code: string;
+    name: string;
+    slug: string;
+  };
+}
+
 export interface PublicCrossRefSearchParams {
   q: string;
   brand?: string;
@@ -3043,6 +3079,38 @@ class ApiClient {
 
     return this.request<ApiResponse<PublicCrossRefSearchResponse>>(
       `/public/products/cross-reference?${searchParams.toString()}`
+    );
+  }
+
+  // ============================================
+  // PUBLIC CATEGORIES API METHODS
+  // ============================================
+
+  /**
+   * Get all categories with subcategories and product counts
+   */
+  async getPublicCategories(): Promise<ApiResponse<PublicCategoriesResponse>> {
+    return this.request<ApiResponse<PublicCategoriesResponse>>('/public/categories');
+  }
+
+  /**
+   * Get a single category by slug or code
+   */
+  async getPublicCategory(slugOrCode: string): Promise<ApiResponse<PublicCategory>> {
+    return this.request<ApiResponse<PublicCategory>>(
+      `/public/categories/${encodeURIComponent(slugOrCode)}`
+    );
+  }
+
+  /**
+   * Get a subcategory by category slug and subcategory slug
+   */
+  async getPublicSubCategory(
+    categorySlug: string,
+    subCategorySlug: string
+  ): Promise<ApiResponse<PublicCategoryWithParent>> {
+    return this.request<ApiResponse<PublicCategoryWithParent>>(
+      `/public/categories/${encodeURIComponent(categorySlug)}/${encodeURIComponent(subCategorySlug)}`
     );
   }
 }
