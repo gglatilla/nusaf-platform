@@ -11,10 +11,13 @@
  * 2. executeFulfillmentPlan() - Create all documents in a transaction
  */
 
-import { Warehouse, FulfillmentPolicy, JobType, ProductType } from '@prisma/client';
+import { Warehouse, FulfillmentPolicy, JobType, ProductType, Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { checkBomStock } from './bom.service';
 import { checkProductAvailability } from './allocation.service';
+
+// Transaction client type for passing into helper functions
+type TransactionClient = Prisma.TransactionClient;
 
 // ============================================
 // COMMON TYPES
@@ -1154,76 +1157,350 @@ export async function executeFulfillmentPlan(
 // ============================================
 
 /**
- * Create a picking slip from plan (MT-8)
+ * Generate picking slip number within transaction
+ */
+async function generatePickingSlipNumberTx(tx: TransactionClient): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  let counter = await tx.pickingSlipCounter.findUnique({
+    where: { id: 'picking_slip_counter' },
+  });
+
+  if (!counter) {
+    counter = await tx.pickingSlipCounter.create({
+      data: { id: 'picking_slip_counter', year: currentYear, count: 1 },
+    });
+  } else if (counter.year !== currentYear) {
+    counter = await tx.pickingSlipCounter.update({
+      where: { id: 'picking_slip_counter' },
+      data: { year: currentYear, count: 1 },
+    });
+  } else {
+    counter = await tx.pickingSlipCounter.update({
+      where: { id: 'picking_slip_counter' },
+      data: { count: { increment: 1 } },
+    });
+  }
+
+  return `PS-${counter.year}-${String(counter.count).padStart(5, '0')}`;
+}
+
+/**
+ * Generate job card number within transaction
+ */
+async function generateJobCardNumberTx(tx: TransactionClient): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  let counter = await tx.jobCardCounter.findUnique({
+    where: { id: 'job_card_counter' },
+  });
+
+  if (!counter) {
+    counter = await tx.jobCardCounter.create({
+      data: { id: 'job_card_counter', year: currentYear, count: 1 },
+    });
+  } else if (counter.year !== currentYear) {
+    counter = await tx.jobCardCounter.update({
+      where: { id: 'job_card_counter' },
+      data: { year: currentYear, count: 1 },
+    });
+  } else {
+    counter = await tx.jobCardCounter.update({
+      where: { id: 'job_card_counter' },
+      data: { count: { increment: 1 } },
+    });
+  }
+
+  return `JC-${counter.year}-${String(counter.count).padStart(5, '0')}`;
+}
+
+/**
+ * Generate transfer request number within transaction
+ */
+async function generateTransferNumberTx(tx: TransactionClient): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  let counter = await tx.transferRequestCounter.findUnique({
+    where: { id: 'transfer_request_counter' },
+  });
+
+  if (!counter) {
+    counter = await tx.transferRequestCounter.create({
+      data: { id: 'transfer_request_counter', year: currentYear, count: 1 },
+    });
+  } else if (counter.year !== currentYear) {
+    counter = await tx.transferRequestCounter.update({
+      where: { id: 'transfer_request_counter' },
+      data: { year: currentYear, count: 1 },
+    });
+  } else {
+    counter = await tx.transferRequestCounter.update({
+      where: { id: 'transfer_request_counter' },
+      data: { count: { increment: 1 } },
+    });
+  }
+
+  return `TR-${counter.year}-${String(counter.count).padStart(5, '0')}`;
+}
+
+/**
+ * Generate purchase order number within transaction
+ */
+async function generatePurchaseOrderNumberTx(tx: TransactionClient): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  let counter = await tx.purchaseOrderCounter.findUnique({
+    where: { id: 'purchase_order_counter' },
+  });
+
+  if (!counter) {
+    counter = await tx.purchaseOrderCounter.create({
+      data: { id: 'purchase_order_counter', year: currentYear, count: 1 },
+    });
+  } else if (counter.year !== currentYear) {
+    counter = await tx.purchaseOrderCounter.update({
+      where: { id: 'purchase_order_counter' },
+      data: { year: currentYear, count: 1 },
+    });
+  } else {
+    counter = await tx.purchaseOrderCounter.update({
+      where: { id: 'purchase_order_counter' },
+      data: { count: { increment: 1 } },
+    });
+  }
+
+  return `PO-${counter.year}-${String(counter.count).padStart(5, '0')}`;
+}
+
+/**
+ * Create a picking slip from plan
  */
 async function createPickingSlipFromPlan(
-  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  _orderId: string,
-  _orderNumber: string,
-  _plan: PickingSlipPlan,
-  _userId: string,
-  _companyId: string
+  tx: TransactionClient,
+  orderId: string,
+  orderNumber: string,
+  plan: PickingSlipPlan,
+  userId: string,
+  companyId: string
 ): Promise<{ id: string; number: string; warehouse: Warehouse } | null> {
-  // TODO: Implement in MT-8
-  return null;
+  if (plan.lines.length === 0) return null;
+
+  const pickingSlipNumber = await generatePickingSlipNumberTx(tx);
+
+  const pickingSlip = await tx.pickingSlip.create({
+    data: {
+      pickingSlipNumber,
+      companyId,
+      orderId,
+      orderNumber,
+      location: plan.warehouse,
+      status: 'PENDING',
+      createdBy: userId,
+    },
+  });
+
+  // Create picking slip lines
+  await tx.pickingSlipLine.createMany({
+    data: plan.lines.map((line) => ({
+      pickingSlipId: pickingSlip.id,
+      orderLineId: line.orderLineId,
+      lineNumber: line.lineNumber,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantityToPick: line.quantityToPick,
+    })),
+  });
+
+  return {
+    id: pickingSlip.id,
+    number: pickingSlipNumber,
+    warehouse: plan.warehouse,
+  };
 }
 
 /**
- * Create a job card from plan (MT-8)
+ * Create a job card from plan
  */
 async function createJobCardFromPlan(
-  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  _orderId: string,
-  _orderNumber: string,
-  _plan: JobCardPlan,
-  _userId: string,
-  _companyId: string
+  tx: TransactionClient,
+  orderId: string,
+  orderNumber: string,
+  plan: JobCardPlan,
+  userId: string,
+  companyId: string
 ): Promise<{ id: string; number: string } | null> {
-  // TODO: Implement in MT-8
-  return null;
+  const jobCardNumber = await generateJobCardNumberTx(tx);
+
+  const jobCard = await tx.jobCard.create({
+    data: {
+      jobCardNumber,
+      companyId,
+      orderId,
+      orderNumber,
+      orderLineId: plan.orderLineId,
+      productId: plan.productId,
+      productSku: plan.productSku,
+      productDescription: plan.productDescription,
+      quantity: plan.quantity,
+      jobType: plan.jobType,
+      status: 'PENDING',
+      notes: `Auto-generated by orchestration engine for ${plan.quantity}x ${plan.productSku}`,
+      createdBy: userId,
+    },
+  });
+
+  return {
+    id: jobCard.id,
+    number: jobCardNumber,
+  };
 }
 
 /**
- * Create a transfer request from plan (MT-8)
+ * Create a transfer request from plan
  */
 async function createTransferFromPlan(
-  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  _orderId: string,
-  _orderNumber: string,
-  _plan: TransferPlan,
-  _userId: string,
-  _companyId: string
+  tx: TransactionClient,
+  orderId: string,
+  orderNumber: string,
+  plan: TransferPlan,
+  userId: string,
+  companyId: string
 ): Promise<{ id: string; number: string } | null> {
-  // TODO: Implement in MT-8
-  return null;
+  if (plan.lines.length === 0) return null;
+
+  const transferNumber = await generateTransferNumberTx(tx);
+
+  const transfer = await tx.transferRequest.create({
+    data: {
+      transferNumber,
+      companyId,
+      orderId,
+      orderNumber,
+      fromLocation: plan.fromWarehouse,
+      toLocation: plan.toWarehouse,
+      status: 'PENDING',
+      createdBy: userId,
+    },
+  });
+
+  // Create transfer request lines
+  await tx.transferRequestLine.createMany({
+    data: plan.lines.map((line, index) => ({
+      transferRequestId: transfer.id,
+      orderLineId: line.orderLineId,
+      lineNumber: index + 1,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantity: line.quantity,
+    })),
+  });
+
+  return {
+    id: transfer.id,
+    number: transferNumber,
+  };
 }
 
 /**
- * Create a draft purchase order from plan (MT-9)
+ * Create a draft purchase order from plan
  */
 async function createPurchaseOrderFromPlan(
-  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  _orderId: string,
-  _orderNumber: string,
-  _plan: PurchaseOrderPlan,
-  _userId: string
+  tx: TransactionClient,
+  orderId: string,
+  orderNumber: string,
+  plan: PurchaseOrderPlan,
+  userId: string
 ): Promise<{ id: string; number: string; supplierId: string } | null> {
-  // TODO: Implement in MT-9
-  return null;
+  if (plan.lines.length === 0) return null;
+
+  const poNumber = await generatePurchaseOrderNumberTx(tx);
+
+  // Calculate totals
+  let subtotal = 0;
+  for (const line of plan.lines) {
+    subtotal += line.quantity * line.estimatedUnitCost;
+  }
+
+  const purchaseOrder = await tx.purchaseOrder.create({
+    data: {
+      poNumber,
+      supplierId: plan.supplierId,
+      status: 'DRAFT',
+      deliveryLocation: 'JHB', // Default to JHB for receiving
+      currency: plan.currency as 'EUR' | 'ZAR',
+      subtotal,
+      total: subtotal,
+      sourceOrderId: orderId,
+      internalNotes: `Auto-generated for order ${orderNumber}. Reason: ${plan.reason}`,
+      createdBy: userId,
+    },
+  });
+
+  // Create purchase order lines
+  await tx.purchaseOrderLine.createMany({
+    data: plan.lines.map((line, index) => ({
+      purchaseOrderId: purchaseOrder.id,
+      lineNumber: index + 1,
+      productId: line.productId,
+      productSku: line.productSku,
+      productDescription: line.productDescription,
+      quantityOrdered: line.quantity,
+      unitCost: line.estimatedUnitCost,
+      lineTotal: line.quantity * line.estimatedUnitCost,
+    })),
+  });
+
+  return {
+    id: purchaseOrder.id,
+    number: poNumber,
+    supplierId: plan.supplierId,
+  };
 }
 
 /**
  * Create a hard reservation
  */
 async function createReservationFromPlan(
-  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  _productId: string,
-  _location: Warehouse,
-  _quantity: number,
-  _referenceType: string,
-  _referenceId: string,
-  _referenceNumber: string,
-  _userId: string
+  tx: TransactionClient,
+  productId: string,
+  location: Warehouse,
+  quantity: number,
+  referenceType: string,
+  referenceId: string,
+  referenceNumber: string,
+  userId: string
 ): Promise<void> {
-  // TODO: Implement in MT-8
+  // Create reservation record
+  await tx.stockReservation.create({
+    data: {
+      productId,
+      location,
+      reservationType: 'HARD',
+      quantity,
+      referenceType,
+      referenceId,
+      referenceNumber,
+      createdBy: userId,
+    },
+  });
+
+  // Update stock level hard reserved count
+  await tx.stockLevel.upsert({
+    where: {
+      productId_location: { productId, location },
+    },
+    create: {
+      productId,
+      location,
+      onHand: 0,
+      softReserved: 0,
+      hardReserved: quantity,
+      onOrder: 0,
+    },
+    update: {
+      hardReserved: { increment: quantity },
+    },
+  });
 }
