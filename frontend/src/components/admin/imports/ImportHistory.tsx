@@ -2,18 +2,7 @@
 
 import { FileSpreadsheet, CheckCircle2, XCircle, Clock, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface ImportHistoryItem {
-  id: string;
-  fileName: string;
-  supplierCode: string;
-  status: 'PENDING' | 'VALIDATING' | 'VALIDATED' | 'IMPORTING' | 'COMPLETED' | 'FAILED';
-  totalRows: number;
-  successRows: number;
-  errorRows: number;
-  createdAt: string;
-  completedAt?: string;
-}
+import type { ImportHistoryItem } from '@/lib/api';
 
 interface ImportHistoryProps {
   items: ImportHistoryItem[];
