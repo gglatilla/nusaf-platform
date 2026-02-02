@@ -339,6 +339,17 @@ model Product {
   dimensionsJson  Json?    @map("dimensions_json") // { length, width, height, unit }
   imageUrl        String?  @map("image_url")
 
+  // Marketing/Public Website Content
+  marketingTitle       String?   @map("marketing_title")       // SEO-friendly title for public site
+  marketingDescription String?   @map("marketing_description") @db.Text  // Rich description for public site
+  metaTitle            String?   @map("meta_title")            // SEO meta title (max 60 chars)
+  metaDescription      String?   @map("meta_description")      // SEO meta description (max 160 chars)
+  specifications       Json?     // { key: value } pairs for technical specs
+
+  // Publishing status for public website
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+
   // Supplier
   supplierId String   @map("supplier_id")
   supplier   Supplier @relation(fields: [supplierId], references: [id])
@@ -359,6 +370,10 @@ model Product {
   bomComponents  BomItem[] @relation("ParentProduct")    // Components needed to build this product
   usedInProducts BomItem[] @relation("ComponentProduct") // Products that use this as a component
 
+  // Product Information Relations (for public website)
+  productDocuments ProductDocument[]
+  productImages    ProductImage[]
+
   // Audit
   createdAt DateTime  @default(now()) @map("created_at")
   createdBy String?   @map("created_by")
@@ -378,9 +393,10 @@ model Product {
 
 model CompetitorCrossReference {
   id              String  @id @default(cuid())
-  competitorBrand String  @map("competitor_brand") // e.g., "Rexnord", "Intralox"
+  competitorBrand String  @map("competitor_brand") // e.g., "Rexnord", "Intralox", "Elesa+Ganter"
   competitorSku   String  @map("competitor_sku")
   notes           String? // Fit notes, compatibility details
+  isExact         Boolean @default(false) @map("is_exact") // true = exact replacement, false = similar/compatible
 
   // Verification for SEO quality
   isVerified Boolean   @default(false) @map("is_verified")
@@ -1355,6 +1371,65 @@ model Document {
   @@index([orderId])
   @@index([type])
   @@map("documents")
+}
+
+// ============================================
+// PRODUCT INFORMATION ENTITIES
+// ============================================
+
+enum ProductDocumentType {
+  DATASHEET           // Technical specification sheet for single product
+  CATALOG             // Category/range brochure (e.g., "Levelling Feet Catalog 2025")
+  CAD_DRAWING         // Technical drawings (DWG, DXF as PDF)
+  INSTALLATION_MANUAL // Assembly/installation instructions
+  CERTIFICATE         // ISO, CE, quality certificates
+  MSDS                // Material Safety Data Sheet
+  OTHER
+}
+
+model ProductDocument {
+  id        String              @id @default(uuid())
+  productId String              @map("product_id")
+  product   Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type      ProductDocumentType
+  name      String              // Display name: "Product Datasheet"
+  fileName  String              @map("file_name")  // Original filename: "NUS-LF-SS-40-datasheet.pdf"
+  fileKey   String              @map("file_key")   // R2 key: "products/documents/{productId}/{uuid}.pdf"
+  fileUrl   String              @map("file_url")   // Full R2 URL
+  fileSize  Int?                @map("file_size")  // Size in bytes
+  mimeType  String?             @map("mime_type")  // "application/pdf"
+
+  sortOrder Int                 @default(0) @map("sort_order")
+  isActive  Boolean             @default(true) @map("is_active")
+
+  createdAt DateTime            @default(now()) @map("created_at")
+  createdBy String?             @map("created_by")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@map("product_documents")
+}
+
+model ProductImage {
+  id           String   @id @default(uuid())
+  productId    String   @map("product_id")
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  fileKey      String   @map("file_key")       // R2 key: "products/images/{productId}/{uuid}.jpg"
+  url          String                          // Full R2 URL
+  thumbnailUrl String?  @map("thumbnail_url")  // R2 URL for thumbnail (optional)
+  altText      String?  @map("alt_text")       // Accessibility alt text
+  caption      String?                         // Optional caption
+
+  isPrimary    Boolean  @default(false) @map("is_primary")  // Primary image shown in listings
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  createdBy    String?  @map("created_by")
+
+  @@index([productId])
+  @@map("product_images")
 }
 
 // ============================================

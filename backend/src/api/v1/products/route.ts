@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
+import multer from 'multer';
 import { prisma } from '../../../config/database';
 import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
@@ -20,8 +21,21 @@ import {
   updateProduct,
   softDeleteProduct,
 } from '../../../services/product.service';
+import {
+  uploadProductAsset,
+  deleteFromR2,
+  isR2Configured,
+} from '../../../services/r2-storage.service';
 import { createStockAdjustmentSchema } from '../../../utils/validation/inventory';
-import { createProductSchema, updateProductSchema } from '../../../utils/validation/products';
+import {
+  createProductSchema,
+  updateProductSchema,
+  createProductDocumentSchema,
+  createProductImageSchema,
+  updateProductImageSchema,
+  createCrossReferenceSchema,
+  updateCrossReferenceSchema,
+} from '../../../utils/validation/products';
 import {
   addBomComponentSchema,
   updateBomComponentSchema,
@@ -39,7 +53,15 @@ import {
   copyBom,
 } from '../../../services/bom.service';
 import { Warehouse } from '@prisma/client';
-import type { CustomerTier } from '@prisma/client';
+import type { CustomerTier, ProductDocumentType } from '@prisma/client';
+
+// Configure multer for memory storage (files go to R2)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max
+  },
+});
 
 const router = Router();
 
@@ -292,7 +314,7 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/products/:id
  * Get product details with full pricing information
  * Query params:
- *   - include: comma-separated list of facets (inventory, movements)
+ *   - include: comma-separated list of facets (inventory, movements, documents, images, crossReferences)
  *   - movementLimit: number of recent movements to include (default 20)
  */
 router.get('/:id', authenticate, async (req, res) => {
@@ -306,6 +328,9 @@ router.get('/:id', authenticate, async (req, res) => {
     const includes = new Set(includeParam.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
     const includeInventory = includes.has('inventory');
     const includeMovements = includes.has('movements');
+    const includeDocuments = includes.has('documents');
+    const includeImages = includes.has('images');
+    const includeCrossReferences = includes.has('crossreferences');
 
     // Check if this is the /price endpoint (handled separately)
     if (id === 'price') {
@@ -341,6 +366,48 @@ router.get('/:id', authenticate, async (req, res) => {
               name: true,
             },
           },
+          ...(includeDocuments && {
+            productDocuments: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+              select: {
+                id: true,
+                type: true,
+                name: true,
+                fileName: true,
+                fileUrl: true,
+                fileSize: true,
+                mimeType: true,
+                sortOrder: true,
+              },
+            },
+          }),
+          ...(includeImages && {
+            productImages: {
+              orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+              select: {
+                id: true,
+                url: true,
+                thumbnailUrl: true,
+                altText: true,
+                caption: true,
+                isPrimary: true,
+                sortOrder: true,
+              },
+            },
+          }),
+          ...(includeCrossReferences && {
+            crossReferences: {
+              orderBy: [{ competitorBrand: 'asc' }, { competitorSku: 'asc' }],
+              select: {
+                id: true,
+                competitorBrand: true,
+                competitorSku: true,
+                notes: true,
+                isExact: true,
+              },
+            },
+          }),
         },
       }),
       prisma.company.findUnique({
@@ -427,6 +494,21 @@ router.get('/:id', authenticate, async (req, res) => {
     // Add movements if requested (field name matches frontend type)
     if (includeMovements) {
       responseData.movements = movementsResult?.movements ?? [];
+    }
+
+    // Add documents if requested
+    if (includeDocuments && 'productDocuments' in product) {
+      responseData.documents = product.productDocuments;
+    }
+
+    // Add images if requested
+    if (includeImages && 'productImages' in product) {
+      responseData.images = product.productImages;
+    }
+
+    // Add cross-references if requested
+    if (includeCrossReferences && 'crossReferences' in product) {
+      responseData.crossReferences = product.crossReferences;
     }
 
     return res.json({
@@ -1264,6 +1346,724 @@ router.post('/:productId/bom/copy-from/:sourceId', authenticate, requireRole('AD
       error: {
         code: 'BOM_COPY_ERROR',
         message: error instanceof Error ? error.message : 'Failed to copy BOM',
+      },
+    });
+  }
+});
+
+// ============================================
+// PRODUCT DOCUMENTS ROUTES
+// ============================================
+
+/**
+ * GET /api/v1/products/:productId/documents
+ * List documents for a product (public - no auth required)
+ */
+router.get('/:productId/documents', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    const documents = await prisma.productDocument.findMany({
+      where: { productId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        type: true,
+        name: true,
+        fileName: true,
+        fileUrl: true,
+        fileSize: true,
+        mimeType: true,
+        sortOrder: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: { documents },
+    });
+  } catch (error) {
+    console.error('Get product documents error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DOCUMENTS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch documents',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/documents
+ * Upload a document for a product (admin only)
+ */
+router.post(
+  '/:productId/documents',
+  authenticate,
+  requireRole('ADMIN'),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { productId } = req.params;
+
+      if (!isR2Configured()) {
+        return res.status(503).json({
+          success: false,
+          error: { code: 'STORAGE_NOT_CONFIGURED', message: 'File storage is not configured' },
+        });
+      }
+
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'File is required' },
+        });
+      }
+
+      // Validate metadata
+      const bodyResult = createProductDocumentSchema.safeParse({
+        type: req.body.type,
+        name: req.body.name,
+        sortOrder: req.body.sortOrder ? parseInt(req.body.sortOrder, 10) : undefined,
+      });
+
+      if (!bodyResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request body',
+            details: bodyResult.error.errors,
+          },
+        });
+      }
+
+      // Verify product exists
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        select: { id: true, isActive: true, deletedAt: true },
+      });
+
+      if (!product || !product.isActive || product.deletedAt) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Product not found' },
+        });
+      }
+
+      // Upload to R2
+      const { key, url } = await uploadProductAsset(
+        'document',
+        productId,
+        file.originalname,
+        file.buffer,
+        file.mimetype
+      );
+
+      // Create document record
+      const document = await prisma.productDocument.create({
+        data: {
+          productId,
+          type: bodyResult.data.type as ProductDocumentType,
+          name: bodyResult.data.name,
+          fileName: file.originalname,
+          fileKey: key,
+          fileUrl: url,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          sortOrder: bodyResult.data.sortOrder ?? 0,
+          createdBy: authReq.user.id,
+        },
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: document,
+      });
+    } catch (error) {
+      console.error('Upload product document error:', error);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'DOCUMENT_UPLOAD_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to upload document',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/v1/products/:productId/documents/:documentId
+ * Delete a document (admin only)
+ */
+router.delete('/:productId/documents/:documentId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productId, documentId } = req.params;
+
+    const document = await prisma.productDocument.findFirst({
+      where: { id: documentId, productId },
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Document not found' },
+      });
+    }
+
+    // Delete from R2
+    try {
+      await deleteFromR2(document.fileKey);
+    } catch (r2Error) {
+      console.error('R2 delete error (continuing):', r2Error);
+    }
+
+    // Delete record
+    await prisma.productDocument.delete({
+      where: { id: documentId },
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Delete product document error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DOCUMENT_DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete document',
+      },
+    });
+  }
+});
+
+// ============================================
+// PRODUCT IMAGES ROUTES
+// ============================================
+
+/**
+ * GET /api/v1/products/:productId/images
+ * List images for a product (public - no auth required)
+ */
+router.get('/:productId/images', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    const images = await prisma.productImage.findMany({
+      where: { productId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        url: true,
+        thumbnailUrl: true,
+        altText: true,
+        caption: true,
+        isPrimary: true,
+        sortOrder: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: { images },
+    });
+  } catch (error) {
+    console.error('Get product images error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'IMAGES_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch images',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/images
+ * Upload an image for a product (admin only)
+ */
+router.post(
+  '/:productId/images',
+  authenticate,
+  requireRole('ADMIN'),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { productId } = req.params;
+
+      if (!isR2Configured()) {
+        return res.status(503).json({
+          success: false,
+          error: { code: 'STORAGE_NOT_CONFIGURED', message: 'File storage is not configured' },
+        });
+      }
+
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'File is required' },
+        });
+      }
+
+      // Validate image mimetype
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'File must be an image' },
+        });
+      }
+
+      // Validate metadata
+      const bodyResult = createProductImageSchema.safeParse({
+        altText: req.body.altText || null,
+        caption: req.body.caption || null,
+        isPrimary: req.body.isPrimary === 'true',
+        sortOrder: req.body.sortOrder ? parseInt(req.body.sortOrder, 10) : undefined,
+      });
+
+      if (!bodyResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request body',
+            details: bodyResult.error.errors,
+          },
+        });
+      }
+
+      // Verify product exists
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        select: { id: true, isActive: true, deletedAt: true },
+      });
+
+      if (!product || !product.isActive || product.deletedAt) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Product not found' },
+        });
+      }
+
+      // Upload to R2
+      const { key, url } = await uploadProductAsset(
+        'image',
+        productId,
+        file.originalname,
+        file.buffer,
+        file.mimetype
+      );
+
+      // If this is set as primary, unset other primary images
+      if (bodyResult.data.isPrimary) {
+        await prisma.productImage.updateMany({
+          where: { productId, isPrimary: true },
+          data: { isPrimary: false },
+        });
+      }
+
+      // Create image record
+      const image = await prisma.productImage.create({
+        data: {
+          productId,
+          fileKey: key,
+          url,
+          altText: bodyResult.data.altText,
+          caption: bodyResult.data.caption,
+          isPrimary: bodyResult.data.isPrimary ?? false,
+          sortOrder: bodyResult.data.sortOrder ?? 0,
+          createdBy: authReq.user.id,
+        },
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: image,
+      });
+    } catch (error) {
+      console.error('Upload product image error:', error);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'IMAGE_UPLOAD_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to upload image',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * PATCH /api/v1/products/:productId/images/:imageId
+ * Update image metadata (admin only)
+ */
+router.patch('/:productId/images/:imageId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productId, imageId } = req.params;
+
+    const existingImage = await prisma.productImage.findFirst({
+      where: { id: imageId, productId },
+    });
+
+    if (!existingImage) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Image not found' },
+      });
+    }
+
+    const bodyResult = updateProductImageSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // If setting as primary, unset other primary images
+    if (bodyResult.data.isPrimary) {
+      await prisma.productImage.updateMany({
+        where: { productId, isPrimary: true, id: { not: imageId } },
+        data: { isPrimary: false },
+      });
+    }
+
+    const image = await prisma.productImage.update({
+      where: { id: imageId },
+      data: bodyResult.data,
+    });
+
+    return res.json({
+      success: true,
+      data: image,
+    });
+  } catch (error) {
+    console.error('Update product image error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'IMAGE_UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update image',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/products/:productId/images/:imageId
+ * Delete an image (admin only)
+ */
+router.delete('/:productId/images/:imageId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productId, imageId } = req.params;
+
+    const image = await prisma.productImage.findFirst({
+      where: { id: imageId, productId },
+    });
+
+    if (!image) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Image not found' },
+      });
+    }
+
+    // Delete from R2
+    try {
+      await deleteFromR2(image.fileKey);
+    } catch (r2Error) {
+      console.error('R2 delete error (continuing):', r2Error);
+    }
+
+    // Delete record
+    await prisma.productImage.delete({
+      where: { id: imageId },
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Delete product image error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'IMAGE_DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete image',
+      },
+    });
+  }
+});
+
+// ============================================
+// PRODUCT CROSS-REFERENCES ROUTES
+// ============================================
+
+/**
+ * GET /api/v1/products/:productId/cross-references
+ * List cross-references for a product (public - no auth required)
+ */
+router.get('/:productId/cross-references', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    const crossReferences = await prisma.competitorCrossReference.findMany({
+      where: { productId },
+      orderBy: [{ competitorBrand: 'asc' }, { competitorSku: 'asc' }],
+      select: {
+        id: true,
+        competitorBrand: true,
+        competitorSku: true,
+        notes: true,
+        isExact: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: { crossReferences },
+    });
+  } catch (error) {
+    console.error('Get product cross-references error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CROSS_REFERENCES_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch cross-references',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:productId/cross-references
+ * Add a cross-reference to a product (admin only)
+ */
+router.post('/:productId/cross-references', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { productId } = req.params;
+
+    const bodyResult = createCrossReferenceSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Verify product exists
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    // Check for duplicate
+    const existing = await prisma.competitorCrossReference.findFirst({
+      where: {
+        productId,
+        competitorBrand: bodyResult.data.competitorBrand,
+        competitorSku: bodyResult.data.competitorSku,
+      },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: { code: 'DUPLICATE', message: 'Cross-reference already exists' },
+      });
+    }
+
+    const crossReference = await prisma.competitorCrossReference.create({
+      data: {
+        productId,
+        competitorBrand: bodyResult.data.competitorBrand,
+        competitorSku: bodyResult.data.competitorSku,
+        notes: bodyResult.data.notes,
+        isExact: bodyResult.data.isExact ?? false,
+        createdBy: authReq.user.id,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: crossReference,
+    });
+  } catch (error) {
+    console.error('Create cross-reference error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CROSS_REFERENCE_CREATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to create cross-reference',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/products/:productId/cross-references/:refId
+ * Update a cross-reference (admin only)
+ */
+router.patch('/:productId/cross-references/:refId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productId, refId } = req.params;
+
+    const existing = await prisma.competitorCrossReference.findFirst({
+      where: { id: refId, productId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Cross-reference not found' },
+      });
+    }
+
+    const bodyResult = updateCrossReferenceSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Check for duplicate if competitorBrand or competitorSku is being changed
+    if (bodyResult.data.competitorBrand || bodyResult.data.competitorSku) {
+      const newBrand = bodyResult.data.competitorBrand ?? existing.competitorBrand;
+      const newSku = bodyResult.data.competitorSku ?? existing.competitorSku;
+
+      const duplicate = await prisma.competitorCrossReference.findFirst({
+        where: {
+          productId,
+          competitorBrand: newBrand,
+          competitorSku: newSku,
+          id: { not: refId },
+        },
+      });
+
+      if (duplicate) {
+        return res.status(409).json({
+          success: false,
+          error: { code: 'DUPLICATE', message: 'Cross-reference with this brand and SKU already exists' },
+        });
+      }
+    }
+
+    const crossReference = await prisma.competitorCrossReference.update({
+      where: { id: refId },
+      data: bodyResult.data,
+    });
+
+    return res.json({
+      success: true,
+      data: crossReference,
+    });
+  } catch (error) {
+    console.error('Update cross-reference error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CROSS_REFERENCE_UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update cross-reference',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/products/:productId/cross-references/:refId
+ * Delete a cross-reference (admin only)
+ */
+router.delete('/:productId/cross-references/:refId', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productId, refId } = req.params;
+
+    const existing = await prisma.competitorCrossReference.findFirst({
+      where: { id: refId, productId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Cross-reference not found' },
+      });
+    }
+
+    await prisma.competitorCrossReference.delete({
+      where: { id: refId },
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Delete cross-reference error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CROSS_REFERENCE_DELETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete cross-reference',
       },
     });
   }

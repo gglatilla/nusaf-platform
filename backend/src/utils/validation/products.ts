@@ -120,3 +120,124 @@ export const updateProductSchema = z.object({
 });
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+// ============================================
+// PRODUCT DOCUMENT SCHEMAS
+// ============================================
+
+export const productDocumentTypeEnum = z.enum([
+  'DATASHEET',
+  'CATALOG',
+  'CAD_DRAWING',
+  'INSTALLATION_MANUAL',
+  'CERTIFICATE',
+  'MSDS',
+  'OTHER',
+]);
+
+export type ProductDocumentType = z.infer<typeof productDocumentTypeEnum>;
+
+/**
+ * Schema for creating a product document
+ * File is uploaded separately via multipart form
+ */
+export const createProductDocumentSchema = z.object({
+  type: productDocumentTypeEnum,
+  name: z.string().min(1, 'Name is required').max(200, 'Name must be at most 200 characters'),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+export type CreateProductDocumentInput = z.infer<typeof createProductDocumentSchema>;
+
+/**
+ * Schema for updating a product document
+ */
+export const updateProductDocumentSchema = z.object({
+  type: productDocumentTypeEnum.optional(),
+  name: z.string().min(1).max(200).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateProductDocumentInput = z.infer<typeof updateProductDocumentSchema>;
+
+// ============================================
+// PRODUCT IMAGE SCHEMAS
+// ============================================
+
+/**
+ * Schema for creating a product image
+ * File is uploaded separately via multipart form
+ */
+export const createProductImageSchema = z.object({
+  altText: z.string().max(200).optional().nullable(),
+  caption: z.string().max(500).optional().nullable(),
+  isPrimary: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+export type CreateProductImageInput = z.infer<typeof createProductImageSchema>;
+
+/**
+ * Schema for updating a product image
+ */
+export const updateProductImageSchema = z.object({
+  altText: z.string().max(200).optional().nullable(),
+  caption: z.string().max(500).optional().nullable(),
+  isPrimary: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+export type UpdateProductImageInput = z.infer<typeof updateProductImageSchema>;
+
+// ============================================
+// PRODUCT CROSS-REFERENCE SCHEMAS
+// ============================================
+
+/**
+ * Schema for creating a product cross-reference
+ */
+export const createCrossReferenceSchema = z.object({
+  competitorBrand: z
+    .string()
+    .min(1, 'Competitor brand is required')
+    .max(100, 'Competitor brand must be at most 100 characters'),
+  competitorSku: z
+    .string()
+    .min(1, 'Competitor SKU is required')
+    .max(100, 'Competitor SKU must be at most 100 characters'),
+  notes: z.string().max(500).optional().nullable(),
+  isExact: z.boolean().optional(),
+});
+
+export type CreateCrossReferenceInput = z.infer<typeof createCrossReferenceSchema>;
+
+/**
+ * Schema for updating a product cross-reference
+ */
+export const updateCrossReferenceSchema = z.object({
+  competitorBrand: z.string().min(1).max(100).optional(),
+  competitorSku: z.string().min(1).max(100).optional(),
+  notes: z.string().max(500).optional().nullable(),
+  isExact: z.boolean().optional(),
+});
+
+export type UpdateCrossReferenceInput = z.infer<typeof updateCrossReferenceSchema>;
+
+// ============================================
+// PRODUCT MARKETING/PUBLISHING SCHEMAS
+// ============================================
+
+/**
+ * Schema for updating product marketing content
+ */
+export const updateProductMarketingSchema = z.object({
+  marketingTitle: z.string().max(200).optional().nullable(),
+  marketingDescription: z.string().max(5000).optional().nullable(),
+  metaTitle: z.string().max(70).optional().nullable(),
+  metaDescription: z.string().max(160).optional().nullable(),
+  specifications: z.record(z.string()).optional().nullable(),
+  isPublished: z.boolean().optional(),
+});
+
+export type UpdateProductMarketingInput = z.infer<typeof updateProductMarketingSchema>;
