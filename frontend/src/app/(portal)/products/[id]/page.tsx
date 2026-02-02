@@ -251,9 +251,10 @@ export default function ProductDetailPage() {
       {activeTab === 'pricing' && isInternalUser && (
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Pricing Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">Cost Price</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Supplier Cost (EUR) */}
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">Supplier Cost</h3>
               <p className="text-2xl font-bold text-slate-900">
                 {product.costPrice != null ? (
                   <>EUR {product.costPrice.toFixed(4)}</>
@@ -261,22 +262,45 @@ export default function ProductDetailPage() {
                   <span className="text-slate-400 text-lg font-normal">Not set</span>
                 )}
               </p>
-              <p className="text-sm text-slate-500 mt-1">Supplier cost in EUR</p>
+              <p className="text-xs text-slate-500 mt-1">Raw cost from supplier</p>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">List Price</h3>
-              <p className="text-2xl font-bold text-slate-900">
+
+            {/* Landed Cost (ZAR) - Calculated */}
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+              <h3 className="text-sm font-medium text-blue-700 uppercase mb-2">Landed Cost</h3>
+              <p className="text-2xl font-bold text-blue-900">
+                {product.landedCost != null ? (
+                  <>{formatCurrency(product.landedCost)}</>
+                ) : (
+                  <span className="text-slate-400 text-lg font-normal">Not set</span>
+                )}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">EUR × Rate × (1 + Freight%)</p>
+            </div>
+
+            {/* List Price (ZAR) */}
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+              <h3 className="text-sm font-medium text-emerald-700 uppercase mb-2">List Price</h3>
+              <p className="text-2xl font-bold text-emerald-900">
                 {product.listPrice != null ? (
                   <>{formatCurrency(product.listPrice)}</>
                 ) : (
                   <span className="text-slate-400 text-lg font-normal">Not set</span>
                 )}
               </p>
-              <p className="text-sm text-slate-500 mt-1">Base price before tier discounts</p>
+              <p className="text-xs text-emerald-600 mt-1">Base price before tier discounts</p>
             </div>
           </div>
+
+          {/* Pricing formula explanation */}
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <p className="text-xs text-slate-500">
+              <strong>Pricing Formula:</strong> Supplier Cost (EUR) → × EUR/ZAR Rate → × (1 + Freight%) = Landed Cost → ÷ Margin Divisor → × 1.40 = List Price
+            </p>
+          </div>
+
           {product.priceUpdatedAt && (
-            <p className="text-sm text-slate-500 mt-6">
+            <p className="text-sm text-slate-500 mt-4">
               Price last updated: {new Date(product.priceUpdatedAt).toLocaleDateString()}
             </p>
           )}

@@ -367,8 +367,9 @@ export interface ProductInventory {
 export interface ProductWithInventory extends CatalogProduct {
   // Core editable fields
   isActive: boolean;
-  costPrice: number | null;
-  listPrice: number | null;
+  costPrice: number | null;     // Raw supplier cost in EUR
+  landedCost: number | null;    // Calculated: Supplier EUR × EUR/ZAR × (1 + Freight%)
+  listPrice: number | null;     // Base selling price in ZAR
   priceUpdatedAt: string | null;
 
   // Classification

@@ -340,8 +340,8 @@ router.get('/:id', authenticate, async (req, res) => {
       });
     }
 
-    // Parallel fetch: product, company tier, and optional inventory/movements
-    const [product, company, inventoryResult, movementsResult] = await Promise.all([
+    // Parallel fetch: product, company tier, global settings, and optional inventory/movements
+    const [product, company, globalSettings, inventoryResult, movementsResult] = await Promise.all([
       prisma.product.findUnique({
         where: { id },
         include: {
@@ -414,6 +414,10 @@ router.get('/:id', authenticate, async (req, res) => {
         where: { id: authReq.user.companyId },
         select: { tier: true },
       }),
+      prisma.globalSettings.findUnique({
+        where: { id: 'global' },
+        select: { eurZarRate: true },
+      }),
       includeInventory ? getProductInventorySummary(id) : Promise.resolve(undefined),
       includeMovements ? getProductMovementHistory(id, { pageSize: movementLimit }) : Promise.resolve(undefined),
     ]);
@@ -445,6 +449,34 @@ router.get('/:id', authenticate, async (req, res) => {
       priceLabel = 'Price on Request';
     }
 
+    // Calculate landed cost: Supplier EUR × EUR/ZAR × (1 + Freight%)
+    const eurZarRate = globalSettings?.eurZarRate ? Number(globalSettings.eurZarRate) : null;
+    const costPrice = product.costPrice ? Number(product.costPrice) : null;
+    let landedCost: number | null = null;
+
+    if (costPrice && eurZarRate && product.supplierId && product.categoryId) {
+      // Fetch pricing rule to get freight percentage
+      const pricingRule = await prisma.pricingRule.findFirst({
+        where: {
+          supplierId: product.supplierId,
+          categoryId: product.categoryId,
+          // Try exact match with subcategory first, or null for category-level rule
+          OR: [
+            { subCategoryId: product.subCategoryId },
+            { subCategoryId: null },
+          ],
+        },
+        orderBy: {
+          // Prefer subcategory-specific rule over category-level rule
+          subCategoryId: 'desc',
+        },
+        select: { freightPercent: true },
+      });
+
+      const freightPercent = pricingRule?.freightPercent ? Number(pricingRule.freightPercent) : 0;
+      landedCost = Math.round(costPrice * eurZarRate * (1 + freightPercent / 100) * 100) / 100;
+    }
+
     // Build response
     const responseData: Record<string, unknown> = {
       id: product.id,
@@ -459,6 +491,31 @@ router.get('/:id', authenticate, async (req, res) => {
       priceLabel,
       hasPrice: !!listPrice,
       priceUpdatedAt: product.priceUpdatedAt,
+
+      // Pricing fields (raw + calculated)
+      costPrice,  // Raw supplier cost in EUR
+      landedCost, // Calculated: Supplier EUR × EUR/ZAR × (1 + Freight%)
+      listPrice,  // Base selling price in ZAR
+
+      // Foreign keys for edit form
+      supplierId: product.supplierId,
+      categoryId: product.categoryId,
+      subCategoryId: product.subCategoryId,
+
+      // Classification
+      productType: product.productType,
+      assemblyLeadDays: product.assemblyLeadDays,
+      isConfigurable: product.isConfigurable,
+
+      // Extended info
+      longDescription: product.longDescription,
+      weight: product.weight ? Number(product.weight) : null,
+      dimensionsJson: product.dimensionsJson,
+      imageUrl: product.imageUrl,
+
+      // Status
+      isActive: product.isActive,
+
       // Inventory defaults at root level (matches frontend ProductWithInventory type)
       defaultReorderPoint: product.defaultReorderPoint,
       defaultReorderQty: product.defaultReorderQty,
