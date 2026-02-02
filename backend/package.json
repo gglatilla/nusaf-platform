@@ -24,7 +24,6 @@
     "@nusaf/shared": "*",
     "@prisma/client": "^5.8.0",
     "@types/compression": "^1.8.1",
-    "@types/uuid": "^10.0.0",
     "bcrypt": "^5.1.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -36,7 +35,6 @@
     "nodemailer": "^7.0.13",
     "pdfkit": "^0.17.2",
     "prisma": "^5.8.0",
-    "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
     "zod": "^3.22.4"
   },

@@ -6,7 +6,7 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 // R2 configuration from environment variables
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
@@ -153,7 +153,7 @@ export function generateStorageKey(
   const extension = fileName.includes('.')
     ? fileName.substring(fileName.lastIndexOf('.'))
     : '';
-  const uniqueId = uuidv4();
+  const uniqueId = randomUUID();
 
   if (type === 'document') {
     return `products/${productId}/documents/${uniqueId}${extension}`;
