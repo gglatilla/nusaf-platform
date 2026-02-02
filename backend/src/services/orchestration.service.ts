@@ -971,8 +971,259 @@ function calculateFinalSummary(plan: OrchestrationPlan): void {
  * Execute a fulfillment plan - creates all documents in a transaction
  */
 export async function executeFulfillmentPlan(
-  _options: ExecutePlanOptions
+  options: ExecutePlanOptions
 ): Promise<ServiceResult<ExecutionResult>> {
-  // TODO: Implement in MT-7 through MT-9
-  return { success: false, error: 'Not yet implemented' };
+  const { plan, userId, companyId } = options;
+
+  try {
+    // ============================================
+    // STEP 1: Validate Plan
+    // ============================================
+
+    // Verify order exists and belongs to company
+    const order = await prisma.salesOrder.findUnique({
+      where: { id: plan.orderId },
+      select: {
+        id: true,
+        status: true,
+        companyId: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    if (order.companyId !== companyId) {
+      return { success: false, error: 'Order does not belong to this company' };
+    }
+
+    if (order.status !== 'CONFIRMED') {
+      return { success: false, error: `Order must be CONFIRMED to execute fulfillment. Current status: ${order.status}` };
+    }
+
+    if (!plan.canProceed) {
+      return { success: false, error: plan.blockedReason || 'Plan cannot proceed' };
+    }
+
+    // Check for stale plan (order modified after plan generation)
+    if (order.updatedAt > plan.generatedAt) {
+      return {
+        success: false,
+        error: 'Plan is stale - order was modified after plan generation. Please regenerate the plan.',
+      };
+    }
+
+    // ============================================
+    // STEP 2: Initialize Result
+    // ============================================
+    const result: ExecutionResult = {
+      success: true,
+      createdDocuments: {
+        pickingSlips: [],
+        jobCards: [],
+        transferRequests: [],
+        purchaseOrders: [],
+      },
+      reservationsCreated: 0,
+      orderStatusUpdated: 'PROCESSING',
+    };
+
+    // ============================================
+    // STEP 3: Execute in Transaction
+    // ============================================
+    await prisma.$transaction(async (tx) => {
+      // Create picking slips (MT-8)
+      for (const psPlan of plan.pickingSlips) {
+        const psResult = await createPickingSlipFromPlan(
+          tx,
+          plan.orderId,
+          plan.orderNumber,
+          psPlan,
+          userId,
+          companyId
+        );
+
+        if (psResult) {
+          result.createdDocuments.pickingSlips.push(psResult);
+
+          // Create hard reservations for picked items
+          for (const line of psPlan.lines) {
+            await createReservationFromPlan(
+              tx,
+              line.productId,
+              psPlan.warehouse,
+              line.quantityToPick,
+              'PickingSlip',
+              psResult.id,
+              psResult.number,
+              userId
+            );
+            result.reservationsCreated++;
+          }
+        }
+      }
+
+      // Create job cards (MT-8)
+      for (const jcPlan of plan.jobCards) {
+        const jcResult = await createJobCardFromPlan(
+          tx,
+          plan.orderId,
+          plan.orderNumber,
+          jcPlan,
+          userId,
+          companyId
+        );
+
+        if (jcResult) {
+          result.createdDocuments.jobCards.push(jcResult);
+
+          // Create component reservations (only for available components)
+          for (const component of jcPlan.components) {
+            if (component.shortfall === 0) {
+              await createReservationFromPlan(
+                tx,
+                component.productId,
+                component.sourceWarehouse,
+                component.requiredQuantity,
+                'JobCard',
+                jcResult.id,
+                jcResult.number,
+                userId
+              );
+              result.reservationsCreated++;
+            }
+          }
+        }
+      }
+
+      // Create transfer requests (MT-8)
+      for (const trPlan of plan.transfers) {
+        const trResult = await createTransferFromPlan(
+          tx,
+          plan.orderId,
+          plan.orderNumber,
+          trPlan,
+          userId,
+          companyId
+        );
+
+        if (trResult) {
+          result.createdDocuments.transferRequests.push(trResult);
+        }
+      }
+
+      // Create draft purchase orders (MT-9)
+      for (const poPlan of plan.purchaseOrders) {
+        const poResult = await createPurchaseOrderFromPlan(
+          tx,
+          plan.orderId,
+          plan.orderNumber,
+          poPlan,
+          userId
+        );
+
+        if (poResult) {
+          result.createdDocuments.purchaseOrders.push(poResult);
+        }
+      }
+
+      // Update order status to PROCESSING
+      await tx.salesOrder.update({
+        where: { id: plan.orderId },
+        data: {
+          status: 'PROCESSING',
+          updatedBy: userId,
+        },
+      });
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Execute fulfillment plan error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to execute fulfillment plan',
+    };
+  }
+}
+
+// ============================================
+// EXECUTION HELPERS (TO BE IMPLEMENTED IN MT-8, MT-9)
+// ============================================
+
+/**
+ * Create a picking slip from plan (MT-8)
+ */
+async function createPickingSlipFromPlan(
+  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _orderId: string,
+  _orderNumber: string,
+  _plan: PickingSlipPlan,
+  _userId: string,
+  _companyId: string
+): Promise<{ id: string; number: string; warehouse: Warehouse } | null> {
+  // TODO: Implement in MT-8
+  return null;
+}
+
+/**
+ * Create a job card from plan (MT-8)
+ */
+async function createJobCardFromPlan(
+  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _orderId: string,
+  _orderNumber: string,
+  _plan: JobCardPlan,
+  _userId: string,
+  _companyId: string
+): Promise<{ id: string; number: string } | null> {
+  // TODO: Implement in MT-8
+  return null;
+}
+
+/**
+ * Create a transfer request from plan (MT-8)
+ */
+async function createTransferFromPlan(
+  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _orderId: string,
+  _orderNumber: string,
+  _plan: TransferPlan,
+  _userId: string,
+  _companyId: string
+): Promise<{ id: string; number: string } | null> {
+  // TODO: Implement in MT-8
+  return null;
+}
+
+/**
+ * Create a draft purchase order from plan (MT-9)
+ */
+async function createPurchaseOrderFromPlan(
+  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _orderId: string,
+  _orderNumber: string,
+  _plan: PurchaseOrderPlan,
+  _userId: string
+): Promise<{ id: string; number: string; supplierId: string } | null> {
+  // TODO: Implement in MT-9
+  return null;
+}
+
+/**
+ * Create a hard reservation
+ */
+async function createReservationFromPlan(
+  _tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _productId: string,
+  _location: Warehouse,
+  _quantity: number,
+  _referenceType: string,
+  _referenceId: string,
+  _referenceNumber: string,
+  _userId: string
+): Promise<void> {
+  // TODO: Implement in MT-8
 }
