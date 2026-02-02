@@ -1,24 +1,5 @@
-'use client';
-
-import {
-  HeroSection,
-  ValuePropsSection,
-  ProductCategoriesSection,
-  TrustedBySection,
-  CTABannerSection,
-} from '@/components/website/sections';
-import { useQuoteModal } from '@/components/website/QuoteModalContext';
+import { HomePageClient } from '@/components/website/HomePageClient';
 
 export default function HomePage() {
-  const { openModal } = useQuoteModal();
-
-  return (
-    <div>
-      <HeroSection onRequestQuote={openModal} />
-      <ValuePropsSection />
-      <ProductCategoriesSection />
-      <TrustedBySection />
-      <CTABannerSection onRequestQuote={openModal} />
-    </div>
-  );
+  return <HomePageClient />;
 }

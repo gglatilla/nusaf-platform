@@ -4,6 +4,7 @@ export { MobileNavDrawer } from './MobileNavDrawer';
 export { GuestQuoteBasket } from './GuestQuoteBasket';
 export { QuoteRequestModal } from './QuoteRequestModal';
 export { QuoteModalProvider, useQuoteModal } from './QuoteModalContext';
+export { HomePageClient } from './HomePageClient';
 export { Button } from './Button';
 export { Container } from './Container';
 
