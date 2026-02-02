@@ -119,7 +119,7 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
                   <div className="mt-1 ml-4 space-y-1">
                     {/* View All Products link */}
                     <Link
-                      href="/products"
+                      href="/browse"
                       onClick={onClose}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:bg-slate-50 rounded-lg"
                     >
@@ -150,7 +150,7 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
                             {expandedCategory === category.id && (
                               <div className="ml-4 mt-1 space-y-1">
                                 <Link
-                                  href={`/products/${category.slug}`}
+                                  href={`/browse/${category.slug}`}
                                   onClick={onClose}
                                   className="block px-4 py-1.5 text-xs text-primary-600 hover:bg-slate-50 rounded"
                                 >
@@ -159,7 +159,7 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
                                 {category.subCategories.map((sub) => (
                                   <Link
                                     key={sub.id}
-                                    href={`/products/${category.slug}/${sub.slug}`}
+                                    href={`/browse/${category.slug}/${sub.slug}`}
                                     onClick={onClose}
                                     className="block px-4 py-1.5 text-xs text-slate-500 hover:text-primary-600 hover:bg-slate-50 rounded"
                                   >
@@ -171,7 +171,7 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
                           </>
                         ) : (
                           <Link
-                            href={`/products/${category.slug}`}
+                            href={`/browse/${category.slug}`}
                             onClick={onClose}
                             className="block px-4 py-2 text-sm text-slate-600 hover:text-primary-600 hover:bg-slate-50 rounded-lg"
                           >

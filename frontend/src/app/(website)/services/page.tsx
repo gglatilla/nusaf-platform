@@ -155,7 +155,7 @@ export default function ServicesPage() {
                   Contact Us
                 </Link>
                 <Link
-                  href="/products"
+                  href="/browse"
                   className="px-8 py-3 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-600 transition-colors"
                 >
                   Browse Products

@@ -81,8 +81,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   const breadcrumbs = [
     { label: 'Home', href: '/' },
-    { label: 'Products', href: '/products' },
-    { label: category.name, href: `/products/${category.slug}` },
+    { label: 'Products', href: '/browse' },
+    { label: category.name, href: `/browse/${category.slug}` },
   ];
 
   return (
@@ -123,7 +123,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     slug={subCategory.slug}
                     description={subCategory.description}
                     productCount={subCategory.productCount}
-                    href={`/products/${category.slug}/${subCategory.slug}`}
+                    href={`/browse/${category.slug}/${subCategory.slug}`}
                     size="md"
                   />
                 ))}

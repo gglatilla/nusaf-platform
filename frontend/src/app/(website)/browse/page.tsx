@@ -46,7 +46,7 @@ export default async function ProductsPage() {
 
   const breadcrumbs = [
     { label: 'Home', href: '/' },
-    { label: 'Products', href: '/products' },
+    { label: 'Products', href: '/browse' },
   ];
 
   return (
@@ -89,7 +89,7 @@ export default async function ProductsPage() {
                         description={category.description}
                         productCount={category.productCount}
                         subCategoryCount={category.subCategories.length}
-                        href={`/products/${category.slug}`}
+                        href={`/browse/${category.slug}`}
                         size="lg"
                       />
                     ))}

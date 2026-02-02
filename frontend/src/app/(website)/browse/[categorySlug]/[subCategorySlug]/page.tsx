@@ -87,9 +87,9 @@ export default async function SubCategoryPage({ params }: SubCategoryPageProps) 
 
   const breadcrumbs = [
     { label: 'Home', href: '/' },
-    { label: 'Products', href: '/products' },
-    { label: parentCategory.name, href: `/products/${parentCategory.slug}` },
-    { label: subCategory.name, href: `/products/${parentCategory.slug}/${subCategory.slug}` },
+    { label: 'Products', href: '/browse' },
+    { label: parentCategory.name, href: `/browse/${parentCategory.slug}` },
+    { label: subCategory.name, href: `/browse/${parentCategory.slug}/${subCategory.slug}` },
   ];
 
   return (
