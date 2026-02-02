@@ -14,6 +14,7 @@
 import { Warehouse, FulfillmentPolicy, JobType, ProductType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { checkBomStock } from './bom.service';
+import { checkProductAvailability } from './allocation.service';
 
 // ============================================
 // COMMON TYPES
@@ -704,7 +705,7 @@ async function addComponentToPurchaseOrders(
  * Implemented in MT-5
  */
 async function processStockLine(
-  _line: {
+  line: {
     id: string;
     lineNumber: number;
     productId: string;
@@ -712,7 +713,7 @@ async function processStockLine(
     productDescription: string;
     quantityOrdered: number;
   },
-  _product: {
+  product: {
     id: string;
     nusafSku: string;
     description: string;
@@ -721,17 +722,138 @@ async function processStockLine(
     costPrice: unknown;
     supplier: { id: string; code: string; name: string; currency: string } | null;
   },
-  _customerWarehouse: Warehouse,
-  _plan: OrchestrationPlan,
-  _pickingSlipsByWarehouse: Map<Warehouse, PickingSlipLinesByWarehouse>,
-  _purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
-  _transferLines: TransferLinePlan[]
+  customerWarehouse: Warehouse,
+  plan: OrchestrationPlan,
+  pickingSlipsByWarehouse: Map<Warehouse, PickingSlipLinesByWarehouse>,
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
+  transferLines: TransferLinePlan[]
 ): Promise<void> {
-  // TODO: Implement in MT-5
-  // 1. Run allocation using allocation.service.checkProductAvailability()
-  // 2. Add allocations to pickingSlipsByWarehouse
-  // 3. If requires transfer, add to transferLines
-  // 4. If backorder, add to purchaseOrdersBySupplier
+  // Run allocation
+  const allocationResult = await checkProductAvailability(
+    product.id,
+    line.quantityOrdered,
+    customerWarehouse
+  );
+
+  // Check for error
+  if ('error' in allocationResult) {
+    plan.warnings.push(`Allocation failed for ${product.nusafSku}: ${allocationResult.error}`);
+    return;
+  }
+
+  // Process allocations (stock available)
+  for (const allocation of allocationResult.allocations) {
+    // Create picking slip line
+    const pickingLine: PickingSlipLinePlan = {
+      orderLineId: line.id,
+      lineNumber: line.lineNumber,
+      productId: allocation.productId,
+      productSku: allocation.productSku,
+      productDescription: allocation.productDescription,
+      quantityToPick: allocation.quantityAllocated,
+    };
+
+    // Get or create warehouse entry
+    let warehouseData = pickingSlipsByWarehouse.get(allocation.warehouse);
+    if (!warehouseData) {
+      warehouseData = {
+        warehouse: allocation.warehouse,
+        lines: [],
+        isTransferSource: false,
+      };
+      pickingSlipsByWarehouse.set(allocation.warehouse, warehouseData);
+    }
+
+    // Add line to warehouse picking slip
+    warehouseData.lines.push(pickingLine);
+
+    // If requires transfer (JHB -> CT for CT customer)
+    if (allocation.requiresTransfer) {
+      warehouseData.isTransferSource = true;
+
+      transferLines.push({
+        orderLineId: line.id,
+        lineNumber: line.lineNumber,
+        productId: allocation.productId,
+        productSku: allocation.productSku,
+        productDescription: allocation.productDescription,
+        quantity: allocation.quantityAllocated,
+      });
+
+      plan.summary.linesRequiringTransfer++;
+    }
+
+    plan.summary.linesFromStock++;
+  }
+
+  // Process backorders (not in stock)
+  for (const backorder of allocationResult.backorders) {
+    await addBackorderToPurchaseOrders(
+      backorder.productId,
+      backorder.quantityBackorder,
+      line.id,
+      product,
+      purchaseOrdersBySupplier
+    );
+
+    plan.summary.linesBackordered++;
+  }
+}
+
+/**
+ * Add a backorder item to purchase orders (grouped by supplier)
+ */
+async function addBackorderToPurchaseOrders(
+  productId: string,
+  quantity: number,
+  sourceOrderLineId: string,
+  product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    costPrice: unknown;
+    supplierId: string | null;
+    supplier: { id: string; code: string; name: string; currency: string } | null;
+  },
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
+): Promise<void> {
+  if (!product.supplier) {
+    // Cannot create PO without supplier - this is a warning case
+    // The orchestration will proceed but item won't have a PO
+    return;
+  }
+
+  const supplierId = product.supplier.id;
+
+  // Get or create supplier entry in map
+  let supplierPO = purchaseOrdersBySupplier.get(supplierId);
+  if (!supplierPO) {
+    supplierPO = {
+      supplierId: product.supplier.id,
+      supplierCode: product.supplier.code,
+      supplierName: product.supplier.name,
+      currency: product.supplier.currency,
+      reason: PurchaseOrderReason.FINISHED_GOODS_BACKORDER,
+      lines: [],
+    };
+    purchaseOrdersBySupplier.set(supplierId, supplierPO);
+  }
+
+  // Check if product already has a line (shouldn't happen for finished goods, but be safe)
+  const existingLine = supplierPO.lines.find(l => l.productId === productId);
+  if (existingLine) {
+    existingLine.quantity += quantity;
+  } else {
+    supplierPO.lines.push({
+      productId: product.id,
+      productSku: product.nusafSku,
+      productDescription: product.description,
+      quantity,
+      sourceType: 'ORDER_LINE',
+      sourceId: sourceOrderLineId,
+      estimatedUnitCost: Number(product.costPrice) || 0,
+    });
+  }
 }
 
 /**
