@@ -1,81 +1,86 @@
 # Current Session
 
 ## Active Task
-Fix Product Data Flow Issues (3 bugs)
+Codebase Integration Audit - Fix P0-P2 Issues
 
 ## Status
 COMPLETE | 100%
 
 ## Summary
 
-Fixed three interconnected issues with product data flow:
+Comprehensive audit revealed 35+ integration gaps across the codebase. Fixed 6 high-priority issues (P0-P2).
 
-### Issue 1: Landed Cost Formula Wrong
-**Problem:** Formula was `EUR × Rate × (1 + Freight%)` - missing discount
-**Fix:** Now applies discount FIRST if `isGross=true`:
-```
-Net Price = Cost × (1 - Discount%)
-ZAR Value = Net Price × EUR/ZAR
-Landed Cost = ZAR Value × (1 + Freight%)
-```
+## Fixes Applied
 
-### Issue 2: Supplier Dropdown Not Pre-selecting
-**Problem:** Race condition - form initialized before suppliers loaded
-**Fix:** Added `suppliersLoading` to useEffect dependency, delays form init until suppliers ready
+### P0: Race Conditions (3 fixes)
 
-### Issue 3: Weight Not Imported
-**Problem:** Import pipeline completely lacked WEIGHT support (5 missing points)
-**Fix:** Added WEIGHT to:
-- Column mapping schema
-- Excel parser interface + mapping
-- Auto-detect patterns
-- Validation result data
-- Create/update operations
+**Fix 1: AddPOLineModal supplier validation**
+- File: `frontend/src/hooks/useProducts.ts`
+- Added `enabled` option support to `useProducts` hook
+- File: `frontend/src/components/purchase-orders/AddPOLineModal.tsx`
+- Added `enabled: !!supplierId && isOpen` to prevent fetching wrong products
+
+**Fix 2: ReceiveGoodsModal cache settings**
+- File: `frontend/src/hooks/useGoodsReceipts.ts`
+- Added `staleTime: 30000` (30 sec cache) to `useReceivingSummary` hook
+- Prevents rapid open/close causing inconsistent state
+
+**Fix 3: Query key cleanup**
+- File: `frontend/src/hooks/useGoodsReceipts.ts`
+- Removed dead query key `purchase-order-receiving-summary`
+- Only `receiving-summary` is actually used
+
+### P2: Service Bugs (3 fixes)
+
+**Fix 4: Order releaseHold() status**
+- File: `backend/src/services/order.service.ts`
+- Now checks if any lines have been picked (`quantityPicked > 0`)
+- Returns to PROCESSING if picked, otherwise CONFIRMED
+- Previously always returned to CONFIRMED, losing state
+
+**Fix 5: Inventory service field name**
+- File: `backend/src/services/inventory.service.ts`
+- Changed `warehouseId` to `location` in getProductsStockSummary
+- Field in schema is `location`, not `warehouseId`
+
+**Fix 6: Inventory pagination bug**
+- File: `backend/src/services/inventory.service.ts`
+- Now counts filtered results BEFORE slicing
+- Previously used post-slice length, giving wrong totals
 
 ## Files Modified
 
-1. `backend/src/api/v1/products/route.ts`
-   - Fixed landed cost calculation to include discount from pricing rule
+| File | Changes |
+|------|---------|
+| `frontend/src/hooks/useProducts.ts` | Added `enabled` option support |
+| `frontend/src/components/purchase-orders/AddPOLineModal.tsx` | Added supplier validation |
+| `frontend/src/hooks/useGoodsReceipts.ts` | Added staleTime, removed dead key |
+| `backend/src/services/order.service.ts` | Fixed releaseHold() status logic |
+| `backend/src/services/inventory.service.ts` | Fixed field name + pagination |
 
-2. `frontend/src/components/products/ProductFormModal.tsx`
-   - Added `isLoading` to useSuppliers hook
-   - Added `suppliersLoading` to useEffect dependency
+## Audit Findings (For Future Work)
 
-3. `backend/src/utils/validation/imports.ts`
-   - Added WEIGHT to COLUMN_FIELDS
-   - Added WEIGHT to columnMappingSchema
-   - Added weight to RowValidationResult.data
-   - Added weight to ImportRow
+### Backlog - Public Website Fields
+- marketingTitle, metaDescription, specifications not exposed in API
+- Need to add to UpdateProductInput and product API responses
 
-4. `backend/src/services/excel-parser.service.ts`
-   - Added weight to ParsedRow.mapped interface
-   - Added weight to default mapped values
-   - Added weight to applyColumnMapping
-   - Added weight patterns to autoDetectColumnMapping
+### Backlog - Audit Trail
+- createdBy, updatedBy never returned in ANY API response
+- Need comprehensive audit trail exposure
 
-5. `backend/src/services/import.service.ts`
-   - Added weight to validateRow data output
-   - Added weight to product create operation
-   - Added weight to product update operation
+### Backlog - Missing Features
+- SKU mapping CRUD endpoints
+- Batch stock adjustment
+- Quote PDF generation
+- Order date auto-calculation from leadTimeDays
 
-## Verification Steps
+## Verification
 
-After deployment:
-
-1. **Landed Cost:** Go to product → Pricing tab
-   - Landed Cost should be LOWER than List Price
-   - Formula: (EUR × (1-Discount%) × Rate × (1+Freight%))
-
-2. **Supplier Dropdown:** Edit any product
-   - Supplier should pre-select (e.g., Tecom)
-
-3. **Weight Import:** Re-import a price list with WEIGHT column
-   - Edit product → Classification tab
-   - Weight field should be populated
+All TypeScript checks passed for both backend and frontend.
 
 ## Context for Next Session
 
-- Landed cost now correctly applies discount from pricing rule
-- Supplier dropdown race condition fixed by waiting for data
-- Weight import requires RE-IMPORTING price lists to populate existing products
-- TypeScript checks pass for both backend and frontend
+- 6 P0-P2 bugs fixed
+- 35+ additional gaps documented in plan file
+- Plan file at: `.claude/plans/humble-wiggling-fox.md`
+- Consider tackling P1 (public website fields) next if needed

@@ -240,12 +240,12 @@ export async function getProductsStockSummary(
     return new Map<string, { totalOnHand: number; totalAvailable: number; status: StockStatus }>();
   }
 
-  // Build where clause - optionally filter by warehouse
-  const where: { productId: { in: string[] }; warehouseId?: string } = {
+  // Build where clause - optionally filter by warehouse (using 'location' field)
+  const where: { productId: { in: string[] }; location?: 'JHB' | 'CT' } = {
     productId: { in: productIds },
   };
   if (warehouseId) {
-    where.warehouseId = warehouseId;
+    where.location = warehouseId;
   }
 
   // Fetch stock levels for the given products (optionally filtered by warehouse)
@@ -513,8 +513,11 @@ export async function getStockLevels(options: StockLevelListQuery) {
   });
 
   // Filter for low stock if requested
+  let filteredTotal = total;
   if (lowStockOnly) {
-    results = results.filter((r) => r.stockStatus === 'LOW_STOCK' || r.stockStatus === 'OUT_OF_STOCK').slice(0, pageSize);
+    const filtered = results.filter((r) => r.stockStatus === 'LOW_STOCK' || r.stockStatus === 'OUT_OF_STOCK');
+    filteredTotal = filtered.length; // Count BEFORE slicing
+    results = filtered.slice(0, pageSize);
   }
 
   return {
@@ -522,8 +525,8 @@ export async function getStockLevels(options: StockLevelListQuery) {
     pagination: {
       page,
       pageSize,
-      totalItems: lowStockOnly ? results.length : total,
-      totalPages: Math.ceil((lowStockOnly ? results.length : total) / pageSize),
+      totalItems: lowStockOnly ? filteredTotal : total,
+      totalPages: Math.ceil((lowStockOnly ? filteredTotal : total) / pageSize),
     },
   };
 }

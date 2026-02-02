@@ -48,11 +48,15 @@ export function AddPOLineModal({
   }, [search]);
 
   // Fetch products based on search - filter by supplier
-  const { data: productsData, isLoading: isSearching } = useProducts({
-    search: debouncedSearch,
-    supplierId: supplierId,
-    pageSize: 10,
-  });
+  // Only fetch if supplierId is valid to prevent showing wrong products
+  const { data: productsData, isLoading: isSearching } = useProducts(
+    {
+      search: debouncedSearch,
+      supplierId: supplierId,
+      pageSize: 10,
+    },
+    { enabled: !!supplierId && isOpen }
+  );
 
   const searchResults = productsData?.products ?? [];
 

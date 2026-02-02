@@ -10,7 +10,7 @@ import {
  * Hook for fetching paginated products with filters
  * Always includes stockSummary for displaying stock badges
  */
-export function useProducts(params: ProductsQueryParams = {}) {
+export function useProducts(params: ProductsQueryParams = {}, options?: { enabled?: boolean }) {
   // Always include stockSummary for stock badges on product cards
   const queryParams: ProductsQueryParams = {
     ...params,
@@ -23,6 +23,7 @@ export function useProducts(params: ProductsQueryParams = {}) {
       const response = await api.getProducts(queryParams);
       return response.data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

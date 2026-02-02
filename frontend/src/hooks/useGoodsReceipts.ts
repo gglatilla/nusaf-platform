@@ -50,6 +50,7 @@ export function useGoodsReceiptsForPO(poId: string | null) {
 
 /**
  * Hook for fetching receiving summary for a PO
+ * Includes staleTime to prevent rapid modal open/close issues
  */
 export function useReceivingSummary(poId: string | null) {
   return useQuery({
@@ -60,6 +61,7 @@ export function useReceivingSummary(poId: string | null) {
       return response.data;
     },
     enabled: !!poId,
+    staleTime: 30000, // 30 second cache to prevent rapid open/close issues
   });
 }
 
@@ -80,7 +82,6 @@ export function useCreateGoodsReceipt() {
       queryClient.invalidateQueries({ queryKey: ['goods-receipts-for-po', variables.purchaseOrderId] });
       // Invalidate receiving summary
       queryClient.invalidateQueries({ queryKey: ['receiving-summary', variables.purchaseOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-order-receiving-summary', variables.purchaseOrderId] });
       // Invalidate the PO (status may have changed)
       queryClient.invalidateQueries({ queryKey: ['purchase-order', variables.purchaseOrderId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });

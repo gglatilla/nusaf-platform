@@ -449,6 +449,7 @@ export async function holdOrder(
 
 /**
  * Release order from hold
+ * Returns to PROCESSING if any lines have been picked, otherwise CONFIRMED
  */
 export async function releaseHold(
   orderId: string,
@@ -461,6 +462,11 @@ export async function releaseHold(
       companyId,
       deletedAt: null,
     },
+    include: {
+      lines: {
+        select: { quantityPicked: true },
+      },
+    },
   });
 
   if (!order) {
@@ -471,12 +477,16 @@ export async function releaseHold(
     return { success: false, error: 'Order is not on hold' };
   }
 
-  // Determine the appropriate status to return to
-  // For now, return to CONFIRMED (safe default for processing)
+  // Determine the appropriate status to return to based on processing state
+  // If any lines have been picked, return to PROCESSING
+  // Otherwise, return to CONFIRMED
+  const hasPickedLines = order.lines.some((line) => line.quantityPicked > 0);
+  const returnStatus = hasPickedLines ? 'PROCESSING' : 'CONFIRMED';
+
   await prisma.salesOrder.update({
     where: { id: orderId },
     data: {
-      status: 'CONFIRMED',
+      status: returnStatus,
       holdReason: null,
       updatedBy: userId,
     },
