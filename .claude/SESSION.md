@@ -1,72 +1,94 @@
 # Current Session
 
 ## Active Task
-[FIX] Vercel Build Error - Server/Client Component Boundaries ✓ COMPLETE
+TASK-016-PREP: Product Information Extension (Phase 1 - Backend Only)
 
 ## Status
 COMPLETE | 100%
 
 ## Summary
 
-Fixed Vercel build error by implementing proper Server/Client component boundaries using URL-based modal state.
+Successfully implemented Phase 1 of the Product Information Extension, which includes all backend infrastructure for product documents, images, and cross-reference search.
 
-### Problem
-Vercel build failed with:
-```
-Error: ENOENT: no such file or directory, lstat '/vercel/path0/frontend/.next/server/app/(website)/page_client-reference-manifest.js'
-```
+### Completed Micro-tasks
 
-Root cause: `HomePageClient` was a Client Component importing Server Components directly, breaking Next.js manifest generation.
+- [x] **MT-1**: Prisma Schema Changes
+  - Extended Product model with marketing fields (marketingTitle, marketingDescription, metaTitle, metaDescription, specifications)
+  - Added publishing status (isPublished, publishedAt)
+  - Added relations for productDocuments and productImages
 
-### Solution: URL-Based Modal State
+- [x] **MT-2**: Database Migration
+  - Created migration `20260202120000_add_product_information_extension`
+  - Applied successfully with idempotent SQL
 
-Instead of React state (`useState`), the modal now uses URL query parameters (`?modal=quote`). This allows all static sections to remain Server Components.
+- [x] **MT-3**: R2 Service Extensions
+  - Added `generateStorageKey(type, productId, fileName)` for product assets
+  - Added `getPublicUrl(key)` for full URL generation
+  - Added `getSignedUploadUrl(key, contentType, expiresIn)` for direct uploads
+  - Added `uploadProductAsset()` convenience wrapper
 
-**New Architecture:**
-```
-page.tsx (Server Component)
-├── WebsiteHeader (Server Component)
-│   ├── Static nav links
-│   ├── MobileMenuWrapper (Client - hamburger + drawer)
-│   └── GuestQuoteBasket (Client - cart dropdown)
-├── HeroSection (Server - "Request Quote" is a Link to ?modal=quote)
-├── ValuePropsSection (Server - static content)
-├── ProductCategoriesSection (Server - static cards)
-├── TrustedBySection (Server - static logos)
-├── CTABannerSection (Server - "Request Quote" is a Link)
-├── WebsiteFooter (Server - static links)
-└── QuoteModalWrapper (Client - reads ?modal=quote from URL)
-```
+- [x] **MT-4**: Dependencies Installed
+  - `@aws-sdk/client-s3` (already installed)
+  - `@aws-sdk/s3-request-presigner`
+  - `uuid` + `@types/uuid`
 
-### Files Changed
-- `frontend/src/app/(website)/page.tsx` - Rewritten as Server Component
-- `frontend/src/components/website/HomePageClient.tsx` - **DELETED**
-- `frontend/src/components/website/QuoteModalWrapper.tsx` - **CREATED** (Client)
-- `frontend/src/components/website/MobileMenuWrapper.tsx` - **CREATED** (Client)
-- `frontend/src/components/website/WebsiteHeader.tsx` - Converted to Server Component
-- `frontend/src/components/website/GuestQuoteBasket.tsx` - Changed button to Link
-- `frontend/src/components/website/sections/HeroSection.tsx` - Converted to Server Component
-- `frontend/src/components/website/sections/CTABannerSection.tsx` - Converted to Server Component
-- `frontend/src/components/website/index.ts` - Updated exports
+- [x] **MT-5**: Product Documents API
+  - `GET /products/:id/documents` - List documents (public)
+  - `POST /products/:id/documents` - Upload document (admin)
+  - `DELETE /products/:id/documents/:docId` - Delete document (admin)
 
-### Benefits
-- Proper server-side rendering for all static content
-- Smaller JavaScript bundle (84.3 kB First Load)
-- SEO-friendly (static prerendering)
-- Modal works with browser back button
-- Shareable quote URL (`/?modal=quote`)
+- [x] **MT-6**: Product Images API
+  - `GET /products/:id/images` - List images (public)
+  - `POST /products/:id/images` - Upload image (admin)
+  - `PATCH /products/:id/images/:imgId` - Update metadata/set primary (admin)
+  - `DELETE /products/:id/images/:imgId` - Delete image (admin)
 
-### Verification
-- Local build: ✓ Passed (`npm run build`)
-- Pushed to GitHub: ✓ Commit b4cd138
-- **Pending**: Clear Vercel build cache and verify deployment
+- [x] **MT-7**: Product Cross-References API
+  - `GET /products/:id/cross-references` - List cross-refs (public)
+  - `POST /products/:id/cross-references` - Add cross-ref (admin)
+  - `PATCH /products/:id/cross-references/:refId` - Update (admin)
+  - `DELETE /products/:id/cross-references/:refId` - Delete (admin)
+
+- [x] **MT-8**: Public Products API
+  - `GET /public/products` - List published products (no prices)
+  - `GET /public/products/:sku` - Get product by SKU (no prices)
+  - `GET /public/products/search` - Search products + cross-references
+  - `GET /public/products/cross-reference` - Search by competitor part number
+
+- [x] **MT-9**: Updated Existing Product API
+  - Extended `GET /products/:id` to include documents, images, crossReferences via `include` query param
+
+### Files Created
+- `backend/src/api/v1/public/products/route.ts` - Public products API
+
+### Files Modified
+- `backend/prisma/schema.prisma` - Extended Product model, added ProductDocument/ProductImage
+- `backend/prisma/migrations/20260202120000_add_product_information_extension/migration.sql`
+- `backend/src/services/r2-storage.service.ts` - Added new functions
+- `backend/src/api/v1/products/route.ts` - Added documents/images/cross-references routes
+- `backend/src/utils/validation/products.ts` - Added validation schemas
+- `backend/src/index.ts` - Registered public products route
+- `backend/.env.example` - Added R2_PUBLIC_URL
+
+### Technical Notes
+- Schema uses `competitorBrand`/`competitorSku` (not manufacturer/partNumber)
+- Relation name is `crossReferences` (not `competitorCrossReferences`)
+- Files uploaded to R2 with UUID-based keys to prevent collisions
+- Public API exposes no pricing information (quote-only B2B model)
+- Cross-reference search is critical for B2B (customers know competitor part numbers)
 
 ## Next Steps
-1. User should clear Vercel build cache (Project Settings → Build Cache)
-2. Verify Vercel deployment succeeds
-3. Test URL-based modal functionality on deployed site
+1. Commit and push changes
+2. User to configure R2 environment variables:
+   - R2_ACCOUNT_ID
+   - R2_ACCESS_KEY_ID
+   - R2_SECRET_ACCESS_KEY
+   - R2_BUCKET_NAME
+   - R2_PUBLIC_URL
+3. Move to Phase 2: Public Website Product Pages (TASK-016)
 
 ## Context for Next Session
-- TASK-015 (Public Website Homepage) is functionally complete
-- Server/Client boundaries now properly implemented
-- Next logical task is TASK-016 (Public Website Product Pages)
+- TASK-016-PREP Phase 1 is complete (backend infrastructure)
+- Phase 2 = Public website product pages (Next.js frontend)
+- Phase 3 = Admin UI for managing documents/images/cross-refs
+- R2 storage ready but needs environment configuration
