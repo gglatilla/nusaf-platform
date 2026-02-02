@@ -1,0 +1,40 @@
+'use client';
+
+import Link from 'next/link';
+
+interface HeroSectionProps {
+  onRequestQuote?: () => void;
+}
+
+export function HeroSection({ onRequestQuote }: HeroSectionProps) {
+  return (
+    <section className="bg-gradient-to-b from-white to-slate-50 py-20 lg:py-28 px-4">
+      <div className="max-w-6xl mx-auto text-center">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+          Industrial Components.
+          <br />
+          Local Stock. Fast Delivery.
+        </h1>
+        <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10">
+          Premium conveyor components, power transmission, bearings, and gearboxes from
+          Europe&apos;s leading manufacturers. Stocked locally in Johannesburg, Cape Town, and
+          Mbombela.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/products"
+            className="inline-flex items-center justify-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors shadow-lg shadow-primary-600/25"
+          >
+            Explore Products
+          </Link>
+          <button
+            onClick={onRequestQuote}
+            className="inline-flex items-center justify-center px-8 py-4 border-2 border-primary-600 text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-colors"
+          >
+            Request Quote
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
