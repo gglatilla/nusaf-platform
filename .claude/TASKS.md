@@ -3,10 +3,10 @@
 ---
 
 ## Current
-- [TASK-020B] Procurement UI [Procurement, UI] (IN_PROGRESS)
+(none)
 
 ## Up Next
-(none)
+- [TASK-021] Stock Allocation Service [Fulfillment, Backend]
 
 ## Backlog
 
@@ -102,6 +102,7 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-019A] BOM UI ✓
 - [TASK-020] Purchase Orders ✓
 - [TASK-020A] Goods Receipt (GRV) ✓
+- [TASK-020B] Procurement UI ✓
 
 ---
 
