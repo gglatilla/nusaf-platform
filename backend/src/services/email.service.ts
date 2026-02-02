@@ -553,3 +553,114 @@ www.nusaf.co.za
     text,
   });
 }
+
+// ============================================
+// CONTACT FORM EMAILS
+// ============================================
+
+export interface ContactMessageData {
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  message: string;
+  submittedAt: Date;
+}
+
+/**
+ * Send notification email when a contact form message is received
+ */
+export async function sendContactFormNotification(data: ContactMessageData): Promise<EmailResult> {
+  const infoEmail = process.env.INFO_EMAIL || 'info@nusaf.co.za';
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #1a5f7a; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">New Contact Form Message</h1>
+  </div>
+
+  <div style="padding: 25px 20px; background-color: #ffffff;">
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      A new message has been submitted via the website contact form.
+    </p>
+
+    <table style="width: 100%; margin-bottom: 25px;">
+      <tr>
+        <td style="padding: 8px 0; width: 100px;"><strong>From:</strong></td>
+        <td style="padding: 8px 0;">${data.name}</td>
+      </tr>
+      ${data.company ? `
+      <tr>
+        <td style="padding: 8px 0;"><strong>Company:</strong></td>
+        <td style="padding: 8px 0;">${data.company}</td>
+      </tr>
+      ` : ''}
+      <tr>
+        <td style="padding: 8px 0;"><strong>Email:</strong></td>
+        <td style="padding: 8px 0;"><a href="mailto:${data.email}" style="color: #1a5f7a;">${data.email}</a></td>
+      </tr>
+      ${data.phone ? `
+      <tr>
+        <td style="padding: 8px 0;"><strong>Phone:</strong></td>
+        <td style="padding: 8px 0;"><a href="tel:${data.phone}" style="color: #1a5f7a;">${data.phone}</a></td>
+      </tr>
+      ` : ''}
+      <tr>
+        <td style="padding: 8px 0;"><strong>Received:</strong></td>
+        <td style="padding: 8px 0;">${data.submittedAt.toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+      </tr>
+    </table>
+
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px;">
+      Message
+    </h3>
+    <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #1a5f7a; white-space: pre-wrap;">
+${data.message}
+    </div>
+
+    <p style="margin-top: 25px; text-align: center;">
+      <a href="mailto:${data.email}?subject=Re: Your enquiry to Nusaf"
+         style="display: inline-block; padding: 12px 30px; background-color: #1a5f7a; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        Reply to ${data.name.split(' ')[0]}
+      </a>
+    </p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0;">This is an automated notification from the Nusaf website contact form.</p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+NEW CONTACT FORM MESSAGE
+${'='.repeat(50)}
+
+From: ${data.name}
+${data.company ? `Company: ${data.company}` : ''}
+Email: ${data.email}
+${data.phone ? `Phone: ${data.phone}` : ''}
+Received: ${data.submittedAt.toLocaleString('en-ZA')}
+
+Message:
+${'-'.repeat(50)}
+${data.message}
+${'-'.repeat(50)}
+
+Reply to this enquiry by emailing ${data.email}
+  `.trim();
+
+  return sendEmail({
+    to: infoEmail,
+    subject: `[Website Contact] Message from ${data.name}${data.company ? ` (${data.company})` : ''}`,
+    html,
+    text,
+  });
+}
