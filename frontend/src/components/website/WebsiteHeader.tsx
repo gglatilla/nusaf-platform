@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { MobileMenuWrapper } from './MobileMenuWrapper';
 import { GuestQuoteBasket } from './GuestQuoteBasket';
+import { MegaMenu } from './MegaMenu';
 
 const navigation = [
-  { name: 'Products', href: '/catalog' },
   { name: 'Solutions', href: '/solutions' },
   { name: 'Services', href: '/services' },
   { name: 'About', href: '/about' },
@@ -22,6 +22,7 @@ export function WebsiteHeader() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
+            <MegaMenu />
             {navigation.map((item) => (
               <Link
                 key={item.name}
