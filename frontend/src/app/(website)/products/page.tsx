@@ -88,6 +88,33 @@ async function ProductsContent({
     console.error('Failed to fetch products:', error);
   }
 
+  // Build cross-reference match map for search results
+  // When a product is found via cross-reference, show which competitor SKU matched
+  const matchedViaMap: Record<string, string> = {};
+  if (search) {
+    const searchLower = search.toLowerCase();
+    products.forEach((product) => {
+      if (product.crossReferences) {
+        // Check if the search term matches any cross-reference
+        const matchingRef = product.crossReferences.find(
+          (ref) =>
+            ref.competitorSku.toLowerCase().includes(searchLower) ||
+            ref.competitorBrand.toLowerCase().includes(searchLower)
+        );
+        if (matchingRef) {
+          // Check if the product's own SKU or title doesn't contain the search term
+          // (meaning the match was via cross-reference, not direct match)
+          const directMatch =
+            product.sku.toLowerCase().includes(searchLower) ||
+            product.title.toLowerCase().includes(searchLower);
+          if (!directMatch) {
+            matchedViaMap[product.id] = `${matchingRef.competitorBrand} ${matchingRef.competitorSku}`;
+          }
+        }
+      }
+    });
+  }
+
   // Build breadcrumb items
   const breadcrumbItems: { label: string; href?: string }[] = [{ label: 'Products', href: '/products' }];
 
@@ -138,6 +165,7 @@ async function ProductsContent({
       {/* Product grid */}
       <ProductGrid
         products={products}
+        matchedViaMap={search ? matchedViaMap : undefined}
         emptyMessage={
           search
             ? `No products found matching "${search}". Try a different search term or browse all products.`
