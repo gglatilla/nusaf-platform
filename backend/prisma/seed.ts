@@ -372,6 +372,24 @@ async function main() {
   console.log(`Created sales user: ${salesUser.email} (password: sales123)`);
   console.log(`Created admin user: ${adminUser.email} (password: admin123)`);
 
+  // ============================================
+  // GLOBAL SETTINGS (EUR/ZAR Rate)
+  // ============================================
+  console.log('Seeding global settings...');
+
+  const globalSettings = await prisma.globalSettings.upsert({
+    where: { id: 'global' },
+    update: {},
+    create: {
+      id: 'global',
+      eurZarRate: 20.5, // Default EUR/ZAR rate
+      rateUpdatedAt: new Date(),
+      rateUpdatedBy: adminUser.id,
+    },
+  });
+
+  console.log(`Global settings seeded with EUR/ZAR rate: ${globalSettings.eurZarRate}`);
+
   console.log('Seed completed successfully!');
 }
 

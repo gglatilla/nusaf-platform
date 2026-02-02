@@ -84,6 +84,20 @@ export interface ImportCategoriesResponse {
   categories: ImportCategory[];
 }
 
+export interface ImportHistoryItem {
+  id: string;
+  fileName: string;
+  supplierCode: string;
+  status: 'PENDING' | 'VALIDATING' | 'VALIDATED' | 'IMPORTING' | 'COMPLETED' | 'FAILED';
+  totalRows: number;
+  processedRows: number;
+  successRows: number;
+  errorRows: number;
+  createdAt: string;
+  completedAt: string | null;
+  rowCount: number;
+}
+
 // Global settings types
 export interface GlobalSettings {
   eurZarRate: number;
@@ -1969,6 +1983,10 @@ class ApiClient {
 
   async getImportCategories(): Promise<ApiResponse<ImportCategoriesResponse>> {
     return this.request<ApiResponse<ImportCategoriesResponse>>('/admin/imports/categories');
+  }
+
+  async getImportHistory(): Promise<ApiResponse<ImportHistoryItem[]>> {
+    return this.request<ApiResponse<ImportHistoryItem[]>>('/admin/imports/history');
   }
 
   // Product catalog endpoints

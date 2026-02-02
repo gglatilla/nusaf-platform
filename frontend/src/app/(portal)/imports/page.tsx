@@ -1,13 +1,30 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, FileSpreadsheet } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ImportHistory } from '@/components/admin/imports/ImportHistory';
+import { api, type ImportHistoryItem } from '@/lib/api';
 
 export default function ImportsPage() {
-  // For MVP, we show an empty history with a prominent "New Import" action
-  // In the future, this would fetch from GET /api/v1/admin/imports/history
+  const [imports, setImports] = useState<ImportHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.getImportHistory()
+      .then((res) => {
+        if (res.success && res.data) {
+          setImports(res.data);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch import history:', error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <>
@@ -78,8 +95,7 @@ export default function ImportsPage() {
             <h2 className="text-lg font-semibold text-slate-900">Recent Imports</h2>
           </div>
           <div className="p-6">
-            {/* For MVP, show empty state. In future, fetch actual history */}
-            <ImportHistory items={[]} />
+            <ImportHistory items={imports} isLoading={isLoading} />
           </div>
         </div>
 

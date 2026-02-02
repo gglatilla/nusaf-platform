@@ -71,7 +71,8 @@ export function ProductFormModal({ isOpen, product, onClose }: ProductFormModalP
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const { data: categoriesData } = useCategories();
-  const { data: suppliersData } = useSuppliers({ pageSize: 100, isActive: true });
+  // Fetch all suppliers (not just active) so we can edit products with any supplier
+  const { data: suppliersData } = useSuppliers({ pageSize: 100 });
 
   const isEdit = !!product;
 

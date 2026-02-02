@@ -416,4 +416,78 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/v1/admin/pricing-rules/recalculate
+ * Manually trigger price recalculation for all products (or filtered by supplier/category)
+ */
+router.post('/recalculate', async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { supplierId, categoryId } = req.body;
+
+    // Resolve supplier code to ID if provided
+    let resolvedSupplierId: string | undefined;
+    if (supplierId) {
+      const supplier = await prisma.supplier.findUnique({
+        where: { code: supplierId },
+      });
+      if (!supplier) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_SUPPLIER',
+            message: `Supplier not found: ${supplierId}`,
+          },
+        });
+      }
+      resolvedSupplierId = supplier.id;
+    }
+
+    // Resolve category code to ID if provided
+    let resolvedCategoryId: string | undefined;
+    if (categoryId) {
+      const category = await prisma.category.findUnique({
+        where: { code: categoryId },
+      });
+      if (!category) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_CATEGORY',
+            message: `Category not found: ${categoryId}`,
+          },
+        });
+      }
+      resolvedCategoryId = category.id;
+    }
+
+    // Run the recalculation (this is synchronous and waits for result)
+    const result = await recalculateProductPrices({
+      supplierId: resolvedSupplierId,
+      categoryId: resolvedCategoryId,
+      userId: authReq.user.id,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        total: result.total,
+        updated: result.updated,
+        failed: result.failed,
+        errors: result.errors,
+      },
+      message: `Recalculated prices for ${result.updated} of ${result.total} products`,
+    });
+  } catch (error) {
+    console.error('Recalculate prices error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RECALCULATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to recalculate prices',
+      },
+    });
+  }
+});
+
 export default router;
