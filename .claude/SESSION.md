@@ -1,47 +1,41 @@
 # Current Session
 
 ## Active Task
-(none)
+[TASK-020] Purchase Orders [Procurement, Backend]
 
 ## Status
-COMPLETE | TASK-019A finished
+IN_PROGRESS | 80% complete
 
-## Completed This Session
-- [x] MT-1: Add BOM types to api.ts
-- [x] MT-2: Add BOM API methods to ApiClient
-- [x] MT-3: Create useBom.ts with all BOM hooks
-- [x] MT-4: Create BomTable component
-- [x] MT-5: Create AddComponentModal
-- [x] MT-6: Create WhereUsedSection
-- [x] MT-7: Create ProductBomTab orchestrator
-- [x] MT-8: Add BOM tab to product detail page
-- [x] MT-9: Export components from index.ts
-- [x] MT-10: Final commit and push
+## Micro-tasks
+- [x] MT-1: Add PURCHASER role and PO schema to Prisma
+- [x] MT-2: Run migration (via direct SQL)
+- [x] MT-3: Create validation schemas
+- [x] MT-4: Create purchase order service — Core CRUD
+- [x] MT-5: Create purchase order service — Lines
+- [x] MT-6: Create purchase order service — Workflow
+- [ ] MT-7: Add PDF generation (pdfkit) — DEFERRED
+- [ ] MT-8: Add email service (nodemailer) — DEFERRED
+- [x] MT-9: Create purchase order service — Send to supplier (status update only)
+- [x] MT-10: Create API routes — CRUD
+- [x] MT-11: Create API routes — Lines
+- [x] MT-12: Create API routes — Workflow
+- [x] MT-13: Register routes in index.ts
+- [ ] MT-14: Write tests — OPTIONAL
 
 ## Files Created
-- frontend/src/hooks/useBom.ts
-- frontend/src/components/products/BomTable.tsx
-- frontend/src/components/products/AddComponentModal.tsx
-- frontend/src/components/products/WhereUsedSection.tsx
-- frontend/src/components/products/ProductBomTab.tsx
+- backend/src/utils/validation/purchase-orders.ts
+- backend/src/services/purchase-order.service.ts
+- backend/src/api/v1/purchase-orders/route.ts
 
 ## Files Modified
-- frontend/src/lib/api.ts (added BOM types and methods)
-- frontend/src/app/(portal)/products/[id]/page.tsx (added BOM tab)
-- frontend/src/components/products/index.ts (exports)
+- backend/prisma/schema.prisma (PURCHASER role, PO models)
+- backend/src/index.ts (registered PO routes)
 
 ## Decisions Made
-- Add Component: Header button opens modal (consistent with Edit button)
-- Component Search: Simple search-only (no category filter)
-- Where Used: Collapsible section below BOM table
-- BOM tab visible to internal users only, editable by ADMIN only
+- PO Number Format: PO-2025-00001 (year-based sequential)
+- PDF Export: Yes, with "Send to Supplier" email action
+- Approval: No approval for ADMIN/MANAGER, PURCHASER needs approval
+- Currency: Inherited from supplier
 
-## Next Task
-TASK-020: Purchase Orders [Procurement, Backend]
-
-## Context for Next Session
-TASK-019A (BOM UI) is complete. The BOM system (TASK-019 + TASK-019A) is now fully implemented with:
-- Backend: BOM schema, API endpoints, service functions (circular validation, stock check, BOM explosion)
-- Frontend: BOM tab on product detail page, component picker modal, where-used section
-
-Next up is Phase C: Procurement — starting with TASK-020 Purchase Orders.
+## Context
+Plan approved. Starting with MT-1: Add PURCHASER role and PO schema.
