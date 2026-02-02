@@ -1,12 +1,12 @@
 # Current Session
 
 ## Active Task
-[TASK-020] Purchase Orders [Procurement, Backend]
+[TASK-020] Purchase Orders [Procurement, Backend] — COMPLETE
 
 ## Status
-COMPLETE | 100% complete
+COMPLETE | 100%
 
-## Micro-tasks
+## Completed Micro-tasks
 - [x] MT-1: Add PURCHASER role and PO schema to Prisma
 - [x] MT-2: Run migration (via direct SQL)
 - [x] MT-3: Create validation schemas
@@ -20,7 +20,7 @@ COMPLETE | 100% complete
 - [x] MT-11: Create API routes — Lines
 - [x] MT-12: Create API routes — Workflow
 - [x] MT-13: Register routes in index.ts
-- [ ] MT-14: Write tests — OPTIONAL
+- [ ] MT-14: Write tests — OPTIONAL (not done)
 
 ## Files Created
 - backend/src/utils/validation/purchase-orders.ts
@@ -31,6 +31,7 @@ COMPLETE | 100% complete
 
 ## Files Modified
 - backend/prisma/schema.prisma (PURCHASER role, PO models)
+- backend/package.json (added pdfkit, nodemailer)
 - backend/src/index.ts (registered PO routes)
 
 ## Decisions Made
@@ -38,12 +39,26 @@ COMPLETE | 100% complete
 - PDF Export: Full implementation with professional Nusaf branding
 - Email: Full implementation with nodemailer, dev mode logs to console
 - Approval: No approval for ADMIN/MANAGER, PURCHASER needs approval
-- Currency: Inherited from supplier
+- Currency: Inherited from supplier (EUR or ZAR)
 
 ## Implementation Summary
 
+### Database Models (schema.prisma)
+- PurchaseOrder: id, poNumber, supplierId, status, deliveryLocation, expectedDate, currency, subtotal, total, approval fields, sent fields
+- PurchaseOrderLine: id, lineNumber, productId, productSku, productDescription, quantityOrdered, quantityReceived, unitCost, lineTotal
+- PurchaseOrderCounter: for sequential PO number generation
+
+### Purchase Order Service (purchase-order.service.ts)
+Key functions:
+- `generatePONumber()` - PO-YYYY-NNNNN format
+- `createPurchaseOrder()`, `getPurchaseOrders()`, `getPurchaseOrderById()`, `updatePurchaseOrder()`, `cancelPurchaseOrder()`
+- `addPurchaseOrderLine()`, `updatePurchaseOrderLine()`, `removePurchaseOrderLine()`
+- `submitForApproval()`, `approvePurchaseOrder()`, `rejectPurchaseOrder()`
+- `sendToSupplier()` - generates PDF, sends email, updates status
+- `getPurchaseOrderPDF()` - standalone PDF generation
+
 ### PDF Generation (pdf.service.ts)
-- Professional A4 PDF with Nusaf branding
+- Professional A4 PDF with Nusaf branding (teal #1a5f7a)
 - Header with company name and tagline
 - Supplier/delivery info sections
 - Line items table with alternating row colors
@@ -53,31 +68,43 @@ COMPLETE | 100% complete
 ### Email Service (email.service.ts)
 - Nodemailer integration
 - Dev mode: logs to console when SMTP not configured
-- Production: uses SMTP env vars (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)
-- HTML email template with PO summary
+- Production: uses SMTP env vars
+- HTML email template with PO summary table
 - Text fallback for email clients
 
-### Send to Supplier Flow (purchase-order.service.ts)
-- `sendToSupplier()` function orchestrates:
-  1. Validates PO status and lines
-  2. Determines recipient email (override or supplier.email)
-  3. Generates PDF with `generatePurchaseOrderPDF()`
-  4. Generates email content with `generatePurchaseOrderEmail()`
-  5. Sends email with PDF attachment
-  6. Updates PO status to SENT
-- `getPurchaseOrderPDF()` for standalone PDF download
+### API Endpoints (route.ts)
+CRUD:
+- POST /api/v1/purchase-orders - Create PO
+- GET /api/v1/purchase-orders - List POs with filters
+- GET /api/v1/purchase-orders/:id - Get PO by ID
+- PATCH /api/v1/purchase-orders/:id - Update PO
+- DELETE /api/v1/purchase-orders/:id - Cancel PO
 
-### API Endpoints
-- `POST /:id/send` - Send PO to supplier (generates PDF, sends email)
-- `GET /:id/pdf` - Download PO as PDF
+Lines:
+- POST /api/v1/purchase-orders/:id/lines - Add line
+- PATCH /api/v1/purchase-orders/:id/lines/:lineId - Update line
+- DELETE /api/v1/purchase-orders/:id/lines/:lineId - Remove line
 
-## Context
-TASK-020 is complete. All backend functionality for Purchase Orders is implemented:
-- Full CRUD operations
-- Line item management
-- Approval workflow for PURCHASER role
-- PDF generation with professional layout
-- Email sending with PDF attachment
-- Status tracking (DRAFT → SENT → ACKNOWLEDGED → RECEIVED → CLOSED)
+Workflow:
+- POST /api/v1/purchase-orders/:id/submit - Submit for approval (PURCHASER)
+- POST /api/v1/purchase-orders/:id/approve - Approve (ADMIN/MANAGER)
+- POST /api/v1/purchase-orders/:id/reject - Reject (ADMIN/MANAGER)
+- POST /api/v1/purchase-orders/:id/send - Send to supplier with PDF email
+- POST /api/v1/purchase-orders/:id/acknowledge - Mark acknowledged
+- GET /api/v1/purchase-orders/:id/pdf - Download PDF
 
-Next task: TASK-020A (GRV) or TASK-020B (Procurement UI)
+## Environment Variables for Email (Production)
+```
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=user@example.com
+SMTP_PASS=password
+SMTP_SECURE=false
+SMTP_FROM=noreply@nusaf.co.za
+SMTP_FROM_NAME=Nusaf Dynamic Technologies
+```
+
+## Next Steps
+TASK-020 complete. Ready for:
+- TASK-020A: GRV (Goods Received Voucher) — depends on PO
+- TASK-020B: Procurement UI — frontend for PO management
