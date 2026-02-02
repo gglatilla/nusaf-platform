@@ -3,7 +3,7 @@
 ---
 
 ## Current
-- [TASK-015] Public Website Homepage (IN_PROGRESS)
+(none)
 
 ## Up Next
 - [TASK-016] Public Website Product Pages
@@ -107,6 +107,7 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-021A] BOM Explosion Service ✓ (already implemented in TASK-019)
 - [TASK-022] Fulfillment Orchestration Engine ✓
 - [TASK-022A] Fulfillment Orchestration UI ✓
+- [TASK-015] Public Website Homepage ✓
 
 ---
 
