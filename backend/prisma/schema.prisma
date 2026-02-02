@@ -147,6 +147,7 @@ enum UserRole {
   ADMIN
   MANAGER
   SALES
+  PURCHASER
   CUSTOMER
 }
 
@@ -220,10 +221,11 @@ model Supplier {
   notes             String?
 
   // Relations
-  products     Product[]
-  skuMappings  SkuMapping[]
-  pricingRules PricingRule[]
-  contacts     SupplierContact[]
+  products       Product[]
+  skuMappings    SkuMapping[]
+  pricingRules   PricingRule[]
+  contacts       SupplierContact[]
+  purchaseOrders PurchaseOrder[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -525,6 +527,17 @@ enum SalesOrderStatus {
   INVOICED
   CLOSED
   ON_HOLD
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  PENDING_APPROVAL
+  SENT
+  ACKNOWLEDGED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
   CANCELLED
 }
 
@@ -1360,4 +1373,89 @@ model BomItem {
   @@index([parentProductId])
   @@index([componentProductId])
   @@map("bom_items")
+}
+
+// ============================================
+// PURCHASE ORDER ENTITIES
+// ============================================
+
+model PurchaseOrder {
+  id               String              @id @default(cuid())
+  poNumber         String              @unique @map("po_number") // PO-2025-00001
+  supplierId       String              @map("supplier_id")
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  status           PurchaseOrderStatus @default(DRAFT)
+  deliveryLocation Warehouse           @default(JHB) @map("delivery_location")
+  expectedDate     DateTime?           @map("expected_date")
+  currency         SupplierCurrency    @default(EUR)
+
+  // Totals (in supplier currency)
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  // Source reference (optional - PO can be linked to a sales order)
+  sourceOrderId String? @map("source_order_id")
+
+  // Notes
+  internalNotes String? @map("internal_notes")
+  supplierNotes String? @map("supplier_notes")
+
+  // Approval workflow (for PURCHASER role)
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      String?   @map("approved_by")
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectedBy      String?   @map("rejected_by")
+  rejectionReason String?   @map("rejection_reason")
+
+  // Send tracking
+  sentAt DateTime? @map("sent_at")
+  sentBy String?   @map("sent_by")
+
+  // Relations
+  lines PurchaseOrderLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([poNumber])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  lineNumber      Int           @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+
+  // Quantities
+  quantityOrdered  Int @map("quantity_ordered")
+  quantityReceived Int @default(0) @map("quantity_received")
+
+  // Pricing (in supplier currency)
+  unitCost  Decimal @map("unit_cost") @db.Decimal(10, 4)
+  lineTotal Decimal @map("line_total") @db.Decimal(12, 2)
+
+  // Optional link to sales order line (for procurement triggered by order)
+  salesOrderLineId String? @map("sales_order_line_id")
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_lines")
+}
+
+model PurchaseOrderCounter {
+  id    String @id @default("po_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("purchase_order_counter")
 }
