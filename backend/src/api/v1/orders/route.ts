@@ -8,6 +8,11 @@ import {
   orderListQuerySchema,
 } from '../../../utils/validation/orders';
 import {
+  generatePlanSchema,
+  executePlanSchema,
+  updatePolicySchema,
+} from '../../../utils/validation/orchestration';
+import {
   getOrders,
   getOrderById,
   createOrderFromQuote,
@@ -18,6 +23,11 @@ import {
   updateOrderNotes,
 } from '../../../services/order.service';
 import { allocateForOrder } from '../../../services/allocation.service';
+import {
+  generateFulfillmentPlan,
+  executeFulfillmentPlan,
+  type OrchestrationPlan,
+} from '../../../services/orchestration.service';
 
 const router = Router();
 
@@ -426,6 +436,208 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
       error: {
         code: 'CANCEL_ERROR',
         message: error instanceof Error ? error.message : 'Failed to cancel order',
+      },
+    });
+  }
+});
+
+// ============================================
+// ORCHESTRATION ENDPOINTS
+// ============================================
+
+/**
+ * POST /api/v1/orders/:id/fulfillment-plan
+ * Generate a fulfillment plan for an order (preview)
+ */
+router.post('/:id/fulfillment-plan', authenticate, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Validate request body (optional)
+    const bodyResult = generatePlanSchema.safeParse(req.body || {});
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Verify order belongs to company
+    const order = await import('../../../config/database').then(m => m.prisma.salesOrder.findFirst({
+      where: { id, companyId: authReq.user.companyId, deletedAt: null },
+      select: { id: true },
+    }));
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Order not found' },
+      });
+    }
+
+    const result = await generateFulfillmentPlan({
+      orderId: id,
+      policyOverride: bodyResult.data.policyOverride as 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION' | undefined,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'PLAN_GENERATION_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Generate fulfillment plan error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PLAN_GENERATION_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to generate fulfillment plan',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/orders/:id/fulfillment-plan/execute
+ * Execute a fulfillment plan (create documents)
+ */
+router.post('/:id/fulfillment-plan/execute', authenticate, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Validate request body
+    const bodyResult = executePlanSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const { plan } = bodyResult.data;
+
+    // Verify plan is for this order
+    if (plan.orderId !== id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'PLAN_MISMATCH', message: 'Plan does not match order ID' },
+      });
+    }
+
+    const result = await executeFulfillmentPlan({
+      plan: plan as OrchestrationPlan,
+      userId: authReq.user.id,
+      companyId: authReq.user.companyId,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'EXECUTION_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Execute fulfillment plan error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'EXECUTION_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to execute fulfillment plan',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/orders/:id/fulfillment-policy
+ * Update the fulfillment policy override for an order
+ */
+router.patch('/:id/fulfillment-policy', authenticate, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Validate request body
+    const bodyResult = updatePolicySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const { prisma } = await import('../../../config/database');
+
+    // Verify order belongs to company
+    const order = await prisma.salesOrder.findFirst({
+      where: { id, companyId: authReq.user.companyId, deletedAt: null },
+      select: { id: true, status: true },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Order not found' },
+      });
+    }
+
+    // Only allow policy change for CONFIRMED orders
+    if (order.status !== 'CONFIRMED') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_STATUS',
+          message: 'Fulfillment policy can only be changed for CONFIRMED orders',
+        },
+      });
+    }
+
+    // Update policy
+    const updated = await prisma.salesOrder.update({
+      where: { id },
+      data: {
+        fulfillmentPolicyOverride: bodyResult.data.fulfillmentPolicyOverride as 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION' | null,
+        updatedBy: authReq.user.id,
+      },
+      select: { id: true, fulfillmentPolicyOverride: true },
+    });
+
+    return res.json({
+      success: true,
+      data: { fulfillmentPolicyOverride: updated.fulfillmentPolicyOverride },
+    });
+  } catch (error) {
+    console.error('Update fulfillment policy error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update fulfillment policy',
       },
     });
   }
