@@ -58,7 +58,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   // Build breadcrumb items
   const breadcrumbItems: { label: string; href?: string }[] = [
-    { label: 'Products', href: '/products' },
+    { label: 'Products', href: '/catalog' },
   ];
 
   if (product.category) {

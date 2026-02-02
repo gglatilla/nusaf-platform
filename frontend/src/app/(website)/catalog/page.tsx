@@ -116,7 +116,7 @@ async function ProductsContent({
   }
 
   // Build breadcrumb items
-  const breadcrumbItems: { label: string; href?: string }[] = [{ label: 'Products', href: '/products' }];
+  const breadcrumbItems: { label: string; href?: string }[] = [{ label: 'Products', href: '/catalog' }];
 
   if (category) {
     const categoryInfo = categories.find((c) => c.code === category);

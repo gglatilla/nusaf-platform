@@ -3,7 +3,7 @@ import { MobileMenuWrapper } from './MobileMenuWrapper';
 import { GuestQuoteBasket } from './GuestQuoteBasket';
 
 const navigation = [
-  { name: 'Products', href: '/products' },
+  { name: 'Products', href: '/catalog' },
   { name: 'Solutions', href: '/solutions' },
   { name: 'Services', href: '/services' },
   { name: 'About', href: '/about' },

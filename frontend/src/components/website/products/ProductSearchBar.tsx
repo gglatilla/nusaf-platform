@@ -13,7 +13,7 @@ interface ProductSearchBarProps {
 
 export function ProductSearchBar({
   placeholder = 'Search by SKU or competitor part number...',
-  basePath = '/products',
+  basePath = '/catalog',
 }: ProductSearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

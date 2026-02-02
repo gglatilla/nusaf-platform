@@ -18,7 +18,7 @@ export function ProductCard({ product, matchedVia }: ProductCardProps) {
   return (
     <div className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary-500 hover:shadow-lg transition-all">
       {/* Image */}
-      <Link href={`/products/p/${product.sku}`} className="block relative aspect-square bg-slate-50">
+      <Link href={`/catalog/${product.sku}`} className="block relative aspect-square bg-slate-50">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -50,7 +50,7 @@ export function ProductCard({ product, matchedVia }: ProductCardProps) {
 
       {/* Content */}
       <div className="p-4">
-        <Link href={`/products/p/${product.sku}`} className="block">
+        <Link href={`/catalog/${product.sku}`} className="block">
           <p className="text-xs text-slate-500 mb-1">{product.sku}</p>
           <h3 className="text-sm font-medium text-slate-900 group-hover:text-primary-600 transition-colors line-clamp-2 min-h-[2.5rem]">
             {product.title}

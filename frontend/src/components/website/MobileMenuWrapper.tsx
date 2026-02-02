@@ -5,7 +5,7 @@ import { Menu } from 'lucide-react';
 import { MobileNavDrawer } from './MobileNavDrawer';
 
 const navigation = [
-  { name: 'Products', href: '/products' },
+  { name: 'Products', href: '/catalog' },
   { name: 'Solutions', href: '/solutions' },
   { name: 'Services', href: '/services' },
   { name: 'About', href: '/about' },
