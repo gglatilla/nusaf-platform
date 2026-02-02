@@ -689,4 +689,88 @@ router.get(
   }
 );
 
+// ============================================
+// GOODS RECEIPT ROUTES (on PO)
+// ============================================
+
+import { getGoodsReceiptsForPO, getPOReceivingSummary } from '../../../services/grv.service';
+
+/**
+ * GET /api/v1/purchase-orders/:id/goods-receipts
+ * Get all goods receipts for this purchase order
+ */
+router.get(
+  '/:id/goods-receipts',
+  authenticate,
+  requireRole('ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Verify PO exists
+      const po = await getPurchaseOrderById(id);
+      if (!po) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Purchase order not found' },
+        });
+      }
+
+      const grvs = await getGoodsReceiptsForPO(id);
+
+      return res.json({
+        success: true,
+        data: grvs,
+      });
+    } catch (error) {
+      console.error('Get PO goods receipts error:', error);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to get goods receipts',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/purchase-orders/:id/receiving-summary
+ * Get receiving summary for this purchase order
+ */
+router.get(
+  '/:id/receiving-summary',
+  authenticate,
+  requireRole('ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const summary = await getPOReceivingSummary(id);
+
+      if (!summary) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Purchase order not found' },
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: summary,
+      });
+    } catch (error) {
+      console.error('Get PO receiving summary error:', error);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to get receiving summary',
+        },
+      });
+    }
+  }
+);
+
 export default router;
