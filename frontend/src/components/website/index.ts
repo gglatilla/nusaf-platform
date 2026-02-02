@@ -11,3 +11,9 @@ export { Container } from './Container';
 
 // Re-export sections
 export * from './sections';
+
+// Re-export products components
+export * from './products';
+
+// Re-export product detail components
+export * from './product-detail';

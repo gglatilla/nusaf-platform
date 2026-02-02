@@ -1,0 +1,6 @@
+export { ProductImageGallery } from './ProductImageGallery';
+export { ProductTabs } from './ProductTabs';
+export { DescriptionTab } from './DescriptionTab';
+export { SpecificationsTab } from './SpecificationsTab';
+export { DocumentsTab } from './DocumentsTab';
+export { CrossReferenceTab } from './CrossReferenceTab';

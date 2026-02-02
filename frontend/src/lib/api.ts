@@ -147,6 +147,124 @@ export interface CatalogCategory {
   }>;
 }
 
+// ============================================
+// PUBLIC PRODUCTS API TYPES (No Auth Required)
+// ============================================
+
+export interface PublicProductImage {
+  id: string;
+  url: string;
+  thumbnailUrl: string | null;
+  altText: string | null;
+  caption: string | null;
+  isPrimary: boolean;
+}
+
+export interface PublicProductDocument {
+  id: string;
+  type: 'DATASHEET' | 'CATALOG' | 'CAD_DRAWING' | 'INSTALLATION_MANUAL' | 'CERTIFICATE' | 'MSDS' | 'OTHER';
+  name: string;
+  fileUrl: string;
+  fileSize: number | null;
+}
+
+export interface PublicCrossReference {
+  id: string;
+  competitorBrand: string;
+  competitorSku: string;
+  notes: string | null;
+  isExact: boolean;
+}
+
+export interface PublicProduct {
+  id: string;
+  sku: string;
+  title: string;
+  description: string | null;
+  category: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  subCategory: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  primaryImage: {
+    url: string;
+    thumbnailUrl: string | null;
+    altText: string | null;
+  } | null;
+  unitOfMeasure: string;
+  crossReferences?: PublicCrossReference[];
+}
+
+export interface PublicProductDetail extends Omit<PublicProduct, 'primaryImage'> {
+  specifications: Record<string, string | number | boolean> | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  images: PublicProductImage[];
+  documents: PublicProductDocument[];
+  crossReferences: PublicCrossReference[];
+}
+
+export interface PublicProductsParams {
+  categoryId?: string;
+  subCategoryId?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PublicProductsResponse {
+  products: PublicProduct[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+export interface PublicProductSearchParams {
+  q: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PublicProductSearchResponse {
+  products: PublicProduct[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    hasMore: boolean;
+  };
+  searchTerm: string;
+}
+
+export interface PublicCrossRefSearchParams {
+  q: string;
+  brand?: string;
+}
+
+export interface PublicCrossRefSearchResult {
+  crossReference: {
+    competitorBrand: string;
+    competitorSku: string;
+    isExact: boolean;
+    notes: string | null;
+  };
+  product: PublicProduct;
+}
+
+export interface PublicCrossRefSearchResponse {
+  results: PublicCrossRefSearchResult[];
+  searchedPartNumber: string;
+  searchedBrand: string | null;
+}
+
 // Product type for orchestration
 export type ProductType = 'STOCK_ONLY' | 'ASSEMBLY_REQUIRED' | 'MADE_TO_ORDER' | 'KIT';
 
@@ -2845,6 +2963,67 @@ class ApiClient {
         method: 'PATCH',
         body: JSON.stringify({ fulfillmentPolicyOverride: policy }),
       }
+    );
+  }
+
+  // ============================================
+  // PUBLIC PRODUCTS METHODS (No Auth Required)
+  // ============================================
+
+  /**
+   * Get published products for public website (no prices)
+   */
+  async getPublicProducts(
+    params: PublicProductsParams = {}
+  ): Promise<ApiResponse<PublicProductsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.categoryId) searchParams.append('categoryId', params.categoryId);
+    if (params.subCategoryId) searchParams.append('subCategoryId', params.subCategoryId);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/public/products?${queryString}` : '/public/products';
+
+    return this.request<ApiResponse<PublicProductsResponse>>(endpoint);
+  }
+
+  /**
+   * Get single product by SKU for public website (no prices)
+   */
+  async getPublicProduct(sku: string): Promise<ApiResponse<PublicProductDetail>> {
+    return this.request<ApiResponse<PublicProductDetail>>(`/public/products/${encodeURIComponent(sku)}`);
+  }
+
+  /**
+   * Search products including cross-references (public, no prices)
+   */
+  async searchPublicProducts(
+    params: PublicProductSearchParams
+  ): Promise<ApiResponse<PublicProductSearchResponse>> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('q', params.q);
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+
+    return this.request<ApiResponse<PublicProductSearchResponse>>(
+      `/public/products/search?${searchParams.toString()}`
+    );
+  }
+
+  /**
+   * Search by competitor part number (cross-reference lookup)
+   */
+  async searchCrossReference(
+    params: PublicCrossRefSearchParams
+  ): Promise<ApiResponse<PublicCrossRefSearchResponse>> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('q', params.q);
+    if (params.brand) searchParams.append('brand', params.brand);
+
+    return this.request<ApiResponse<PublicCrossRefSearchResponse>>(
+      `/public/products/cross-reference?${searchParams.toString()}`
     );
   }
 }
