@@ -1,12 +1,6 @@
-'use client';
-
 import Link from 'next/link';
 
-interface HeroSectionProps {
-  onRequestQuote?: () => void;
-}
-
-export function HeroSection({ onRequestQuote }: HeroSectionProps) {
+export function HeroSection() {
   return (
     <section className="bg-gradient-to-b from-white to-slate-50 py-20 lg:py-28 px-4">
       <div className="max-w-6xl mx-auto text-center">
@@ -27,12 +21,12 @@ export function HeroSection({ onRequestQuote }: HeroSectionProps) {
           >
             Explore Products
           </Link>
-          <button
-            onClick={onRequestQuote}
+          <Link
+            href="?modal=quote"
             className="inline-flex items-center justify-center px-8 py-4 border-2 border-primary-600 text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-colors"
           >
             Request Quote
-          </button>
+          </Link>
         </div>
       </div>
     </section>

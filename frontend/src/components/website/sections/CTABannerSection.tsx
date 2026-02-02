@@ -1,13 +1,7 @@
-'use client';
-
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
 
-interface CTABannerSectionProps {
-  onRequestQuote?: () => void;
-}
-
-export function CTABannerSection({ onRequestQuote }: CTABannerSectionProps) {
+export function CTABannerSection() {
   return (
     <section className="bg-primary-600 py-16 lg:py-20 px-4">
       <div className="max-w-4xl mx-auto text-center">
@@ -24,12 +18,12 @@ export function CTABannerSection({ onRequestQuote }: CTABannerSectionProps) {
           >
             Explore Products
           </Link>
-          <button
-            onClick={onRequestQuote}
+          <Link
+            href="?modal=quote"
             className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
           >
             Request Quote
-          </button>
+          </Link>
         </div>
         <div className="mt-10 pt-8 border-t border-primary-500">
           <p className="text-primary-200 text-sm mb-2">Or call us directly</p>

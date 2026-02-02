@@ -1,10 +1,11 @@
 export { WebsiteHeader } from './WebsiteHeader';
 export { WebsiteFooter } from './WebsiteFooter';
 export { MobileNavDrawer } from './MobileNavDrawer';
+export { MobileMenuWrapper } from './MobileMenuWrapper';
 export { GuestQuoteBasket } from './GuestQuoteBasket';
 export { QuoteRequestModal } from './QuoteRequestModal';
+export { QuoteModalWrapper } from './QuoteModalWrapper';
 export { QuoteModalProvider, useQuoteModal } from './QuoteModalContext';
-export { HomePageClient } from './HomePageClient';
 export { Button } from './Button';
 export { Container } from './Container';
 
