@@ -30,6 +30,7 @@ import inventoryRoutes from './api/v1/inventory/route';
 import suppliersRoutes from './api/v1/suppliers/route';
 import purchaseOrdersRoutes from './api/v1/purchase-orders/route';
 import goodsReceiptsRoutes from './api/v1/goods-receipts/route';
+import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 
 const app = express();
 
@@ -62,6 +63,9 @@ app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/suppliers', suppliersRoutes);
 app.use('/api/v1/purchase-orders', purchaseOrdersRoutes);
 app.use('/api/v1/goods-receipts', goodsReceiptsRoutes);
+
+// Public routes (no authentication required)
+app.use('/api/v1/public/quote-requests', publicQuoteRequestsRoutes);
 
 // Debug endpoint - check categories in database (no auth)
 app.get('/api/v1/debug/categories', async (_req, res) => {

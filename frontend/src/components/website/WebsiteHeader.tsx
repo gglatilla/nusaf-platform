@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { MobileNavDrawer } from './MobileNavDrawer';
+import { GuestQuoteBasket } from './GuestQuoteBasket';
 
 const navigation = [
   { name: 'Products', href: '/products' },
@@ -13,7 +14,11 @@ const navigation = [
   { name: 'Contact', href: '/contact' },
 ];
 
-export function WebsiteHeader() {
+interface WebsiteHeaderProps {
+  onRequestQuote: () => void;
+}
+
+export function WebsiteHeader({ onRequestQuote }: WebsiteHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -53,9 +58,9 @@ export function WebsiteHeader() {
               ))}
             </nav>
 
-            {/* Right side: Quote basket (future) + Portal CTA */}
+            {/* Right side: Quote basket + Portal CTA */}
             <div className="flex items-center gap-4">
-              {/* GuestQuoteBasket will be added here in MT-13 */}
+              <GuestQuoteBasket onRequestQuote={onRequestQuote} />
 
               {/* Customer Portal CTA */}
               <Link

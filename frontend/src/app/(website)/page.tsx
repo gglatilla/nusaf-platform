@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   HeroSection,
   ValuePropsSection,
@@ -8,23 +7,18 @@ import {
   TrustedBySection,
   CTABannerSection,
 } from '@/components/website/sections';
+import { useQuoteModal } from '@/components/website/QuoteModalContext';
 
 export default function HomePage() {
-  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
-
-  const handleRequestQuote = () => {
-    // TODO: Open QuoteRequestModal (MT-11)
-    setIsQuoteModalOpen(true);
-    console.log('Request quote clicked - modal will be added in MT-11');
-  };
+  const { openModal } = useQuoteModal();
 
   return (
     <div>
-      <HeroSection onRequestQuote={handleRequestQuote} />
+      <HeroSection onRequestQuote={openModal} />
       <ValuePropsSection />
       <ProductCategoriesSection />
       <TrustedBySection />
-      <CTABannerSection onRequestQuote={handleRequestQuote} />
+      <CTABannerSection onRequestQuote={openModal} />
     </div>
   );
 }
