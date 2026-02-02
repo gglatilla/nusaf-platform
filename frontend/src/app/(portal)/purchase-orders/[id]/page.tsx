@@ -31,6 +31,7 @@ import {
 } from '@/hooks/usePurchaseOrders';
 import { POStatusBadge } from '@/components/purchase-orders/POStatusBadge';
 import { POLineTable } from '@/components/purchase-orders/POLineTable';
+import { ReceiveGoodsModal } from '@/components/goods-receipts/ReceiveGoodsModal';
 import type { SupplierCurrency } from '@/lib/api';
 
 function formatDate(dateString: string | null): string {
@@ -90,6 +91,7 @@ export default function PurchaseOrderDetailPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendEmail, setSendEmail] = useState('');
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -205,13 +207,13 @@ export default function PurchaseOrderDetailPage() {
           )}
 
           {canReceive && (
-            <Link
-              href={`/purchase-orders/${poId}/receive`}
+            <button
+              onClick={() => setShowReceiveModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
             >
               <Package className="h-4 w-4" />
               Receive Goods
-            </Link>
+            </button>
           )}
 
           {canSubmit && (
@@ -525,6 +527,15 @@ export default function PurchaseOrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Receive Goods Modal */}
+      <ReceiveGoodsModal
+        isOpen={showReceiveModal}
+        onClose={() => setShowReceiveModal(false)}
+        purchaseOrderId={poId}
+        poNumber={po.poNumber}
+        deliveryLocation={po.deliveryLocation}
+      />
     </div>
   );
 }

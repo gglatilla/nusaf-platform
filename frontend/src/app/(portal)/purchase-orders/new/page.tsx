@@ -80,8 +80,10 @@ export default function NewPurchaseOrderPage() {
         internalNotes: internalNotes || undefined,
         supplierNotes: supplierNotes || undefined,
       });
-      setCreatedPoId(result.id);
-      setError(null);
+      if (result) {
+        setCreatedPoId(result.id);
+        setError(null);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create purchase order';
       setError(message);
@@ -101,7 +103,9 @@ export default function NewPurchaseOrderPage() {
     });
 
     // Add to local lines state
-    setLines((prev) => [...prev, { ...result, isNew: true }]);
+    if (result) {
+      setLines((prev) => [...prev, { ...result, isNew: true } as DraftLine]);
+    }
   };
 
   // Remove a line from the PO

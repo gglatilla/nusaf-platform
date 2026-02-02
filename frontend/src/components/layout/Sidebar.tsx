@@ -6,6 +6,7 @@ import { X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   mainNavigation,
+  procurementNavigation,
   adminNavigation,
   secondaryNavigation,
   filterNavByRole,
@@ -120,6 +121,23 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
               <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
             ))}
           </div>
+
+          {/* Procurement navigation (role-based) */}
+          {user?.role && filterNavByRole(procurementNavigation, user.role as UserRole).length > 0 && (
+            <>
+              <div className="my-4 mx-4 border-t border-slate-800" />
+              {!isCollapsed && (
+                <p className="px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Procurement
+                </p>
+              )}
+              <div className="space-y-1">
+                {filterNavByRole(procurementNavigation, user.role as UserRole).map((item) => (
+                  <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Admin navigation (role-based) */}
           {user?.role && filterNavByRole(adminNavigation, user.role as UserRole).length > 0 && (

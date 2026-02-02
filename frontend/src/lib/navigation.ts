@@ -14,10 +14,11 @@ import {
   Archive,
   Boxes,
   Factory,
+  PackageCheck,
   type LucideIcon,
 } from 'lucide-react';
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES' | 'CUSTOMER' | 'PURCHASER' | 'WAREHOUSE';
 
 export interface NavItem {
   name: string;
@@ -44,6 +45,14 @@ export const mainNavigation: NavItem[] = [
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
   { name: 'Documents', href: '/documents', icon: Archive },
   { name: 'Invoices', href: '/invoices', icon: Receipt },
+];
+
+/**
+ * Procurement navigation items
+ */
+export const procurementNavigation: NavItem[] = [
+  { name: 'Purchase Orders', href: '/purchase-orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER', 'PURCHASER'] },
+  { name: 'Goods Receipts', href: '/goods-receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'] },
 ];
 
 /**
