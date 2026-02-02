@@ -12,8 +12,7 @@
  */
 
 import { Warehouse, FulfillmentPolicy, JobType, ProductType } from '@prisma/client';
-// prisma import will be used when implementation is complete
-// import { prisma } from '../config/database';
+import { prisma } from '../config/database';
 
 // ============================================
 // COMMON TYPES
@@ -330,7 +329,26 @@ export function initializePlan(
 }
 
 // ============================================
-// MAIN SERVICE FUNCTIONS (TO BE IMPLEMENTED)
+// WORKING TYPES (internal use during plan generation)
+// ============================================
+
+interface PickingSlipLinesByWarehouse {
+  warehouse: Warehouse;
+  lines: PickingSlipLinePlan[];
+  isTransferSource: boolean;
+}
+
+interface PurchaseOrderLinesBySupplier {
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+  currency: string;
+  reason: PurchaseOrderReason;
+  lines: PurchaseOrderLinePlan[];
+}
+
+// ============================================
+// MAIN SERVICE FUNCTIONS
 // ============================================
 
 /**
@@ -338,10 +356,358 @@ export function initializePlan(
  * This is a preview - does not create any documents
  */
 export async function generateFulfillmentPlan(
-  _options: GeneratePlanOptions
+  options: GeneratePlanOptions
 ): Promise<ServiceResult<OrchestrationPlan>> {
-  // TODO: Implement in MT-3 through MT-6
-  return { success: false, error: 'Not yet implemented' };
+  const { orderId, policyOverride } = options;
+
+  try {
+    // ============================================
+    // STEP 1: Load Order with Lines and Company
+    // ============================================
+    const order = await prisma.salesOrder.findUnique({
+      where: { id: orderId },
+      include: {
+        lines: { orderBy: { lineNumber: 'asc' } },
+        company: {
+          select: {
+            id: true,
+            fulfillmentPolicy: true,
+            primaryWarehouse: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    if (order.status !== 'CONFIRMED') {
+      return { success: false, error: 'Order must be CONFIRMED to generate fulfillment plan' };
+    }
+
+    if (order.lines.length === 0) {
+      return { success: false, error: 'Order has no lines' };
+    }
+
+    // ============================================
+    // STEP 2: Determine Effective Fulfillment Policy
+    // ============================================
+    const effectivePolicy: FulfillmentPolicy =
+      policyOverride ??
+      order.fulfillmentPolicyOverride ??
+      order.company.fulfillmentPolicy ??
+      'SHIP_COMPLETE';
+
+    const customerWarehouse = order.warehouse;
+
+    // ============================================
+    // STEP 3: Initialize Plan
+    // ============================================
+    const plan = initializePlan(
+      order.id,
+      order.orderNumber,
+      customerWarehouse,
+      effectivePolicy,
+      order.lines.length
+    );
+
+    // Working maps for aggregation
+    const pickingSlipsByWarehouse = new Map<Warehouse, PickingSlipLinesByWarehouse>();
+    const purchaseOrdersBySupplier = new Map<string, PurchaseOrderLinesBySupplier>();
+    const transferLines: TransferLinePlan[] = [];
+
+    // ============================================
+    // STEP 4: Process Each Order Line
+    // ============================================
+    for (const line of order.lines) {
+      await processOrderLine(
+        line,
+        customerWarehouse,
+        plan,
+        pickingSlipsByWarehouse,
+        purchaseOrdersBySupplier,
+        transferLines
+      );
+    }
+
+    // ============================================
+    // STEP 5: Consolidate Plan
+    // ============================================
+    consolidatePlan(
+      plan,
+      pickingSlipsByWarehouse,
+      purchaseOrdersBySupplier,
+      transferLines,
+      customerWarehouse
+    );
+
+    // ============================================
+    // STEP 6: Apply Fulfillment Policy Check
+    // ============================================
+    applyFulfillmentPolicyCheck(plan, effectivePolicy);
+
+    // ============================================
+    // STEP 7: Calculate Final Summary
+    // ============================================
+    calculateFinalSummary(plan);
+
+    return { success: true, data: plan };
+  } catch (error) {
+    console.error('Generate fulfillment plan error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate fulfillment plan',
+    };
+  }
+}
+
+// ============================================
+// PLAN GENERATION HELPERS
+// ============================================
+
+/**
+ * Process a single order line and add to working maps
+ * Implemented in MT-4 (assembly) and MT-5 (stock)
+ */
+async function processOrderLine(
+  line: {
+    id: string;
+    lineNumber: number;
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    quantityOrdered: number;
+  },
+  customerWarehouse: Warehouse,
+  plan: OrchestrationPlan,
+  pickingSlipsByWarehouse: Map<Warehouse, PickingSlipLinesByWarehouse>,
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
+  transferLines: TransferLinePlan[]
+): Promise<void> {
+  // Get product details
+  const product = await prisma.product.findUnique({
+    where: { id: line.productId },
+    select: {
+      id: true,
+      nusafSku: true,
+      description: true,
+      productType: true,
+      supplierId: true,
+      costPrice: true,
+      supplier: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          currency: true,
+        },
+      },
+    },
+  });
+
+  if (!product) {
+    plan.warnings.push(`Product not found for line ${line.lineNumber}: ${line.productSku}`);
+    return;
+  }
+
+  // Route to appropriate processor based on product type
+  if (isAssemblyProduct(product.productType)) {
+    await processAssemblyLine(
+      line,
+      product,
+      plan,
+      purchaseOrdersBySupplier
+    );
+  } else {
+    await processStockLine(
+      line,
+      product,
+      customerWarehouse,
+      plan,
+      pickingSlipsByWarehouse,
+      purchaseOrdersBySupplier,
+      transferLines
+    );
+  }
+}
+
+/**
+ * Process an assembly product line (ASSEMBLY_REQUIRED, MADE_TO_ORDER)
+ * Implemented in MT-4
+ */
+async function processAssemblyLine(
+  _line: {
+    id: string;
+    lineNumber: number;
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    quantityOrdered: number;
+  },
+  _product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    productType: ProductType;
+    supplierId: string | null;
+    costPrice: unknown;
+    supplier: { id: string; code: string; name: string; currency: string } | null;
+  },
+  _plan: OrchestrationPlan,
+  _purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
+): Promise<void> {
+  // TODO: Implement in MT-4
+  // 1. Explode BOM using bom.service.explodeBom()
+  // 2. Check component stock using bom.service.checkBomStock()
+  // 3. Add to plan.jobCards
+  // 4. If component shortages, add to purchaseOrdersBySupplier
+}
+
+/**
+ * Process a stock product line (STOCK_ONLY, KIT)
+ * Implemented in MT-5
+ */
+async function processStockLine(
+  _line: {
+    id: string;
+    lineNumber: number;
+    productId: string;
+    productSku: string;
+    productDescription: string;
+    quantityOrdered: number;
+  },
+  _product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    productType: ProductType;
+    supplierId: string | null;
+    costPrice: unknown;
+    supplier: { id: string; code: string; name: string; currency: string } | null;
+  },
+  _customerWarehouse: Warehouse,
+  _plan: OrchestrationPlan,
+  _pickingSlipsByWarehouse: Map<Warehouse, PickingSlipLinesByWarehouse>,
+  _purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
+  _transferLines: TransferLinePlan[]
+): Promise<void> {
+  // TODO: Implement in MT-5
+  // 1. Run allocation using allocation.service.checkProductAvailability()
+  // 2. Add allocations to pickingSlipsByWarehouse
+  // 3. If requires transfer, add to transferLines
+  // 4. If backorder, add to purchaseOrdersBySupplier
+}
+
+/**
+ * Consolidate working maps into final plan structure
+ * Implemented in MT-6
+ */
+function consolidatePlan(
+  plan: OrchestrationPlan,
+  pickingSlipsByWarehouse: Map<Warehouse, PickingSlipLinesByWarehouse>,
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
+  transferLines: TransferLinePlan[],
+  customerWarehouse: Warehouse
+): void {
+  // Convert picking slips map to array
+  for (const [warehouse, data] of pickingSlipsByWarehouse) {
+    if (data.lines.length > 0) {
+      plan.pickingSlips.push({
+        warehouse,
+        lines: data.lines,
+        isTransferSource: data.isTransferSource,
+      });
+    }
+  }
+
+  // Convert purchase orders map to array
+  for (const [, data] of purchaseOrdersBySupplier) {
+    if (data.lines.length > 0) {
+      plan.purchaseOrders.push({
+        supplierId: data.supplierId,
+        supplierCode: data.supplierCode,
+        supplierName: data.supplierName,
+        currency: data.currency,
+        reason: data.reason,
+        lines: data.lines,
+      });
+    }
+  }
+
+  // Create transfer plans from transfer lines
+  if (transferLines.length > 0 && customerWarehouse === 'CT') {
+    // Find the JHB picking slip index
+    const jhbPickingSlipIndex = plan.pickingSlips.findIndex(ps => ps.warehouse === 'JHB');
+
+    plan.transfers.push({
+      fromWarehouse: 'JHB',
+      toWarehouse: 'CT',
+      lines: transferLines,
+      linkedPickingSlipIndex: jhbPickingSlipIndex >= 0 ? jhbPickingSlipIndex : 0,
+    });
+  }
+}
+
+/**
+ * Apply fulfillment policy checks
+ * Implemented in MT-6
+ */
+function applyFulfillmentPolicyCheck(
+  plan: OrchestrationPlan,
+  policy: FulfillmentPolicy
+): void {
+  const hasBackorders = plan.summary.linesBackordered > 0;
+  const hasComponentShortages = plan.jobCards.some(
+    jc => !jc.componentAvailability.allComponentsAvailable
+  );
+
+  switch (policy) {
+    case 'SHIP_COMPLETE':
+      if (hasBackorders || hasComponentShortages) {
+        plan.canProceed = false;
+        plan.blockedReason =
+          'Cannot proceed with SHIP_COMPLETE policy: ' +
+          (hasBackorders ? 'Some items are on backorder. ' : '') +
+          (hasComponentShortages ? 'Some assembly components are short.' : '');
+      }
+      break;
+
+    case 'SHIP_PARTIAL':
+      plan.canProceed = true;
+      if (hasBackorders || hasComponentShortages) {
+        plan.warnings.push('Partial fulfillment: Some items will be backordered.');
+      }
+      break;
+
+    case 'SALES_DECISION':
+      plan.canProceed = false;
+      plan.blockedReason = 'Fulfillment requires sales team decision.';
+      break;
+  }
+}
+
+/**
+ * Calculate final summary statistics
+ * Implemented in MT-6
+ */
+function calculateFinalSummary(plan: OrchestrationPlan): void {
+  // Count documents to create
+  plan.summary.pickingSlipsToCreate = plan.pickingSlips.length;
+  plan.summary.jobCardsToCreate = plan.jobCards.length;
+  plan.summary.transfersToCreate = plan.transfers.length;
+  plan.summary.purchaseOrdersToCreate = plan.purchaseOrders.length;
+
+  // Calculate fulfillment percentage
+  const fulfillable = plan.summary.linesFromStock + plan.summary.linesRequiringAssembly;
+  const total = plan.summary.totalOrderLines;
+
+  plan.summary.immediatelyFulfillablePercent =
+    total > 0 ? Math.round((fulfillable / total) * 100) : 0;
+
+  plan.summary.canFulfillCompletely =
+    plan.summary.linesBackordered === 0 &&
+    plan.jobCards.every(jc => jc.componentAvailability.allComponentsAvailable);
 }
 
 /**
