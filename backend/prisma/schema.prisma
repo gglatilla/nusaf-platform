@@ -87,6 +87,9 @@ model Company {
   // Primary warehouse for fulfillment (CT customers check CT stock first, spill to JHB)
   primaryWarehouse Warehouse? @map("primary_warehouse")
 
+  // Fulfillment policy for orders from this company
+  fulfillmentPolicy FulfillmentPolicy @default(SHIP_COMPLETE) @map("fulfillment_policy")
+
   users      User[]
   addresses  CompanyAddress[]
   contacts   CompanyContact[]
@@ -548,6 +551,12 @@ enum FulfillmentType {
   MIXED
 }
 
+enum FulfillmentPolicy {
+  SHIP_PARTIAL      // Ship what's available, backorder rest
+  SHIP_COMPLETE     // Wait until all items ready
+  SALES_DECISION    // Requires manual decision from sales team
+}
+
 enum Warehouse {
   JHB
   CT
@@ -778,8 +787,9 @@ model SalesOrder {
   customerPoDate   DateTime? @map("customer_po_date")
 
   // Fulfillment
-  fulfillmentType FulfillmentType @default(STOCK_ONLY) @map("fulfillment_type")
-  warehouse       Warehouse       @default(JHB)
+  fulfillmentType           FulfillmentType    @default(STOCK_ONLY) @map("fulfillment_type")
+  warehouse                 Warehouse          @default(JHB)
+  fulfillmentPolicyOverride FulfillmentPolicy? @map("fulfillment_policy_override")
 
   // Dates
   requiredDate  DateTime? @map("required_date")
