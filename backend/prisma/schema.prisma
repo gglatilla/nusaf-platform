@@ -148,6 +148,7 @@ enum UserRole {
   MANAGER
   SALES
   PURCHASER
+  WAREHOUSE
   CUSTOMER
 }
 
@@ -1412,7 +1413,8 @@ model PurchaseOrder {
   sentBy String?   @map("sent_by")
 
   // Relations
-  lines PurchaseOrderLine[]
+  lines    PurchaseOrderLine[]
+  receipts GoodsReceivedVoucher[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -1458,4 +1460,60 @@ model PurchaseOrderCounter {
   count Int    @default(0)
 
   @@map("purchase_order_counter")
+}
+
+// ============================================
+// GOODS RECEIVED VOUCHER ENTITIES
+// ============================================
+
+model GoodsReceivedVoucher {
+  id              String        @id @default(cuid())
+  grvNumber       String        @unique @map("grv_number") // GRV-2026-00001
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  location       Warehouse // Delivery location (usually matches PO.deliveryLocation)
+  receivedAt     DateTime  @default(now()) @map("received_at")
+  receivedBy     String    @map("received_by")
+  receivedByName String    @map("received_by_name")
+
+  notes String?
+
+  lines GrvLine[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([purchaseOrderId])
+  @@index([location])
+  @@index([receivedAt])
+  @@map("goods_received_vouchers")
+}
+
+model GrvLine {
+  id         String               @id @default(cuid())
+  grvId      String               @map("grv_id")
+  grv        GoodsReceivedVoucher @relation(fields: [grvId], references: [id], onDelete: Cascade)
+  lineNumber Int                  @map("line_number")
+
+  poLineId   String @map("po_line_id")
+  productId  String @map("product_id")
+  productSku String @map("product_sku")
+
+  quantityExpected Int     @map("quantity_expected") // Remaining qty at time of receipt
+  quantityReceived Int     @map("quantity_received")
+  quantityRejected Int     @default(0) @map("quantity_rejected")
+  rejectionReason  String? @map("rejection_reason")
+
+  @@index([grvId])
+  @@index([poLineId])
+  @@map("grv_lines")
+}
+
+model GrvCounter {
+  id    String @id @default("grv_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("grv_counter")
 }
