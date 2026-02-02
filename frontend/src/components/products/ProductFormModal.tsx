@@ -72,7 +72,7 @@ export function ProductFormModal({ isOpen, product, onClose }: ProductFormModalP
   const updateProduct = useUpdateProduct();
   const { data: categoriesData } = useCategories();
   // Fetch all suppliers (not just active) so we can edit products with any supplier
-  const { data: suppliersData } = useSuppliers({ pageSize: 100 });
+  const { data: suppliersData, isLoading: suppliersLoading } = useSuppliers({ pageSize: 100 });
 
   const isEdit = !!product;
 
@@ -89,12 +89,16 @@ export function ProductFormModal({ isOpen, product, onClose }: ProductFormModalP
   const subCategories = selectedCategory?.subCategories ?? [];
 
   useEffect(() => {
+    // Don't initialize form until suppliers are loaded (for edit mode)
+    // This ensures the supplier dropdown has options when we set supplierId
+    if (product && suppliersLoading) return;
+
     if (product) {
       setFormData({
         supplierSku: product.supplierSku,
         nusafSku: product.nusafSku,
         description: product.description,
-        supplierId: product.supplierId,
+        supplierId: product.supplierId ?? '',
         categoryId: product.categoryId,
         subCategoryId: product.subCategoryId ?? '',
         unitOfMeasure: product.unitOfMeasure,
@@ -117,7 +121,7 @@ export function ProductFormModal({ isOpen, product, onClose }: ProductFormModalP
     }
     setErrors({});
     setActiveSection('basic');
-  }, [product, isOpen]);
+  }, [product, isOpen, suppliersLoading]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

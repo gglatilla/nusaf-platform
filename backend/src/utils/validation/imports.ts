@@ -7,7 +7,7 @@ export const IMPORT_SUPPLIER_CODES = ['TECOM', 'CHIARAVALLI', 'REGINA'] as const
 export const UNIT_OF_MEASURE_CODES = ['EA', 'M', 'KG', 'BOX', 'SET', 'PAIR', 'ROLL'] as const;
 
 // Column mapping field names
-export const COLUMN_FIELDS = ['CODE', 'DESCRIPTION', 'PRICE', 'UM', 'CATEGORY', 'SUBCATEGORY'] as const;
+export const COLUMN_FIELDS = ['CODE', 'DESCRIPTION', 'PRICE', 'UM', 'CATEGORY', 'SUBCATEGORY', 'WEIGHT'] as const;
 
 export type ColumnField = (typeof COLUMN_FIELDS)[number];
 
@@ -33,6 +33,7 @@ export const columnMappingSchema = z.object({
   UM: z.string().optional(), // Optional - defaults to 'EA'
   CATEGORY: z.string().min(1, 'CATEGORY column mapping is required'),
   SUBCATEGORY: z.string().optional(), // Optional - some products may not have subcategory
+  WEIGHT: z.string().optional(), // Optional - product weight in kg
 });
 
 export type ColumnMapping = z.infer<typeof columnMappingSchema>;
@@ -76,6 +77,7 @@ export interface RowValidationResult {
     unitOfMeasure: string;
     categoryCode: string;
     subcategoryCode?: string;
+    weight?: number; // Product weight in kg
   } | null;
 }
 
@@ -152,6 +154,7 @@ export interface ImportRow {
   unitOfMeasure?: string;
   categoryCode?: string;
   subcategoryCode?: string;
+  weight?: number; // Product weight in kg
   status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'SKIPPED';
   errors: RowError[];
   warnings: RowWarning[];

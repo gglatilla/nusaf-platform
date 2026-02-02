@@ -138,6 +138,7 @@ export async function validateRow(
           unitOfMeasure: validUMs.includes(um) ? um : 'EA',
           categoryCode: mapped.category!,
           subcategoryCode: mapped.subcategory || undefined,
+          weight: mapped.weight ?? undefined,
         }
       : null,
   };
@@ -366,6 +367,7 @@ export async function executeImport(
             categoryId,
             subCategoryId: subcategoryId,
             costPrice: new Decimal(data.price),
+            ...(data.weight != null && { weight: new Decimal(data.weight) }),
             ...(listPrice && { listPrice, priceUpdatedAt: new Date() }),
             updatedBy: userId,
           },
@@ -383,6 +385,7 @@ export async function executeImport(
             categoryId,
             subCategoryId: subcategoryId,
             costPrice: new Decimal(data.price),
+            ...(data.weight != null && { weight: new Decimal(data.weight) }),
             ...(listPrice && { listPrice, priceUpdatedAt: new Date() }),
             createdBy: userId,
           },

@@ -14,6 +14,7 @@ export interface ParsedRow {
     um: string | null;
     category: string | null;
     subcategory: string | null;
+    weight: number | null;
   };
 }
 
@@ -99,6 +100,7 @@ export function parseExcelFile(buffer: Buffer): ParseResult {
           um: null,
           category: null,
           subcategory: null,
+          weight: null,
         },
       });
     }
@@ -152,6 +154,7 @@ export function applyColumnMapping(
         um: getValue(mapping.UM) || 'EA', // Default to 'EA' if not mapped
         category: getValue(mapping.CATEGORY),
         subcategory: getValue(mapping.SUBCATEGORY) || null,
+        weight: getNumericValue(mapping.WEIGHT),
       },
     };
   });
@@ -206,6 +209,13 @@ export function autoDetectColumnMapping(headers: string[]): Partial<ColumnMappin
     subCatPatterns.some((p) => h.includes(p))
   );
   if (subCatIndex >= 0) mapping.SUBCATEGORY = headers[subCatIndex];
+
+  // WEIGHT patterns
+  const weightPatterns = ['weight', 'peso', 'kg', 'mass', 'massa'];
+  const weightIndex = headerLower.findIndex((h) =>
+    weightPatterns.some((p) => h === p || h.includes(p))
+  );
+  if (weightIndex >= 0) mapping.WEIGHT = headers[weightIndex];
 
   return mapping;
 }

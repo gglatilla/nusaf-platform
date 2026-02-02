@@ -449,13 +449,16 @@ router.get('/:id', authenticate, async (req, res) => {
       priceLabel = 'Price on Request';
     }
 
-    // Calculate landed cost: Supplier EUR × EUR/ZAR × (1 + Freight%)
+    // Calculate landed cost using correct formula:
+    // Step 1: Apply discount if isGross (Net Price = Cost × (1 - Discount%))
+    // Step 2: Convert to ZAR (ZAR Value = Net Price × EUR/ZAR)
+    // Step 3: Add freight (Landed Cost = ZAR Value × (1 + Freight%))
     const eurZarRate = globalSettings?.eurZarRate ? Number(globalSettings.eurZarRate) : null;
     const costPrice = product.costPrice ? Number(product.costPrice) : null;
     let landedCost: number | null = null;
 
     if (costPrice && eurZarRate && product.supplierId && product.categoryId) {
-      // Fetch pricing rule to get freight percentage
+      // Fetch pricing rule to get discount, freight, and isGross
       const pricingRule = await prisma.pricingRule.findFirst({
         where: {
           supplierId: product.supplierId,
@@ -470,11 +473,28 @@ router.get('/:id', authenticate, async (req, res) => {
           // Prefer subcategory-specific rule over category-level rule
           subCategoryId: 'desc',
         },
-        select: { freightPercent: true },
+        select: {
+          freightPercent: true,
+          discountPercent: true,
+          isGross: true,
+        },
       });
 
       const freightPercent = pricingRule?.freightPercent ? Number(pricingRule.freightPercent) : 0;
-      landedCost = Math.round(costPrice * eurZarRate * (1 + freightPercent / 100) * 100) / 100;
+      const discountPercent = pricingRule?.discountPercent ? Number(pricingRule.discountPercent) : 0;
+      const isGross = pricingRule?.isGross ?? false;
+
+      // Step 1: Apply discount if gross price
+      let netPrice = costPrice;
+      if (isGross && discountPercent > 0) {
+        netPrice = costPrice * (1 - discountPercent / 100);
+      }
+
+      // Step 2: Convert to ZAR
+      const zarValue = netPrice * eurZarRate;
+
+      // Step 3: Add freight
+      landedCost = Math.round(zarValue * (1 + freightPercent / 100) * 100) / 100;
     }
 
     // Build response
