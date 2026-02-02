@@ -5,14 +5,38 @@ import type { NextRequest } from 'next/server';
 const portalDomains = ['app.nusaf.net', 'app.nusaf.co.za'];
 
 // Portal-only routes (should redirect from public site to portal)
-const portalRoutes = ['/login', '/register', '/dashboard', '/imports', '/quotes', '/orders', '/settings', '/profile'];
+const portalRoutes = [
+  '/login',
+  '/register',
+  '/dashboard',
+  '/imports',
+  '/quotes',
+  '/orders',
+  '/settings',
+  '/profile',
+  '/products', // Portal product pages (authenticated, with prices)
+  '/picking-slips',
+  '/job-cards',
+  '/transfer-requests',
+  '/issues',
+  '/documents',
+  '/invoices',
+  '/purchase-orders',
+  '/goods-receipts',
+  '/inventory',
+  '/admin',
+];
+
+// Public website routes (served on www.nusaf.net)
+const publicRoutes = ['/', '/about', '/contact', '/solutions', '/services', '/resources'];
+// Note: /products on public site will be handled by TASK-016 (different from portal /products)
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
   // Check domain type
-  const isPortalDomain = portalDomains.some(domain => hostname.includes(domain));
+  const isPortalDomain = portalDomains.some((domain) => hostname.includes(domain));
 
   // On portal domain (app.nusaf.net)
   if (isPortalDomain) {
@@ -24,22 +48,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // On public domain (www.nusaf.net, nusaf.net) or any non-portal domain
-  if (!isPortalDomain) {
-    // Check if trying to access a portal route
-    const isPortalRoute = portalRoutes.some(route =>
-      pathname === route || pathname.startsWith(`${route}/`)
-    );
+  // On public domain (www.nusaf.net, nusaf.net, localhost) or any non-portal domain
+  // Check if trying to access a portal-only route
+  const isPortalRoute = portalRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
 
-    if (isPortalRoute) {
-      // Redirect to app.nusaf.net
-      const portalUrl = new URL(pathname, 'https://app.nusaf.net');
-      portalUrl.search = request.nextUrl.search;
-      return NextResponse.redirect(portalUrl);
-    }
+  if (isPortalRoute) {
+    // Redirect to app.nusaf.net
+    const portalUrl = new URL(pathname, 'https://app.nusaf.net');
+    portalUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(portalUrl);
   }
 
-  // Allow the request to proceed
+  // Allow public website routes
   return NextResponse.next();
 }
 

@@ -3,10 +3,10 @@
 ---
 
 ## Current
-(none)
+- [TASK-015] Public Website Homepage (IN_PROGRESS)
 
 ## Up Next
-(none - Phase D complete)
+- [TASK-016] Public Website Product Pages
 
 ## Backlog
 
