@@ -17,6 +17,7 @@ import {
   cancelOrder,
   updateOrderNotes,
 } from '../../../services/order.service';
+import { allocateForOrder } from '../../../services/allocation.service';
 
 const router = Router();
 
@@ -147,6 +148,50 @@ router.get('/:id', authenticate, async (req, res) => {
       error: {
         code: 'ORDER_ERROR',
         message: error instanceof Error ? error.message : 'Failed to fetch order',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/orders/:id/allocation-plan
+ * Get allocation plan for an order (preview - does NOT create reservations)
+ * Returns which warehouse(s) would fulfill each line item
+ */
+router.get('/:id/allocation-plan', authenticate, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Verify order exists and belongs to company
+    const order = await getOrderById(id, authReq.user.companyId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Order not found' },
+      });
+    }
+
+    const result = await allocateForOrder(id);
+
+    if ('error' in result) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ALLOCATION_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Get allocation plan error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'ALLOCATION_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to generate allocation plan',
       },
     });
   }
