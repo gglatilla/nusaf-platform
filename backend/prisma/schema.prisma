@@ -1389,11 +1389,23 @@ model Document {
 enum ProductDocumentType {
   DATASHEET           // Technical specification sheet for single product
   CATALOG             // Category/range brochure (e.g., "Levelling Feet Catalog 2025")
-  CAD_DRAWING         // Technical drawings (DWG, DXF as PDF)
+  CAD_DRAWING         // Technical drawings (generic, for backwards compatibility)
   INSTALLATION_MANUAL // Assembly/installation instructions
   CERTIFICATE         // ISO, CE, quality certificates
   MSDS                // Material Safety Data Sheet
   OTHER
+  // CAD 2D formats
+  CAD_2D_DXF          // 2D CAD - DXF format
+  CAD_2D_DWG          // 2D CAD - DWG format
+  CAD_2D_PDF          // 2D CAD - PDF drawing
+  // CAD 3D formats
+  CAD_3D_STEP         // 3D CAD - STEP format (.stp, .step)
+  CAD_3D_IGES         // 3D CAD - IGES format (.igs, .iges)
+  CAD_3D_SAT          // 3D CAD - ACIS SAT format
+  CAD_3D_PARASOLID    // 3D CAD - Parasolid format (.x_t, .x_b)
+  CAD_3D_SOLIDWORKS   // 3D CAD - SolidWorks native (.sldprt)
+  CAD_3D_INVENTOR     // 3D CAD - Inventor native (.ipt)
+  CAD_3D_CATIA        // 3D CAD - CATIA native
 }
 
 model ProductDocument {

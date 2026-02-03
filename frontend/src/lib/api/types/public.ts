@@ -9,9 +9,30 @@ export interface PublicProductImage {
   isPrimary: boolean;
 }
 
+export type ProductDocumentType =
+  | 'DATASHEET'
+  | 'CATALOG'
+  | 'CAD_DRAWING'
+  | 'INSTALLATION_MANUAL'
+  | 'CERTIFICATE'
+  | 'MSDS'
+  | 'OTHER'
+  // CAD 2D formats
+  | 'CAD_2D_DXF'
+  | 'CAD_2D_DWG'
+  | 'CAD_2D_PDF'
+  // CAD 3D formats
+  | 'CAD_3D_STEP'
+  | 'CAD_3D_IGES'
+  | 'CAD_3D_SAT'
+  | 'CAD_3D_PARASOLID'
+  | 'CAD_3D_SOLIDWORKS'
+  | 'CAD_3D_INVENTOR'
+  | 'CAD_3D_CATIA';
+
 export interface PublicProductDocument {
   id: string;
-  type: 'DATASHEET' | 'CATALOG' | 'CAD_DRAWING' | 'INSTALLATION_MANUAL' | 'CERTIFICATE' | 'MSDS' | 'OTHER';
+  type: ProductDocumentType;
   name: string;
   fileUrl: string;
   fileSize: number | null;
