@@ -12,3 +12,7 @@ export * from './types/category';
 export * from './types/product';
 export * from './types/competitor';
 export * from './types/sku-mapping';
+
+// Inventory and order types
+export * from './types/inventory';
+export * from './types/order';

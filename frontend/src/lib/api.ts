@@ -4,6 +4,17 @@ import type {
   RefreshResponse,
   AuthenticatedUser,
   ApiResponse,
+  // Inventory types
+  Warehouse,
+  StockStatus,
+  StockMovementType,
+  // Order types
+  SalesOrderStatus,
+  QuoteStatus,
+  PickingSlipStatus,
+  JobCardStatus,
+  JobType,
+  FulfillmentPolicy,
 } from '@nusaf/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -351,18 +362,8 @@ export interface CatalogProduct {
   };
 }
 
-// Inventory types
-export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'ON_ORDER' | 'OVERSTOCK';
-export type StockMovementType =
-  | 'RECEIPT'
-  | 'ISSUE'
-  | 'TRANSFER_OUT'
-  | 'TRANSFER_IN'
-  | 'MANUFACTURE_IN'
-  | 'MANUFACTURE_OUT'
-  | 'ADJUSTMENT_IN'
-  | 'ADJUSTMENT_OUT'
-  | 'SCRAP';
+// Re-export inventory types from shared
+export type { Warehouse, StockStatus, StockMovementType } from '@nusaf/shared';
 
 export interface StockLocationData {
   warehouseId: string;
@@ -726,8 +727,8 @@ export interface RecalculatePricesResult {
   total: number;
 }
 
-// Quote types
-export type QuoteStatus = 'DRAFT' | 'CREATED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED' | 'CONVERTED';
+// Re-export quote types from shared
+export type { QuoteStatus } from '@nusaf/shared';
 
 export interface QuoteItem {
   id: string;
@@ -822,22 +823,10 @@ export interface QuotesQueryParams {
   pageSize?: number;
 }
 
-// Sales Order types
-export type SalesOrderStatus =
-  | 'DRAFT'
-  | 'CONFIRMED'
-  | 'PROCESSING'
-  | 'READY_TO_SHIP'
-  | 'PARTIALLY_SHIPPED'
-  | 'SHIPPED'
-  | 'DELIVERED'
-  | 'INVOICED'
-  | 'CLOSED'
-  | 'ON_HOLD'
-  | 'CANCELLED';
+// Re-export sales order types from shared
+export type { SalesOrderStatus, FulfillmentPolicy } from '@nusaf/shared';
 
 export type FulfillmentType = 'STOCK_ONLY' | 'ASSEMBLY_REQUIRED' | 'MIXED';
-export type Warehouse = 'JHB' | 'CT';
 export type SalesOrderLineStatus = 'PENDING' | 'PICKING' | 'PICKED' | 'SHIPPED' | 'DELIVERED';
 
 export interface SalesOrderLine {
@@ -927,8 +916,8 @@ export interface OrdersQueryParams {
   pageSize?: number;
 }
 
-// Picking Slip types
-export type PickingSlipStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETE';
+// Re-export picking slip types from shared
+export type { PickingSlipStatus } from '@nusaf/shared';
 
 export interface PickingSlipLine {
   id: string;
@@ -1019,9 +1008,8 @@ export interface OrderPickingSlipSummary {
   lineCount: number;
 }
 
-// Job Card types
-export type JobCardStatus = 'PENDING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETE';
-export type JobType = 'MACHINING' | 'ASSEMBLY';
+// Re-export job card types from shared
+export type { JobCardStatus, JobType } from '@nusaf/shared';
 
 export interface JobCard {
   id: string;
@@ -1739,8 +1727,7 @@ export interface ReceivingSummary {
 // ============================================
 // FULFILLMENT ORCHESTRATION TYPES
 // ============================================
-
-export type FulfillmentPolicy = 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION';
+// FulfillmentPolicy is imported from @nusaf/shared above
 
 export interface PickingSlipPlanLine {
   orderLineId: string;
