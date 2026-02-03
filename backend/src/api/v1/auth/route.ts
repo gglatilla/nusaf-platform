@@ -9,6 +9,7 @@ import {
   AuthError,
 } from '../../../services/auth.service';
 import { authenticate, AuthenticatedRequest } from '../../../middleware/auth';
+import { authLimiter } from '../../../middleware/rate-limit';
 
 const router = Router();
 
@@ -29,8 +30,9 @@ router.get('/', (_req: Request, res: Response) => {
 /**
  * POST /api/v1/auth/login
  * Authenticate a user and return tokens
+ * Rate limited: 5 attempts per IP per 15 minutes
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
   try {
     // Validate input
     const data = loginSchema.parse(req.body);

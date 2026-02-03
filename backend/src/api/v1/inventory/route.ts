@@ -297,7 +297,7 @@ router.get('/movements/:productId', authenticate, requireRole('ADMIN', 'MANAGER'
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
     const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const pageSize = Math.min(100, parseInt(req.query.pageSize as string) || 20);
 
     if (location && !['JHB', 'CT'].includes(location)) {
       return res.status(400).json({

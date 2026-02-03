@@ -1179,6 +1179,7 @@ model IssueFlag {
   @@index([status])
   @@index([severity])
   @@index([slaDeadline])
+  @@index([createdAt]) // P2-5: Index for date range queries
   @@map("issue_flags")
 }
 
@@ -1257,6 +1258,7 @@ model StockMovement {
   @@index([productId, location])
   @@index([movementType])
   @@index([createdAt])
+  @@index([createdBy]) // P2-5: Index for audit queries
   @@map("stock_movements")
 }
 
@@ -1341,6 +1343,7 @@ model StockReservation {
   @@index([referenceType, referenceId])
   @@index([reservationType])
   @@index([expiresAt])
+  @@index([createdBy]) // P2-5: Index for audit queries
   @@map("stock_reservations")
 }
 
