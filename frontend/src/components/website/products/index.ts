@@ -5,4 +5,5 @@ export { CategoryCard } from './CategoryCard';
 export { Pagination } from './Pagination';
 export { ProductSearchBar } from './ProductSearchBar';
 export { CategoryFilter, categories } from './CategoryFilter';
+export { SpecificationFilters } from './SpecificationFilters';
 export { AddToQuoteButton } from './AddToQuoteButton';

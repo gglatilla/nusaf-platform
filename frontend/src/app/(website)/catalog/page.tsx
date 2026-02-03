@@ -10,6 +10,7 @@ import {
   Pagination,
   ProductSearchBar,
   CategoryFilter,
+  SpecificationFilters,
   categories,
 } from '@/components/website/products';
 import { api, PublicProduct } from '@/lib/api';
@@ -28,6 +29,7 @@ interface ProductsPageProps {
   searchParams: Promise<{
     category?: string;
     search?: string;
+    specs?: string;
     page?: string;
   }>;
 }
@@ -35,9 +37,19 @@ interface ProductsPageProps {
 async function ProductsContent({
   searchParams,
 }: {
-  searchParams: { category?: string; search?: string; page?: string };
+  searchParams: { category?: string; search?: string; specs?: string; page?: string };
 }) {
-  const { category, search, page } = searchParams;
+  const { category, search, specs, page } = searchParams;
+
+  // Parse spec filters from URL
+  let specFilters: Record<string, string> = {};
+  if (specs) {
+    try {
+      specFilters = JSON.parse(specs);
+    } catch {
+      // Invalid JSON, ignore
+    }
+  }
   const currentPage = parseInt(page || '1', 10) || 1;
   const pageSize = 20;
 
@@ -72,10 +84,8 @@ async function ProductsContent({
       const response = await api.getPublicProducts({
         page: currentPage,
         pageSize,
-        // Note: The backend expects categoryId but we have category codes
-        // For now, search will be the main way to filter
-        // TODO: Add category code mapping to backend or fetch categories
-        search: category ? undefined : undefined, // Placeholder for category filtering
+        categoryCode: category || undefined,
+        specs: Object.keys(specFilters).length > 0 ? specFilters : undefined,
       });
 
       if (response.success && response.data) {
@@ -131,6 +141,7 @@ async function ProductsContent({
   const searchParamsObj: Record<string, string | undefined> = {};
   if (category) searchParamsObj.category = category;
   if (search) searchParamsObj.search = search;
+  if (specs) searchParamsObj.specs = specs;
 
   return (
     <>
@@ -148,18 +159,30 @@ async function ProductsContent({
         <p className="text-slate-600">
           {search
             ? `Found ${products.length} product${products.length === 1 ? '' : 's'}`
-            : 'Browse our comprehensive range of industrial components'}
+            : Object.keys(specFilters).length > 0
+              ? `Showing ${totalItems} filtered product${totalItems === 1 ? '' : 's'}`
+              : 'Browse our comprehensive range of industrial components'}
         </p>
       </div>
 
       {/* Filters row */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <Suspense fallback={<div className="h-11 w-full max-w-md bg-slate-100 rounded-lg animate-pulse" />}>
-          <ProductSearchBar />
-        </Suspense>
-        <Suspense fallback={<div className="h-11 w-40 bg-slate-100 rounded-lg animate-pulse" />}>
-          <CategoryFilter />
-        </Suspense>
+      <div className="flex flex-col gap-4 mb-8">
+        {/* Search and category */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Suspense fallback={<div className="h-11 w-full max-w-md bg-slate-100 rounded-lg animate-pulse" />}>
+            <ProductSearchBar />
+          </Suspense>
+          <Suspense fallback={<div className="h-11 w-40 bg-slate-100 rounded-lg animate-pulse" />}>
+            <CategoryFilter />
+          </Suspense>
+        </div>
+
+        {/* Specification filters (shown when category is selected) */}
+        {category && (
+          <Suspense fallback={<div className="h-10 w-64 bg-slate-100 rounded-lg animate-pulse" />}>
+            <SpecificationFilters categoryCode={category} />
+          </Suspense>
+        )}
       </div>
 
       {/* Product grid */}
