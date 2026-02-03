@@ -7,6 +7,7 @@ import {
   verifyRefreshToken,
   getExpiryDate,
 } from '../utils/jwt';
+import { logger } from '../utils/logger';
 import type { User, Company } from '@prisma/client';
 
 export class AuthError extends Error {
@@ -155,10 +156,11 @@ export async function refreshTokens(refreshToken: string): Promise<TokenPair> {
   // 3. Check if session was revoked (indicates potential token theft)
   if (session.revokedAt) {
     // Session was already revoked - this could be a replay attack
-    // Log this security event
-    console.error(
-      `[SECURITY] Attempted refresh on revoked session: ${session.id}, user: ${session.userId}, reason: ${session.revokedReason}`
-    );
+    logger.security('Attempted refresh on revoked session', {
+      sessionId: session.id,
+      userId: session.userId,
+      reason: session.revokedReason,
+    });
     throw new AuthError('Session has been revoked', 'SESSION_REVOKED', 401);
   }
 
@@ -170,10 +172,12 @@ export async function refreshTokens(refreshToken: string): Promise<TokenPair> {
     // TOKEN REUSE DETECTED - This is a security incident!
     // Someone is using an old refresh token after it was rotated.
     // This could indicate the token was stolen. Revoke the entire session.
-    console.error(
-      `[SECURITY] Token reuse detected! Session: ${session.id}, User: ${session.userId}, ` +
-      `Expected version: ${session.tokenVersion}, Got: ${tokenVersion}`
-    );
+    logger.security('Token reuse detected - possible token theft', {
+      sessionId: session.id,
+      userId: session.userId,
+      expectedVersion: session.tokenVersion,
+      receivedVersion: tokenVersion,
+    });
 
     // Revoke the session to protect the user
     await prisma.session.update({

@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { config } from './config';
 import { connectDatabase } from './config/database';
+import { logger } from './utils/logger';
 import {
   CATEGORY_DEFINITIONS,
   CATEGORY_CODE_MIGRATION,
@@ -148,7 +149,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
         where: { id: wrongV002.id },
         data: { code: 'V-004' },
       });
-      console.log(`Fixed V-002 conflict: renamed to V-004 (${wrongV002.name})`);
+      logger.info(`Fixed V-002 conflict: renamed to V-004 (${wrongV002.name})`);
       results.subCategories.updated++;
     }
 
@@ -174,7 +175,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
             data: { code: newCategoryCode },
           });
           results.categories.updated++;
-          console.log(`Migrated category: ${existingCat.code} -> ${newCategoryCode}`);
+          logger.info(`Migrated category: ${existingCat.code} -> ${newCategoryCode}`);
         } catch (err) {
           results.categories.errors.push(
             `Failed to migrate category ${existingCat.code}: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -193,7 +194,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
               data: { code: defByName.code },
             });
             results.categories.updated++;
-            console.log(`Migrated category by name: ${existingCat.code} -> ${defByName.code}`);
+            logger.info(`Migrated category by name: ${existingCat.code} -> ${defByName.code}`);
           } catch (err) {
             results.categories.errors.push(
               `Failed to migrate category ${existingCat.code} by name: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -231,7 +232,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
               data: { code: directMappedCode },
             });
             results.subCategories.updated++;
-            console.log(`Migrated subcategory (direct): ${existingSub.code} -> ${directMappedCode}`);
+            logger.info(`Migrated subcategory (direct): ${existingSub.code} -> ${directMappedCode}`);
             continue;
           } catch (err) {
             results.subCategories.errors.push(
@@ -254,7 +255,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
               data: { code: matchingSub.code },
             });
             results.subCategories.updated++;
-            console.log(`Migrated subcategory: ${existingSub.code} -> ${matchingSub.code}`);
+            logger.info(`Migrated subcategory: ${existingSub.code} -> ${matchingSub.code}`);
           } catch (err) {
             results.subCategories.errors.push(
               `Failed to migrate subcategory ${existingSub.code}: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -280,7 +281,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
                 data: { code: fuzzyMatch.code },
               });
               results.subCategories.updated++;
-              console.log(
+              logger.info(
                 `Migrated subcategory (fuzzy): ${existingSub.code} -> ${fuzzyMatch.code} (${existingSub.name} matched ${fuzzyMatch.name})`
               );
             } catch (err) {
@@ -305,7 +306,7 @@ app.post('/api/v1/admin/migrate-category-codes', async (req, res): Promise<void>
       results,
     });
   } catch (error) {
-    console.error('Migration error:', error);
+    logger.error('Migration error:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Migration failed',
@@ -347,7 +348,7 @@ app.post('/api/v1/admin/reseed-categories', async (req, res): Promise<void> => {
 
     res.json({ success: true, message: 'Categories reseeded', categories: finalCount, subCategories: subCount });
   } catch (error) {
-    console.error('Reseed error:', error);
+    logger.error('Reseed error:', error);
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Reseed failed' });
   }
 });
@@ -424,7 +425,7 @@ app.post('/api/v1/admin/seed', async (req, res): Promise<void> => {
     await prisma.$disconnect();
     res.json({ success: true, message: 'Database seeded successfully', suppliers: suppliers.length, categories: CATEGORY_DEFINITIONS.length });
   } catch (error) {
-    console.error('Seed error:', error);
+    logger.error('Seed error:', error);
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Seed failed' });
   }
 });
@@ -442,7 +443,7 @@ app.use((_req, res) => {
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error:', err);
   res.status(500).json({
     success: false,
     error: {
@@ -454,11 +455,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // Helper to log registered routes
 function logRoutes(app: express.Application): void {
-  console.log('Registered routes:');
+  logger.info('Registered routes:');
   app._router.stack.forEach((middleware: { route?: { path: string; methods: Record<string, boolean> }; name?: string; handle?: { stack?: Array<{ route?: { path: string; methods: Record<string, boolean> } }> }; regexp?: RegExp }) => {
     if (middleware.route) {
       // Direct routes
-      console.log(`  ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
+      logger.info(`  ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
     } else if (middleware.name === 'router' && middleware.handle?.stack) {
       // Router middleware
       const path = middleware.regexp?.source
@@ -468,7 +469,7 @@ function logRoutes(app: express.Application): void {
         .replace('(?:\\/)?$', '');
       middleware.handle.stack.forEach((handler) => {
         if (handler.route) {
-          console.log(`  ${Object.keys(handler.route.methods).join(', ').toUpperCase()} ${path}${handler.route.path}`);
+          logger.info(`  ${Object.keys(handler.route.methods).join(', ').toUpperCase()} ${path}${handler.route.path}`);
         }
       });
     }
@@ -480,13 +481,13 @@ async function start(): Promise<void> {
   await connectDatabase();
 
   app.listen(config.port, () => {
-    console.log(`Backend running on http://localhost:${config.port}`);
-    console.log(`Environment: ${config.nodeEnv}`);
+    logger.info(`Backend running on http://localhost:${config.port}`);
+    logger.info(`Environment: ${config.nodeEnv}`);
     logRoutes(app);
   });
 }
 
 start().catch((error) => {
-  console.error('Failed to start server:', error);
+  logger.error('Failed to start server:', error);
   process.exit(1);
 });

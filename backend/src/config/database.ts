@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { isDev } from './index';
+import { logger } from '../utils/logger';
 
 // Prevent multiple instances during development (hot reload)
 const globalForPrisma = globalThis as unknown as {
@@ -17,9 +18,9 @@ if (isDev) {
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    console.log('Database connected successfully');
+    logger.info('Database connected successfully');
   } catch (error) {
-    console.error('Failed to connect to database:', error);
+    logger.error('Failed to connect to database', error);
     process.exit(1);
   }
 }
