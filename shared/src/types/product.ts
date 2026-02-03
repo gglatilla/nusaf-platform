@@ -3,7 +3,8 @@
 import type { Supplier } from './supplier';
 import type { Category, SubCategory } from './category';
 
-export type UnitOfMeasure = 'EA' | 'M' | 'KG' | 'BOX' | 'SET' | 'PAIR' | 'ROLL';
+// Must match Prisma UnitOfMeasure enum exactly
+export type UnitOfMeasure = 'EA' | 'MTR' | 'KG' | 'BX' | 'SET' | 'PR' | 'ROL';
 
 export interface Product {
   id: string;
@@ -49,13 +50,13 @@ export interface UpdateProductInput {
   isActive?: boolean;
 }
 
-// Unit of measure display names
+// Unit of measure display names (keys match Prisma enum)
 export const UNIT_OF_MEASURE_LABELS: Record<UnitOfMeasure, string> = {
   EA: 'Each',
-  M: 'Meter',
+  MTR: 'Meter',
   KG: 'Kilogram',
-  BOX: 'Box',
+  BX: 'Box',
   SET: 'Set',
-  PAIR: 'Pair',
-  ROLL: 'Roll',
+  PR: 'Pair',
+  ROL: 'Roll',
 };
