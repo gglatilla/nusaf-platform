@@ -1,12 +1,36 @@
 # Current Session
 
 ## Active Task
-P2 Security Fixes (from codebase audit)
+Railway Deployment Fix
 
 ## Status
-IN_PROGRESS - P2 high-impact fixes complete
+COMPLETE - Fixed deployment failure
 
 ## Summary
+
+Fixed Railway deployment failure caused by destructive fix-migration.sql script.
+
+## Railway Deployment Fix - COMPLETE
+
+### Root Cause
+The `fix-migration.sql` script was running on EVERY deployment and:
+- Deleting migration records (forcing re-run)
+- Dropping purchase_orders and GRV tables (DATA LOSS!)
+- Removing WAREHOUSE/PURCHASER from UserRole enum
+
+This caused failures when any user had those roles assigned.
+
+### Fix Applied
+1. Updated `railway.json` - removed fix-migration.sql from startCommand
+2. Archived the script to `fix-migration.sql.archived`
+3. Pushed to trigger redeploy
+
+### Commit
+- `b7efcd4` - fix(deploy): Remove destructive fix-migration.sql from Railway startup
+
+---
+
+## Previous Work This Session
 
 Completed P2 fixes from the verified codebase audit, prioritized by security and performance impact.
 
