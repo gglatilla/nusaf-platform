@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   createJobCardSchema,
   assignJobCardSchema,
@@ -22,13 +22,18 @@ import {
 
 const router = Router();
 
+// Apply authentication and role-based access control to all routes
+// Job cards can be managed by internal staff and warehouse personnel
+router.use(authenticate);
+router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'));
+
 /**
  * GET /api/v1/job-cards
  * List job cards with filtering and pagination
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     const queryResult = jobCardListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -73,9 +78,9 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/job-cards/:id
  * Get job card details
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const jobCard = await getJobCardById(id, authReq.user.companyId);
@@ -107,9 +112,9 @@ router.get('/:id', authenticate, async (req, res) => {
  * GET /api/v1/job-cards/order/:orderId
  * Get job cards for a specific order
  */
-router.get('/order/:orderId', authenticate, async (req, res) => {
+router.get('/order/:orderId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { orderId } = req.params;
 
     const jobCards = await getJobCardsForOrder(orderId, authReq.user.companyId);
@@ -134,9 +139,9 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
  * POST /api/v1/job-cards
  * Create a job card for an order line
  */
-router.post('/', authenticate, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     // Validate request body
     const bodyResult = createJobCardSchema.safeParse(req.body);
@@ -188,9 +193,9 @@ router.post('/', authenticate, async (req, res) => {
  * POST /api/v1/job-cards/:id/assign
  * Assign a job card to a user
  */
-router.post('/:id/assign', authenticate, async (req, res) => {
+router.post('/:id/assign', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -241,9 +246,9 @@ router.post('/:id/assign', authenticate, async (req, res) => {
  * POST /api/v1/job-cards/:id/start
  * Start job (PENDING -> IN_PROGRESS)
  */
-router.post('/:id/start', authenticate, async (req, res) => {
+router.post('/:id/start', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await startJobCard(id, authReq.user.id, authReq.user.companyId);
@@ -279,9 +284,9 @@ router.post('/:id/start', authenticate, async (req, res) => {
  * POST /api/v1/job-cards/:id/hold
  * Put job on hold (IN_PROGRESS -> ON_HOLD)
  */
-router.post('/:id/hold', authenticate, async (req, res) => {
+router.post('/:id/hold', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -332,9 +337,9 @@ router.post('/:id/hold', authenticate, async (req, res) => {
  * POST /api/v1/job-cards/:id/resume
  * Resume job (ON_HOLD -> IN_PROGRESS)
  */
-router.post('/:id/resume', authenticate, async (req, res) => {
+router.post('/:id/resume', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await resumeJobCard(id, authReq.user.id, authReq.user.companyId);
@@ -370,9 +375,9 @@ router.post('/:id/resume', authenticate, async (req, res) => {
  * POST /api/v1/job-cards/:id/complete
  * Complete job (IN_PROGRESS -> COMPLETE)
  */
-router.post('/:id/complete', authenticate, async (req, res) => {
+router.post('/:id/complete', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await completeJobCard(id, authReq.user.id, authReq.user.companyId);
@@ -408,9 +413,9 @@ router.post('/:id/complete', authenticate, async (req, res) => {
  * PATCH /api/v1/job-cards/:id/notes
  * Update job card notes
  */
-router.patch('/:id/notes', authenticate, async (req, res) => {
+router.patch('/:id/notes', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body

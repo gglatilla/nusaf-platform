@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   addQuoteItemSchema,
   updateQuoteItemSchema,
@@ -24,13 +24,18 @@ import {
 
 const router = Router();
 
+// Apply authentication and role-based access control to all routes
+// Quotes can only be managed by internal staff, not customers
+router.use(authenticate);
+router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
+
 /**
  * POST /api/v1/quotes
  * Create a new draft quote or return existing draft
  */
-router.post('/', authenticate, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     // Get company tier
     const company = await prisma.company.findUnique({
@@ -74,9 +79,9 @@ router.post('/', authenticate, async (req, res) => {
  * GET /api/v1/quotes
  * List quotes for the user's company with filtering and pagination
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     const queryResult = quoteListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -119,9 +124,9 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/quotes/active
  * Get the active draft quote for the current user (for cart display)
  */
-router.get('/active', authenticate, async (req, res) => {
+router.get('/active', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     const draft = await getActiveDraftQuote(authReq.user.id, authReq.user.companyId);
 
@@ -145,9 +150,9 @@ router.get('/active', authenticate, async (req, res) => {
  * GET /api/v1/quotes/:id
  * Get quote details
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Prevent "active" from being treated as an ID
@@ -187,9 +192,9 @@ router.get('/:id', authenticate, async (req, res) => {
  * PATCH /api/v1/quotes/:id
  * Update quote notes (DRAFT only)
  */
-router.patch('/:id', authenticate, async (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -243,9 +248,9 @@ router.patch('/:id', authenticate, async (req, res) => {
  * DELETE /api/v1/quotes/:id
  * Delete a DRAFT quote (soft delete)
  */
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await deleteQuote(id, authReq.user.id, authReq.user.companyId);
@@ -282,9 +287,9 @@ router.delete('/:id', authenticate, async (req, res) => {
  * Add item to quote
  * Optimized: Company isolation check happens inside addQuoteItem service
  */
-router.post('/:id/items', authenticate, async (req, res) => {
+router.post('/:id/items', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -338,9 +343,9 @@ router.post('/:id/items', authenticate, async (req, res) => {
  * PATCH /api/v1/quotes/:id/items/:itemId
  * Update item quantity
  */
-router.patch('/:id/items/:itemId', authenticate, async (req, res) => {
+router.patch('/:id/items/:itemId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id, itemId } = req.params;
 
     // Validate request body
@@ -399,9 +404,9 @@ router.patch('/:id/items/:itemId', authenticate, async (req, res) => {
  * DELETE /api/v1/quotes/:id/items/:itemId
  * Remove item from quote
  */
-router.delete('/:id/items/:itemId', authenticate, async (req, res) => {
+router.delete('/:id/items/:itemId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id, itemId } = req.params;
 
     // Verify quote belongs to company
@@ -442,9 +447,9 @@ router.delete('/:id/items/:itemId', authenticate, async (req, res) => {
  * POST /api/v1/quotes/:id/finalize
  * Finalize quote (DRAFT -> CREATED)
  */
-router.post('/:id/finalize', authenticate, async (req, res) => {
+router.post('/:id/finalize', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Verify quote belongs to company
@@ -485,9 +490,9 @@ router.post('/:id/finalize', authenticate, async (req, res) => {
  * POST /api/v1/quotes/:id/accept
  * Accept quote (CREATED -> ACCEPTED)
  */
-router.post('/:id/accept', authenticate, async (req, res) => {
+router.post('/:id/accept', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Verify quote belongs to company
@@ -528,9 +533,9 @@ router.post('/:id/accept', authenticate, async (req, res) => {
  * POST /api/v1/quotes/:id/reject
  * Reject quote (CREATED -> REJECTED)
  */
-router.post('/:id/reject', authenticate, async (req, res) => {
+router.post('/:id/reject', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Verify quote belongs to company

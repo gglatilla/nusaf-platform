@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   createOrderFromQuoteSchema,
   updateOrderNotesSchema,
@@ -31,13 +31,18 @@ import {
 
 const router = Router();
 
+// Apply authentication and role-based access control to all routes
+// Orders can only be managed by internal staff, not customers
+router.use(authenticate);
+router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
+
 /**
  * POST /api/v1/orders/from-quote
  * Create a new order from an accepted quote
  */
-router.post('/from-quote', authenticate, async (req, res) => {
+router.post('/from-quote', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     // Validate request body
     const bodyResult = createOrderFromQuoteSchema.safeParse(req.body);
@@ -88,9 +93,9 @@ router.post('/from-quote', authenticate, async (req, res) => {
  * GET /api/v1/orders
  * List orders for the user's company with filtering and pagination
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     const queryResult = orderListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -133,9 +138,9 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/orders/:id
  * Get order details
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const order = await getOrderById(id, authReq.user.companyId);
@@ -168,9 +173,9 @@ router.get('/:id', authenticate, async (req, res) => {
  * Get allocation plan for an order (preview - does NOT create reservations)
  * Returns which warehouse(s) would fulfill each line item
  */
-router.get('/:id/allocation-plan', authenticate, async (req, res) => {
+router.get('/:id/allocation-plan', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Verify order exists and belongs to company
@@ -211,9 +216,9 @@ router.get('/:id/allocation-plan', authenticate, async (req, res) => {
  * PATCH /api/v1/orders/:id
  * Update order notes
  */
-router.patch('/:id', authenticate, async (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -267,9 +272,9 @@ router.patch('/:id', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/confirm
  * Confirm order (DRAFT -> CONFIRMED)
  */
-router.post('/:id/confirm', authenticate, async (req, res) => {
+router.post('/:id/confirm', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await confirmOrder(id, authReq.user.id, authReq.user.companyId);
@@ -305,9 +310,9 @@ router.post('/:id/confirm', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/hold
  * Put order on hold
  */
-router.post('/:id/hold', authenticate, async (req, res) => {
+router.post('/:id/hold', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -356,9 +361,9 @@ router.post('/:id/hold', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/release
  * Release order from hold
  */
-router.post('/:id/release', authenticate, async (req, res) => {
+router.post('/:id/release', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await releaseHold(id, authReq.user.id, authReq.user.companyId);
@@ -394,9 +399,9 @@ router.post('/:id/release', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/cancel
  * Cancel order
  */
-router.post('/:id/cancel', authenticate, async (req, res) => {
+router.post('/:id/cancel', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -449,9 +454,9 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/fulfillment-plan
  * Generate a fulfillment plan for an order (preview)
  */
-router.post('/:id/fulfillment-plan', authenticate, async (req, res) => {
+router.post('/:id/fulfillment-plan', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body (optional)
@@ -512,9 +517,9 @@ router.post('/:id/fulfillment-plan', authenticate, async (req, res) => {
  * POST /api/v1/orders/:id/fulfillment-plan/execute
  * Execute a fulfillment plan (create documents)
  */
-router.post('/:id/fulfillment-plan/execute', authenticate, async (req, res) => {
+router.post('/:id/fulfillment-plan/execute', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -573,9 +578,9 @@ router.post('/:id/fulfillment-plan/execute', authenticate, async (req, res) => {
  * PATCH /api/v1/orders/:id/fulfillment-policy
  * Update the fulfillment policy override for an order
  */
-router.patch('/:id/fulfillment-policy', authenticate, async (req, res) => {
+router.patch('/:id/fulfillment-policy', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body

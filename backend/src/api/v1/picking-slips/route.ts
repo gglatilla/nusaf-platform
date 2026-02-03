@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Warehouse } from '@prisma/client';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   generatePickingSlipsSchema,
   assignPickingSlipSchema,
@@ -21,13 +21,18 @@ import {
 
 const router = Router();
 
+// Apply authentication and role-based access control to all routes
+// Picking slips can be managed by internal staff and warehouse personnel
+router.use(authenticate);
+router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'));
+
 /**
  * GET /api/v1/picking-slips
  * List picking slips with filtering and pagination
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
 
     const queryResult = pickingSlipListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -72,9 +77,9 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/picking-slips/:id
  * Get picking slip details with lines
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const pickingSlip = await getPickingSlipById(id, authReq.user.companyId);
@@ -106,9 +111,9 @@ router.get('/:id', authenticate, async (req, res) => {
  * GET /api/v1/picking-slips/order/:orderId
  * Get picking slips for a specific order
  */
-router.get('/order/:orderId', authenticate, async (req, res) => {
+router.get('/order/:orderId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { orderId } = req.params;
 
     const pickingSlips = await getPickingSlipsForOrder(orderId, authReq.user.companyId);
@@ -133,9 +138,9 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
  * POST /api/v1/picking-slips/generate/:orderId
  * Generate picking slips for a confirmed order
  */
-router.post('/generate/:orderId', authenticate, async (req, res) => {
+router.post('/generate/:orderId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { orderId } = req.params;
 
     // Validate request body
@@ -227,9 +232,9 @@ router.post('/generate/:orderId', authenticate, async (req, res) => {
  * POST /api/v1/picking-slips/:id/assign
  * Assign a picking slip to a user
  */
-router.post('/:id/assign', authenticate, async (req, res) => {
+router.post('/:id/assign', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     // Validate request body
@@ -280,9 +285,9 @@ router.post('/:id/assign', authenticate, async (req, res) => {
  * POST /api/v1/picking-slips/:id/start
  * Start picking (PENDING -> IN_PROGRESS)
  */
-router.post('/:id/start', authenticate, async (req, res) => {
+router.post('/:id/start', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await startPicking(id, authReq.user.id, authReq.user.companyId);
@@ -318,9 +323,9 @@ router.post('/:id/start', authenticate, async (req, res) => {
  * PATCH /api/v1/picking-slips/:id/lines/:lineId
  * Update line picked quantity
  */
-router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
+router.patch('/:id/lines/:lineId', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id, lineId } = req.params;
 
     // Validate request body
@@ -371,9 +376,9 @@ router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
  * POST /api/v1/picking-slips/:id/complete
  * Complete picking (IN_PROGRESS -> COMPLETE)
  */
-router.post('/:id/complete', authenticate, async (req, res) => {
+router.post('/:id/complete', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await completePicking(id, authReq.user.id, authReq.user.companyId);
