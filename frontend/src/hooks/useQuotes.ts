@@ -158,6 +158,7 @@ export function useAddQuoteItem() {
 
 /**
  * Hook for updating quote item quantity
+ * Uses optimistic updates for instant UI feedback
  */
 export function useUpdateQuoteItemQuantity() {
   const queryClient = useQueryClient();
@@ -167,7 +168,37 @@ export function useUpdateQuoteItemQuantity() {
       const response = await api.updateQuoteItemQuantity(quoteId, itemId, quantity);
       return response.data;
     },
-    onSuccess: (_data, variables) => {
+    onMutate: async ({ itemId, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ['activeQuote'] });
+      const previousActiveQuote = queryClient.getQueryData<ActiveDraftQuote | null>(['activeQuote']);
+
+      if (previousActiveQuote) {
+        const updatedItems = previousActiveQuote.items.map((item) =>
+          item.id === itemId
+            ? { ...item, quantity, lineTotal: item.unitPrice * quantity }
+            : item
+        );
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        const newVatAmount = Math.round(newSubtotal * 0.15 * 100) / 100;
+        const newTotal = Math.round((newSubtotal + newVatAmount) * 100) / 100;
+
+        queryClient.setQueryData<ActiveDraftQuote>(['activeQuote'], {
+          ...previousActiveQuote,
+          items: updatedItems,
+          subtotal: newSubtotal,
+          vatAmount: newVatAmount,
+          total: newTotal,
+        });
+      }
+
+      return { previousActiveQuote };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousActiveQuote !== undefined) {
+        queryClient.setQueryData(['activeQuote'], context.previousActiveQuote);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quote', variables.quoteId] });
       queryClient.invalidateQueries({ queryKey: ['activeQuote'] });
     },
@@ -176,6 +207,7 @@ export function useUpdateQuoteItemQuantity() {
 
 /**
  * Hook for removing an item from a quote
+ * Uses optimistic updates for instant UI feedback
  */
 export function useRemoveQuoteItem() {
   const queryClient = useQueryClient();
@@ -185,7 +217,34 @@ export function useRemoveQuoteItem() {
       const response = await api.removeQuoteItem(quoteId, itemId);
       return response.data;
     },
-    onSuccess: (_data, variables) => {
+    onMutate: async ({ itemId }) => {
+      await queryClient.cancelQueries({ queryKey: ['activeQuote'] });
+      const previousActiveQuote = queryClient.getQueryData<ActiveDraftQuote | null>(['activeQuote']);
+
+      if (previousActiveQuote) {
+        const updatedItems = previousActiveQuote.items.filter((item) => item.id !== itemId);
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        const newVatAmount = Math.round(newSubtotal * 0.15 * 100) / 100;
+        const newTotal = Math.round((newSubtotal + newVatAmount) * 100) / 100;
+
+        queryClient.setQueryData<ActiveDraftQuote>(['activeQuote'], {
+          ...previousActiveQuote,
+          items: updatedItems,
+          itemCount: updatedItems.length,
+          subtotal: newSubtotal,
+          vatAmount: newVatAmount,
+          total: newTotal,
+        });
+      }
+
+      return { previousActiveQuote };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousActiveQuote !== undefined) {
+        queryClient.setQueryData(['activeQuote'], context.previousActiveQuote);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quote', variables.quoteId] });
       queryClient.invalidateQueries({ queryKey: ['activeQuote'] });
     },
