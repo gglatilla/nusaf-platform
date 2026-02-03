@@ -1,101 +1,103 @@
 # Current Session
 
 ## Active Task
-P1 Security Fixes (from codebase audit)
+P2 Security Fixes (from codebase audit)
 
 ## Status
-COMPLETE
+IN_PROGRESS - P2 high-impact fixes complete
 
 ## Summary
 
-Continued P1 fixes from the verified codebase audit. P0 fixes were completed in a previous session.
+Completed P2 fixes from the verified codebase audit, prioritized by security and performance impact.
 
 ## Completed This Session
 
-### P1-2: PDF Service Type Safety - COMPLETE
-- [x] Removed all `as any` casts from pdf.service.ts
-- [x] Refactored to pass layout state through function returns
-- [x] `drawLineItems` now returns `lastLineY: number`
-- [x] `drawTotals` takes `lastLineY` and returns `totalsEndY: number`
-- [x] `drawNotes` takes `totalsEndY` as parameter
-- [x] TypeScript compiles, tests pass
+### P2-6: Rate Limiting on Auth Routes - COMPLETE
+- [x] Added `authLimiter` to rate-limit.ts (5 attempts per 15 min)
+- [x] Applied to login endpoint in auth/route.ts
+- [x] Uses skipSuccessfulRequests to only count failures
 
-### P1-4: Stale Plan Execution - COMPLETE (previous session)
-- [x] Added stock verification before plan execution in orchestration.service.ts
-- [x] Checks available quantity (onHand - hardReserved) for each line
-- [x] Returns detailed error if stock is insufficient
+### P2-13: Pagination Limits - COMPLETE
+- [x] Fixed products/route.ts /:productId/stock/movements
+- [x] Fixed inventory/route.ts /movements/:productId
+- [x] Added Math.min(100, pageSize) to cap requests
 
-### P1-5: Warehouse Isolation - ADJUSTED (not an issue)
-- [x] Verified inventory routes already use `requireRole('ADMIN', 'MANAGER', 'SALES')`
-- [x] These roles SHOULD see all warehouse data for operational purposes
-- [x] `primaryWarehouse` field is for display preferences, not access control
-- No fix needed
+### P2-5: Missing Database Indexes - COMPLETE
+- [x] Added index on stock_movements.created_by
+- [x] Added index on stock_reservations.created_by
+- [x] Added index on issue_flags.created_at
+- [x] Created migration 20260203110000_add_performance_indexes
 
-### P1-6: Product Existence Validation - ALREADY IMPLEMENTED
-- [x] Verified QuoteItem uses proper foreign key relationship
-- [x] Prisma enforces referential integrity at database level
-- No fix needed
+### P2-9: Missing Error Boundaries - COMPLETE
+- [x] Created global-error.tsx for root layout errors
+- [x] Created error.tsx for general app errors
+- [x] Created (portal)/error.tsx for portal-specific errors
 
-### P1-7: BOM Circular Check Transaction - COMPLETE (previous session)
-- [x] Wrapped in Serializable transaction in bom.service.ts
-- [x] Added `validateBomCircularInTransaction` helper
-- [x] Both `addBomComponent` and `updateBomComponent` use transactions
-
-### P1-8: Soft Delete Audit Trail - ALREADY IMPLEMENTED
-- [x] Verified product.service.ts sets both `deletedAt` AND `deletedBy`
-- [x] Verified quote.service.ts sets both `deletedAt` AND `deletedBy`
-- [x] Only these two entities use soft delete, both correctly implemented
-- No fix needed
+### Skipped/Adjusted
+- P2-8: Decimal precision loss - ADJUSTED (not actually an issue for Decimal(10,4))
+- P2-4: Query key inconsistency - ADJUSTED (already consistent)
+- P2-11: useEffect dependencies - ADJUSTED (intentional React Query pattern)
 
 ## Commits This Session
 1. `c859cb4` - fix(backend): Address P1 high-priority issues from security audit
+2. `c765053` - fix: Address P2 medium-priority issues from security audit
 
 ## Files Modified This Session
-- `backend/src/services/pdf.service.ts` - Type safety fix (P1-2)
+- `backend/src/middleware/rate-limit.ts` - Added authLimiter
+- `backend/src/api/v1/auth/route.ts` - Applied rate limiter to login
+- `backend/src/api/v1/products/route.ts` - Pagination cap
+- `backend/src/api/v1/inventory/route.ts` - Pagination cap
+- `backend/prisma/schema.prisma` - Added performance indexes
+- `frontend/src/app/error.tsx` - Error boundary
+- `frontend/src/app/global-error.tsx` - Global error boundary
+- `frontend/src/app/(portal)/error.tsx` - Portal error boundary
 
-## Previous Commits (P0 and earlier P1)
-- `fb022c0` - fix(security): Sync UnitOfMeasure types with Prisma enum [P0-1]
-- `3016466` - fix(security): Add role-based access control to business routes [P0-2]
-- `aea0b58` - fix(security): Add refresh token rotation with revocation tracking [P0-3]
-- `003f27b` - fix(backend): Address P1 high-priority issues (P1-4, P1-7)
+## Files Created This Session
+- `backend/prisma/migrations/20260203110000_add_performance_indexes/migration.sql`
 
 ## Audit Status Summary
 
-### P0 Critical: 3/3 FIXED ✓
+### P0 Critical: 3/3 FIXED
 - P0-1: UnitOfMeasure type sync - FIXED
 - P0-2: Missing RBAC - FIXED
 - P0-3: Token rotation - FIXED
 
 ### P1 High: 8/8 REVIEWED
-- P1-1: Empty catch blocks - ADJUSTED (most have valid justification)
-- P1-2: PDF service type safety - FIXED ✓
-- P1-3: TODO comments - Tracking only (not a code fix)
-- P1-4: Stale plan execution - FIXED ✓
-- P1-5: Warehouse isolation - ADJUSTED (working as intended)
-- P1-6: Product existence validation - ALREADY IMPLEMENTED
-- P1-7: BOM circular check transaction - FIXED ✓
-- P1-8: Soft delete audit trail - ALREADY IMPLEMENTED
+- P1-2: PDF service type safety - FIXED
+- P1-4: Stale plan execution - FIXED
+- P1-7: BOM circular check transaction - FIXED
+- P1-1, P1-3, P1-5, P1-6, P1-8: Adjusted/Already implemented
 
-### Remaining (Lower Priority)
-- P2: 10 confirmed issues (rate limiting, error boundaries, etc.)
-- P3: 8 confirmed issues (documentation, code quality)
+### P2 Medium: 14 items
+- P2-5: Missing indexes - FIXED
+- P2-6: Rate limiting on auth - FIXED
+- P2-9: Error boundaries - FIXED
+- P2-13: Pagination limits - FIXED
+- P2-4, P2-8, P2-11: Adjusted (not actual issues)
+- Remaining: P2-1, P2-2, P2-3, P2-7, P2-10, P2-12, P2-14
 
-## Database Migration Required
+### P3 Low: 8 confirmed
+- All pending (code quality items)
+
+## Database Migrations Required
 After deployment, run:
 ```bash
 npx prisma migrate deploy
 ```
-This applies the P0-3 session security fields migration.
+This applies:
+- P0-3 session security fields (20260203100000)
+- P2-5 performance indexes (20260203110000)
 
-## Previous Task Context
-[TASK-016] Public Website Product Pages was 89% complete (25/28 micro-tasks).
-Phase 4 enhancements (MT-26, MT-27, MT-28) remain optional.
+## Remaining P2 Items (Lower Priority)
+- P2-1: Console.log in production (33 files) - Code cleanup
+- P2-2: Frontend API types not shared - Large refactor
+- P2-3: No optimistic updates - Feature enhancement
+- P2-7: Public route validation - Partial (products/categories query params)
+- P2-10: No loading skeletons - UX enhancement
+- P2-12: CSRF protection - May not be needed with JWT auth
+- P2-14: Inconsistent date handling - Code quality
 
 ## Next Steps
-1. Deploy and run migration for P0-3 changes
-2. Optionally continue with P2 fixes:
-   - P2-6: Rate limiting on auth routes
-   - P2-9: Missing error boundaries
-   - P2-12: CSRF protection
-   - P2-13: Pagination limits
+1. Deploy and run migrations
+2. Optionally continue with remaining P2 items (mostly code quality)
 3. Or return to [TASK-016] optional enhancements
