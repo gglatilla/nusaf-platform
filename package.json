@@ -21,7 +21,7 @@
     "test:unit": "vitest run tests/unit",
     "lint": "npm run lint -w backend && npm run lint -w frontend",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w frontend",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "husky": "^9.1.7",
