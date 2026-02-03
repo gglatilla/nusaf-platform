@@ -4,7 +4,7 @@
 [TASK-016] Public Website Product Pages - Full Audit & Implementation
 
 ## Status
-IN_PROGRESS | 30% complete (Phase 1 done, Phase 2.1 in progress)
+IN_PROGRESS | 35% complete (Phase 1 done, Phase 2.1 complete)
 
 ## Plan Summary
 Comprehensive audit of public website product pages against website-design skill specs.
@@ -20,13 +20,13 @@ Comprehensive audit of public website product pages against website-design skill
 - [x] 1.2 CAD Document Support
 
 ### Phase 2: P1 High-Priority - IN PROGRESS
-- [ ] 2.1 Filter-Based Navigation (P1-5 + P0-1)
+- [x] 2.1 Filter-Based Navigation (P1-5 + P0-1) - COMPLETE
   - [x] Specification extraction endpoint (GET /api/v1/public/products/specifications)
   - [x] Spec filtering on products endpoint (?specs={"key":"value"})
   - [x] Frontend types and API method
-  - [ ] SpecificationFilters component **<-- NEXT**
-  - [ ] Update catalog page for spec-based filtering
-- [ ] 2.2 Quote Form File Upload (P1-6)
+  - [x] SpecificationFilters component
+  - [x] Catalog page integration with spec filters
+- [ ] 2.2 Quote Form File Upload (P1-6) **<-- NEXT**
 - [ ] 2.3 Product View Toggle (P1-1)
 - [ ] 2.4 Mobile Breadcrumb Improvements (P1-3)
 
@@ -45,29 +45,31 @@ Comprehensive audit of public website product pages against website-design skill
 2. `95147fa` - TASK-016: Add CAD document types support (P0-2)
 3. `4b7b594` - TASK-016: Update session state - Phase 1 complete
 4. `d0354f6` - TASK-016: Add specification extraction endpoint for filter-based navigation (P1-5)
+5. `31e4060` - TASK-016: Update session state - spec endpoint complete
+6. `b652284` - TASK-016: Add SpecificationFilters component and catalog integration (P1-5)
 
 ## Files Modified This Session
 - `backend/src/api/v1/public/products/route.ts` - Spec extraction endpoint + filtering
 - `frontend/src/lib/api.ts` - Types and API methods for specs
 - `frontend/src/lib/api/types/public.ts` - Specification types
+- `frontend/src/components/website/products/SpecificationFilters.tsx` - New component
+- `frontend/src/components/website/products/index.ts` - Export new component
+- `frontend/src/app/(website)/catalog/page.tsx` - Integrated spec filters
 
 ## Next Steps (Exact)
-1. Create SpecificationFilters component:
-   - File: `frontend/src/components/website/products/SpecificationFilters.tsx`
-   - Fetch specifications on mount (based on category/subcategory)
-   - Render dynamic dropdowns for each spec key
-   - Handle filter changes, emit selected filters
-
-2. Update catalog page to use filters:
-   - File: `frontend/src/app/(website)/catalog/page.tsx`
-   - Integrate SpecificationFilters component
-   - Sync filter state with URL params
-   - Pass spec filters to getPublicProducts API call
+1. P1-6 Quote Form File Upload:
+   - Add file upload capability to quote request form
+   - Allow customers to attach drawings/specifications
+   - Store files in Cloudflare R2
+   - Backend endpoint for file upload
 
 ## Context for Next Session
-Phase 2.1 (Filter-Based Navigation) is in progress.
-- Backend work complete: specification extraction and filtering endpoints
-- Frontend work needed: SpecificationFilters component and catalog page integration
+Phase 2.1 (Filter-Based Navigation) is COMPLETE.
+- Backend: Specification extraction and filtering endpoints working
+- Frontend: SpecificationFilters component integrated into catalog page
+- URL sync: Filters are synced with URL via ?specs={"key":"value"}
+
+Starting Phase 2.2 (Quote Form File Upload) next.
 
 ## Database Migrations Pending
 ```bash
