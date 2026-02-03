@@ -3,10 +3,10 @@
 ---
 
 ## Current
-(none)
+- [TASK-016] Public Website Product Pages (IN_PROGRESS)
 
 ## Up Next
-- [TASK-016] Public Website Product Pages
+(none)
 
 ## Backlog
 
