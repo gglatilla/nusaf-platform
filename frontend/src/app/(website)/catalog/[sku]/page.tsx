@@ -6,8 +6,8 @@ import { QuoteModalWrapper } from '@/components/website/QuoteModalWrapper';
 import { Container } from '@/components/website/Container';
 import { Breadcrumbs } from '@/components/website/products';
 import { AddToQuoteButton } from '@/components/website/products';
-import { ProductImageGallery, ProductTabs } from '@/components/website/product-detail';
-import { api, PublicProductDetail } from '@/lib/api';
+import { ProductImageGallery, ProductTabs, RelatedProducts } from '@/components/website/product-detail';
+import { api, PublicProductDetail, PublicProduct } from '@/lib/api';
 
 interface ProductPageProps {
   params: Promise<{ sku: string }>;
@@ -23,6 +23,19 @@ async function getProduct(sku: string): Promise<PublicProductDetail | null> {
   } catch (error) {
     console.error('Failed to fetch product:', error);
     return null;
+  }
+}
+
+async function getRelatedProducts(sku: string): Promise<PublicProduct[]> {
+  try {
+    const response = await api.getRelatedProducts(sku, 8);
+    if (response.success && response.data) {
+      return response.data.products;
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to fetch related products:', error);
+    return [];
   }
 }
 
@@ -50,7 +63,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { sku } = await params;
-  const product = await getProduct(sku);
+
+  // Fetch product and related products in parallel
+  const [product, relatedProducts] = await Promise.all([
+    getProduct(sku),
+    getRelatedProducts(sku),
+  ]);
 
   if (!product) {
     notFound();
@@ -154,6 +172,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           {/* Product tabs */}
           <ProductTabs product={product} />
+
+          {/* Related products */}
+          <RelatedProducts
+            currentSku={product.sku}
+            products={relatedProducts}
+            title="You May Also Like"
+          />
         </Container>
       </main>
       <WebsiteFooter />

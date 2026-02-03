@@ -397,6 +397,122 @@ router.get('/cross-reference', async (req, res) => {
 });
 
 /**
+ * GET /api/v1/public/products/:sku/related
+ * Get related products (same category/subcategory, no auth required)
+ * Returns up to 8 products from the same category
+ */
+router.get('/:sku/related', async (req, res) => {
+  try {
+    const { sku } = req.params;
+    const limit = Math.min(12, parseInt(req.query.limit as string, 10) || 8);
+
+    // First, get the current product to find its category
+    const currentProduct = await prisma.product.findFirst({
+      where: {
+        nusafSku: sku,
+        isActive: true,
+        deletedAt: null,
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        categoryId: true,
+        subCategoryId: true,
+        specifications: true,
+      },
+    });
+
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    // Build query for related products
+    // Priority: same subcategory > same category
+    const relatedProducts = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        isPublished: true,
+        id: { not: currentProduct.id }, // Exclude current product
+        OR: [
+          // Same subcategory (higher priority)
+          ...(currentProduct.subCategoryId
+            ? [{ subCategoryId: currentProduct.subCategoryId }]
+            : []),
+          // Same category
+          { categoryId: currentProduct.categoryId },
+        ],
+      },
+      include: {
+        category: { select: { id: true, code: true, name: true } },
+        subCategory: { select: { id: true, code: true, name: true } },
+        productImages: {
+          where: { isPrimary: true },
+          take: 1,
+          select: { url: true, thumbnailUrl: true, altText: true },
+        },
+      },
+      orderBy: [
+        // Products in the same subcategory first (if applicable)
+        ...(currentProduct.subCategoryId
+          ? [
+              {
+                subCategoryId: 'asc' as const, // This helps group same subcategory together
+              },
+            ]
+          : []),
+        { nusafSku: 'asc' as const },
+      ],
+      take: limit,
+    });
+
+    // Sort so same subcategory products come first
+    const sortedProducts = relatedProducts.sort((a, b) => {
+      // Same subcategory products first
+      const aInSubCat = a.subCategoryId === currentProduct.subCategoryId ? 0 : 1;
+      const bInSubCat = b.subCategoryId === currentProduct.subCategoryId ? 0 : 1;
+      if (aInSubCat !== bInSubCat) return aInSubCat - bInSubCat;
+      // Then by SKU
+      return a.nusafSku.localeCompare(b.nusafSku);
+    });
+
+    // Transform products - no prices exposed
+    const transformedProducts = sortedProducts.map((product) => ({
+      id: product.id,
+      sku: product.nusafSku,
+      title: product.marketingTitle || product.description,
+      description: product.marketingDescription || product.longDescription,
+      category: product.category,
+      subCategory: product.subCategory,
+      primaryImage: product.productImages[0] || null,
+      unitOfMeasure: product.unitOfMeasure,
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        products: transformedProducts,
+        sourceProductSku: sku,
+        categoryId: currentProduct.categoryId,
+        subCategoryId: currentProduct.subCategoryId,
+      },
+    });
+  } catch (error) {
+    console.error('Get related products error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RELATED_PRODUCTS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch related products',
+      },
+    });
+  }
+});
+
+/**
  * GET /api/v1/public/products/:sku
  * Get product details by SKU (no prices, no auth required)
  */

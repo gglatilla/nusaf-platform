@@ -148,6 +148,13 @@ export interface PublicCrossRefSearchResponse {
   searchedBrand: string | null;
 }
 
+export interface RelatedProductsResponse {
+  products: PublicProduct[];
+  sourceProductSku: string;
+  categoryId: string;
+  subCategoryId: string | null;
+}
+
 // Quote request types
 export interface GuestQuoteItem {
   productId: string;

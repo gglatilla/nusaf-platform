@@ -271,6 +271,13 @@ export interface PublicProductSearchResponse {
   searchTerm: string;
 }
 
+export interface RelatedProductsResponse {
+  products: PublicProduct[];
+  sourceProductSku: string;
+  categoryId: string;
+  subCategoryId: string | null;
+}
+
 // ============================================
 // PUBLIC CATEGORIES API TYPES (No Auth Required)
 // ============================================
@@ -3040,6 +3047,21 @@ class ApiClient {
    */
   async getPublicProduct(sku: string): Promise<ApiResponse<PublicProductDetail>> {
     return this.request<ApiResponse<PublicProductDetail>>(`/public/products/${encodeURIComponent(sku)}`);
+  }
+
+  /**
+   * Get related products for a product (same category/subcategory)
+   */
+  async getRelatedProducts(
+    sku: string,
+    limit: number = 8
+  ): Promise<ApiResponse<RelatedProductsResponse>> {
+    const params = new URLSearchParams();
+    if (limit !== 8) params.append('limit', limit.toString());
+    const query = params.toString();
+    return this.request<ApiResponse<RelatedProductsResponse>>(
+      `/public/products/${encodeURIComponent(sku)}/related${query ? `?${query}` : ''}`
+    );
   }
 
   /**
