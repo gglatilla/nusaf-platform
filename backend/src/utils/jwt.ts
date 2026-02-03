@@ -12,6 +12,7 @@ export interface AccessTokenPayload {
 export interface RefreshTokenPayload {
   sub: string; // User ID
   sessionId: string;
+  tokenVersion: number; // For token rotation tracking
 }
 
 /**
