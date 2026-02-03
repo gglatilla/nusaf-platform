@@ -261,6 +261,7 @@ export interface PublicProductsParams {
   subCategoryId?: string;
   subCategoryCode?: string;  // Subcategory code (e.g., "C-001") or slug (e.g., "bases")
   search?: string;
+  specs?: Record<string, string>;  // Specification filters (e.g., { pitch: "12.7", teeth: "15" })
   page?: number;
   pageSize?: number;
 }
@@ -273,6 +274,12 @@ export interface PublicProductsResponse {
     totalItems: number;
     totalPages: number;
     hasMore: boolean;
+  };
+  filters?: {
+    categoryId: string | null;
+    subCategoryId: string | null;
+    search: string | null;
+    specs: Record<string, string> | null;
   };
 }
 
@@ -296,6 +303,28 @@ export interface RelatedProductsResponse {
   products: PublicProduct[];
   sourceProductSku: string;
   categoryId: string;
+  subCategoryId: string | null;
+}
+
+// Specification filter types for dynamic filtering
+export interface SpecificationOption {
+  key: string;
+  label: string;
+  values: string[];
+  valueCount: number;
+}
+
+export interface SpecificationsParams {
+  categoryId?: string;
+  categoryCode?: string;
+  subCategoryId?: string;
+  subCategoryCode?: string;
+}
+
+export interface SpecificationsResponse {
+  specifications: SpecificationOption[];
+  productCount: number;
+  categoryId: string | null;
   subCategoryId: string | null;
 }
 
@@ -3054,6 +3083,9 @@ class ApiClient {
     if (params.subCategoryId) searchParams.append('subCategoryId', params.subCategoryId);
     if (params.subCategoryCode) searchParams.append('subCategoryCode', params.subCategoryCode);
     if (params.search) searchParams.append('search', params.search);
+    if (params.specs && Object.keys(params.specs).length > 0) {
+      searchParams.append('specs', JSON.stringify(params.specs));
+    }
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
 
@@ -3083,6 +3115,26 @@ class ApiClient {
     return this.request<ApiResponse<RelatedProductsResponse>>(
       `/public/products/${encodeURIComponent(sku)}/related${query ? `?${query}` : ''}`
     );
+  }
+
+  /**
+   * Get unique specification keys and values for filter-based navigation
+   */
+  async getProductSpecifications(
+    params: SpecificationsParams = {}
+  ): Promise<ApiResponse<SpecificationsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.categoryId) searchParams.append('categoryId', params.categoryId);
+    if (params.categoryCode) searchParams.append('categoryCode', params.categoryCode);
+    if (params.subCategoryId) searchParams.append('subCategoryId', params.subCategoryId);
+    if (params.subCategoryCode) searchParams.append('subCategoryCode', params.subCategoryCode);
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString
+      ? `/public/products/specifications?${queryString}`
+      : '/public/products/specifications';
+
+    return this.request<ApiResponse<SpecificationsResponse>>(endpoint);
   }
 
   /**

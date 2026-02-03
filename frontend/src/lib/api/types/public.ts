@@ -85,6 +85,7 @@ export interface PublicProductsParams {
   subCategoryId?: string;
   subCategoryCode?: string;
   search?: string;
+  specs?: Record<string, string>;
   page?: number;
   pageSize?: number;
 }
@@ -97,6 +98,12 @@ export interface PublicProductsResponse {
     totalItems: number;
     totalPages: number;
     hasMore: boolean;
+  };
+  filters?: {
+    categoryId: string | null;
+    subCategoryId: string | null;
+    search: string | null;
+    specs: Record<string, string> | null;
   };
 }
 
@@ -173,6 +180,28 @@ export interface RelatedProductsResponse {
   products: PublicProduct[];
   sourceProductSku: string;
   categoryId: string;
+  subCategoryId: string | null;
+}
+
+// Specification filter types
+export interface SpecificationOption {
+  key: string;
+  label: string;
+  values: string[];
+  valueCount: number;
+}
+
+export interface SpecificationsParams {
+  categoryId?: string;
+  categoryCode?: string;
+  subCategoryId?: string;
+  subCategoryCode?: string;
+}
+
+export interface SpecificationsResponse {
+  specifications: SpecificationOption[];
+  productCount: number;
+  categoryId: string | null;
   subCategoryId: string | null;
 }
 

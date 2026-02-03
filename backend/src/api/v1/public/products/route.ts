@@ -85,6 +85,7 @@ async function findSubCategoryId(
  *   - subCategoryId: filter by subcategory ID
  *   - subCategoryCode: filter by subcategory code or slug (e.g., "C-001" or "bases")
  *   - search: search by SKU or description
+ *   - specs: JSON-encoded specification filters (e.g., {"pitch":"12.7","teeth":"15"})
  *   - page: page number (default 1)
  *   - pageSize: items per page (default 20, max 100)
  */
@@ -96,6 +97,7 @@ router.get('/', async (req, res) => {
       subCategoryId,
       subCategoryCode,
       search,
+      specs,
       page = '1',
       pageSize = '20',
     } = req.query;
@@ -132,6 +134,35 @@ router.get('/', async (req, res) => {
 
     if (resolvedSubCategoryId) {
       where.subCategoryId = resolvedSubCategoryId;
+    }
+
+    // Parse and apply specification filters
+    let specFilters: Record<string, string> = {};
+    if (specs && typeof specs === 'string') {
+      try {
+        specFilters = JSON.parse(specs);
+      } catch {
+        // Invalid JSON, ignore spec filters
+      }
+    }
+
+    // If we have spec filters, add them to the where clause
+    // Using Prisma's JSON filtering capabilities
+    if (Object.keys(specFilters).length > 0) {
+      const specConditions: Prisma.ProductWhereInput[] = [];
+      for (const [key, value] of Object.entries(specFilters)) {
+        if (value && typeof value === 'string') {
+          specConditions.push({
+            specifications: {
+              path: [key],
+              equals: value,
+            },
+          });
+        }
+      }
+      if (specConditions.length > 0) {
+        where.AND = specConditions;
+      }
     }
 
     // Search by SKU or description
@@ -190,6 +221,12 @@ router.get('/', async (req, res) => {
           totalItems: total,
           totalPages,
           hasMore: pageNum < totalPages,
+        },
+        filters: {
+          categoryId: resolvedCategoryId,
+          subCategoryId: resolvedSubCategoryId,
+          search: search || null,
+          specs: Object.keys(specFilters).length > 0 ? specFilters : null,
         },
       },
     });
@@ -299,6 +336,141 @@ router.get('/search', async (req, res) => {
       error: {
         code: 'SEARCH_ERROR',
         message: error instanceof Error ? error.message : 'Failed to search products',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/public/products/specifications
+ * Get unique specification keys and values for filter-based navigation
+ * Query params:
+ *   - categoryId: filter by category ID
+ *   - categoryCode: filter by category code or slug
+ *   - subCategoryId: filter by subcategory ID
+ *   - subCategoryCode: filter by subcategory code or slug
+ */
+router.get('/specifications', async (req, res) => {
+  try {
+    const { categoryId, categoryCode, subCategoryId, subCategoryCode } = req.query;
+
+    // Build where clause - only published products with specifications
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+      deletedAt: null,
+      isPublished: true,
+      specifications: { not: Prisma.DbNull },
+    };
+
+    // Resolve category filter
+    let resolvedCategoryId: string | null = null;
+    if (categoryId && typeof categoryId === 'string') {
+      resolvedCategoryId = categoryId;
+    } else if (categoryCode && typeof categoryCode === 'string') {
+      resolvedCategoryId = await findCategoryId(categoryCode);
+    }
+
+    if (resolvedCategoryId) {
+      where.categoryId = resolvedCategoryId;
+    }
+
+    // Resolve subcategory filter
+    let resolvedSubCategoryId: string | null = null;
+    if (subCategoryId && typeof subCategoryId === 'string') {
+      resolvedSubCategoryId = subCategoryId;
+    } else if (subCategoryCode && typeof subCategoryCode === 'string') {
+      resolvedSubCategoryId = await findSubCategoryId(subCategoryCode, resolvedCategoryId || undefined);
+    }
+
+    if (resolvedSubCategoryId) {
+      where.subCategoryId = resolvedSubCategoryId;
+    }
+
+    // Fetch all products with specifications
+    const products = await prisma.product.findMany({
+      where,
+      select: {
+        specifications: true,
+      },
+    });
+
+    // Extract unique specification keys and their values
+    const specMap = new Map<string, Set<string>>();
+
+    for (const product of products) {
+      if (product.specifications && typeof product.specifications === 'object') {
+        const specs = product.specifications as Record<string, unknown>;
+        for (const [key, value] of Object.entries(specs)) {
+          if (value !== null && value !== undefined && value !== '') {
+            if (!specMap.has(key)) {
+              specMap.set(key, new Set());
+            }
+            // Convert value to string for consistent filtering
+            const stringValue = String(value);
+            specMap.get(key)!.add(stringValue);
+          }
+        }
+      }
+    }
+
+    // Convert to array format with sorted values
+    const specifications: Array<{
+      key: string;
+      label: string;
+      values: string[];
+      valueCount: number;
+    }> = [];
+
+    for (const [key, valuesSet] of specMap.entries()) {
+      const values = Array.from(valuesSet).sort((a, b) => {
+        // Try numeric sort first
+        const numA = parseFloat(a);
+        const numB = parseFloat(b);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        // Fall back to string sort
+        return a.localeCompare(b);
+      });
+
+      // Create human-readable label from key
+      // "pitch_mm" -> "Pitch Mm", "numberOfTeeth" -> "Number Of Teeth"
+      const label = key
+        .replace(/_/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+
+      specifications.push({
+        key,
+        label,
+        values,
+        valueCount: values.length,
+      });
+    }
+
+    // Sort specifications by key
+    specifications.sort((a, b) => a.key.localeCompare(b.key));
+
+    return res.json({
+      success: true,
+      data: {
+        specifications,
+        productCount: products.length,
+        categoryId: resolvedCategoryId,
+        subCategoryId: resolvedSubCategoryId,
+      },
+    });
+  } catch (error) {
+    console.error('Get specifications error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SPECIFICATIONS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch specifications',
       },
     });
   }
