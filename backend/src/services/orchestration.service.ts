@@ -15,6 +15,7 @@ import { Warehouse, FulfillmentPolicy, JobType, ProductType, Prisma } from '@pri
 import { prisma } from '../config/database';
 import { checkBomStock } from './bom.service';
 import { checkProductAvailability } from './allocation.service';
+import { getStockLevel } from './inventory.service';
 
 // Transaction client type for passing into helper functions
 type TransactionClient = Prisma.TransactionClient;
@@ -1015,6 +1016,32 @@ export async function executeFulfillmentPlan(
       return {
         success: false,
         error: 'Plan is stale - order was modified after plan generation. Please regenerate the plan.',
+      };
+    }
+
+    // P1-4 FIX: Verify stock levels haven't changed since plan generation
+    // This catches cases where inventory changed but the order wasn't modified
+    const stockIssues: string[] = [];
+    for (const psPlan of plan.pickingSlips) {
+      for (const line of psPlan.lines) {
+        const currentStock = await getStockLevel(line.productId, psPlan.warehouse);
+        // Available = onHand - hardReserved (softReserved is for quotes, not confirmed orders)
+        const availableQty = currentStock
+          ? currentStock.onHand - currentStock.hardReserved
+          : 0;
+
+        if (availableQty < line.quantityToPick) {
+          stockIssues.push(
+            `${line.productSku} at ${psPlan.warehouse}: need ${line.quantityToPick}, only ${availableQty} available`
+          );
+        }
+      }
+    }
+
+    if (stockIssues.length > 0) {
+      return {
+        success: false,
+        error: `Stock levels have changed since plan generation. Please regenerate the plan.\nIssues:\n- ${stockIssues.join('\n- ')}`,
       };
     }
 

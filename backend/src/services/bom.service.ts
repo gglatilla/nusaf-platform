@@ -1,5 +1,5 @@
 import { prisma } from '../config/database';
-import { Warehouse } from '@prisma/client';
+import { Warehouse, Prisma } from '@prisma/client';
 import type {
   AddBomComponentInput,
   UpdateBomComponentInput,
@@ -159,6 +159,52 @@ export async function validateBomCircular(
   return { valid: true };
 }
 
+/**
+ * P1-7 FIX: Transaction-aware version of validateBomCircular
+ * Uses the provided transaction client to ensure atomicity with the insert
+ */
+async function validateBomCircularInTransaction(
+  tx: Prisma.TransactionClient,
+  parentProductId: string,
+  componentProductId: string
+): Promise<{ valid: boolean; error?: string }> {
+  // Immediate self-reference check
+  if (parentProductId === componentProductId) {
+    return { valid: false, error: 'Cannot add a product as its own component' };
+  }
+
+  // BFS to find if parentProductId appears in componentProductId's BOM tree
+  const visited = new Set<string>();
+  const queue: string[] = [componentProductId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+
+    if (visited.has(currentId)) {
+      continue;
+    }
+    visited.add(currentId);
+
+    // Get all components of current product (using transaction client)
+    const bomItems = await tx.bomItem.findMany({
+      where: { parentProductId: currentId },
+      select: { componentProductId: true },
+    });
+
+    for (const item of bomItems) {
+      if (item.componentProductId === parentProductId) {
+        return {
+          valid: false,
+          error: 'Adding this component would create a circular reference in the BOM hierarchy'
+        };
+      }
+      queue.push(item.componentProductId);
+    }
+  }
+
+  return { valid: true };
+}
+
 // ============================================
 // CORE CRUD FUNCTIONS
 // ============================================
@@ -206,6 +252,7 @@ export async function getBom(
 
 /**
  * Add a component to a product's BOM
+ * P1-7 FIX: Wrapped in transaction to prevent race conditions with circular reference check
  */
 export async function addBomComponent(
   parentProductId: string,
@@ -213,7 +260,7 @@ export async function addBomComponent(
   userId: string
 ): Promise<ServiceResult<BomItemData>> {
   try {
-    // Verify parent product exists
+    // Verify parent product exists (outside transaction - read-only check)
     const parentProduct = await prisma.product.findUnique({
       where: { id: parentProductId },
       select: { id: true, deletedAt: true },
@@ -223,7 +270,7 @@ export async function addBomComponent(
       return { success: false, error: 'Parent product not found' };
     }
 
-    // Verify component product exists
+    // Verify component product exists (outside transaction - read-only check)
     const componentProduct = await prisma.product.findUnique({
       where: { id: input.componentProductId },
       select: { id: true, deletedAt: true, isActive: true },
@@ -237,50 +284,57 @@ export async function addBomComponent(
       return { success: false, error: 'Component product is inactive' };
     }
 
-    // Check for circular reference
-    const circularCheck = await validateBomCircular(parentProductId, input.componentProductId);
-    if (!circularCheck.valid) {
-      return { success: false, error: circularCheck.error };
-    }
+    // P1-7 FIX: Use transaction with serializable isolation to prevent race conditions
+    // This ensures circular reference check and insert are atomic
+    const bomItem = await prisma.$transaction(async (tx) => {
+      // Re-check for circular reference inside transaction
+      // This prevents TOCTOU (time-of-check-time-of-use) race conditions
+      const circularCheck = await validateBomCircularInTransaction(tx, parentProductId, input.componentProductId);
+      if (!circularCheck.valid) {
+        throw new Error(circularCheck.error || 'Circular reference detected');
+      }
 
-    // Check if component already exists in BOM
-    const existing = await prisma.bomItem.findUnique({
-      where: {
-        parentProductId_componentProductId: {
-          parentProductId,
-          componentProductId: input.componentProductId,
-        },
-      },
-    });
-
-    if (existing) {
-      return { success: false, error: 'Component already exists in BOM. Use update to change quantity.' };
-    }
-
-    // Create BOM item
-    const bomItem = await prisma.bomItem.create({
-      data: {
-        parentProductId,
-        componentProductId: input.componentProductId,
-        quantity: input.quantity,
-        unitOverride: input.unitOverride ?? null,
-        notes: input.notes ?? null,
-        sortOrder: input.sortOrder ?? 0,
-        isOptional: input.isOptional ?? false,
-        createdBy: userId,
-        updatedBy: userId,
-      },
-      include: {
-        componentProduct: {
-          select: {
-            id: true,
-            nusafSku: true,
-            description: true,
-            unitOfMeasure: true,
-            _count: { select: { bomComponents: true } },
+      // Check if component already exists in BOM (unique constraint also enforces this)
+      const existing = await tx.bomItem.findUnique({
+        where: {
+          parentProductId_componentProductId: {
+            parentProductId,
+            componentProductId: input.componentProductId,
           },
         },
-      },
+      });
+
+      if (existing) {
+        throw new Error('Component already exists in BOM. Use update to change quantity.');
+      }
+
+      // Create BOM item
+      return tx.bomItem.create({
+        data: {
+          parentProductId,
+          componentProductId: input.componentProductId,
+          quantity: input.quantity,
+          unitOverride: input.unitOverride ?? null,
+          notes: input.notes ?? null,
+          sortOrder: input.sortOrder ?? 0,
+          isOptional: input.isOptional ?? false,
+          createdBy: userId,
+          updatedBy: userId,
+        },
+        include: {
+          componentProduct: {
+            select: {
+              id: true,
+              nusafSku: true,
+              description: true,
+              unitOfMeasure: true,
+              _count: { select: { bomComponents: true } },
+            },
+          },
+        },
+      });
+    }, {
+      isolationLevel: 'Serializable', // Strongest isolation to prevent race conditions
     });
 
     return { success: true, data: transformBomItem(bomItem) };

@@ -45,13 +45,13 @@ export async function generatePurchaseOrderPDF(po: PurchaseOrderData): Promise<B
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Build the PDF
+      // Build the PDF with type-safe layout state tracking
       drawHeader(doc, po);
       drawSupplierInfo(doc, po);
       drawOrderDetails(doc, po);
-      drawLineItems(doc, po);
-      drawTotals(doc, po);
-      drawNotes(doc, po);
+      const lastLineY = drawLineItems(doc, po);
+      const totalsEndY = drawTotals(doc, po, lastLineY);
+      drawNotes(doc, po, totalsEndY);
       drawFooter(doc);
 
       doc.end();
@@ -192,7 +192,7 @@ function drawOrderDetails(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void 
   doc.moveDown(2);
 }
 
-function drawLineItems(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void {
+function drawLineItems(doc: PDFKit.PDFDocument, po: PurchaseOrderData): number {
   const startY = 380;
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
@@ -254,12 +254,11 @@ function drawLineItems(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void {
     rowY += rowHeight;
   });
 
-  // Store the final Y position for totals
-  (doc as any)._lastLineY = rowY;
+  // Return the final Y position for totals section
+  return rowY;
 }
 
-function drawTotals(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void {
-  const lastLineY = (doc as any)._lastLineY || 500;
+function drawTotals(doc: PDFKit.PDFDocument, po: PurchaseOrderData, lastLineY: number): number {
   const startY = lastLineY + 20;
   const rightAlign = 545;
   const currencySymbol = po.currency === 'EUR' ? '€' : 'R';
@@ -281,12 +280,12 @@ function drawTotals(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void {
     .fillColor(COLORS.primary)
     .text(`${currencySymbol}${po.total.toFixed(2)}`, rightAlign, startY + 35, { align: 'right', width: 90 });
 
-  // Store position for notes
-  (doc as any)._totalsEndY = startY + 70;
+  // Return position for notes section
+  return startY + 70;
 }
 
-function drawNotes(doc: PDFKit.PDFDocument, po: PurchaseOrderData): void {
-  const startY = (doc as any)._totalsEndY || 580;
+function drawNotes(doc: PDFKit.PDFDocument, po: PurchaseOrderData, totalsEndY: number): void {
+  const startY = totalsEndY;
 
   if (po.supplierNotes) {
     // Check if we need a new page
