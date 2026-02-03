@@ -1,6 +1,6 @@
-// User types
+// User types - aligned with Prisma schema
 
-export type UserRole = 'admin' | 'manager' | 'sales' | 'customer';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES' | 'PURCHASER' | 'WAREHOUSE' | 'CUSTOMER';
 
 export interface User {
   id: string;

@@ -35,10 +35,14 @@ import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 import publicProductsRoutes from './api/v1/public/products/route';
 import publicCategoriesRoutes from './api/v1/public/categories/route';
 import publicContactRoutes from './api/v1/public/contact/route';
+import { requestIdMiddleware } from './middleware/request-id';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 const app = express();
 
 // Middleware
+app.use(requestIdMiddleware); // Add request ID first for logging
 app.use(helmet());
 app.use(compression());
 app.use(cors({
@@ -49,6 +53,14 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/v1/health', healthRoutes);
+
+// API Documentation (Swagger UI)
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Nusaf API Documentation',
+}));
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin/imports', importsRoutes);
 app.use('/api/v1/admin/settings', settingsRoutes);

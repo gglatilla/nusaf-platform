@@ -20,10 +20,18 @@
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
     "lint": "npm run lint -w backend && npm run lint -w frontend",
-    "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w frontend"
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w frontend",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "vitest": "^1.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "echo 'Lint check skipped - ESLint not configured. Run npm init @eslint/config to set up.'"
+    ]
   },
   "engines": {
     "node": ">=20.0.0"
