@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import { WebsiteHeader } from '@/components/website/WebsiteHeader';
 import { WebsiteFooter } from '@/components/website/WebsiteFooter';
 import { QuoteModalWrapper } from '@/components/website/QuoteModalWrapper';
@@ -11,6 +12,18 @@ import {
 } from '@/components/website/sections';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
+
+export const metadata: Metadata = {
+  title: 'Nusaf Dynamic Technologies | Industrial Components & Power Transmission',
+  description:
+    'Premium conveyor components and power transmission solutions for South African manufacturers. Sprockets, modular chain, bearings, gearboxes, and custom machining. Local stock, fast delivery.',
+  openGraph: {
+    title: 'Nusaf Dynamic Technologies | Industrial Components',
+    description:
+      'Premium conveyor components and power transmission solutions for South African manufacturers.',
+    type: 'website',
+  },
+};
 
 // Organization structured data for SEO
 const organizationData = {
