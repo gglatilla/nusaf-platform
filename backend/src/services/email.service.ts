@@ -281,6 +281,12 @@ export interface QuoteRequestItem {
   notes?: string;
 }
 
+export interface QuoteRequestAttachment {
+  filename: string;
+  url: string;
+  sizeBytes: number;
+}
+
 export interface QuoteRequestNotificationData {
   requestId: string;
   customerName: string;
@@ -290,6 +296,7 @@ export interface QuoteRequestNotificationData {
   customerNotes?: string;
   items: QuoteRequestItem[];
   submittedAt: Date;
+  attachments?: QuoteRequestAttachment[];
 }
 
 /**
@@ -388,6 +395,22 @@ export async function sendQuoteRequestNotification(
       </tbody>
     </table>
 
+    ${data.attachments && data.attachments.length > 0 ? `
+    <h3 style="color: #1a5f7a; border-bottom: 2px solid #1a5f7a; padding-bottom: 8px;">
+      Attachments (${data.attachments.length})
+    </h3>
+    <ul style="margin-bottom: 25px; padding-left: 20px;">
+      ${data.attachments.map((att) => `
+        <li style="margin-bottom: 8px;">
+          <a href="${att.url}" style="color: #1a5f7a; text-decoration: none;">
+            ${att.filename}
+          </a>
+          <span style="color: #666; font-size: 12px;"> (${(att.sizeBytes / 1024).toFixed(1)} KB)</span>
+        </li>
+      `).join('')}
+    </ul>
+    ` : ''}
+
     <p style="text-align: center;">
       <a href="${process.env.PORTAL_URL || 'https://app.nusaf.net'}/admin/quote-requests/${data.requestId}"
          style="display: inline-block; padding: 12px 30px; background-color: #1a5f7a; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
@@ -406,6 +429,11 @@ export async function sendQuoteRequestNotification(
 </html>
   `.trim();
 
+  // Build attachments text for plain text email
+  const attachmentsText = data.attachments && data.attachments.length > 0
+    ? `\nAttachments (${data.attachments.length}):\n${data.attachments.map((att) => `  - ${att.filename}: ${att.url}`).join('\n')}\n`
+    : '';
+
   const text = `
 NEW QUOTE REQUEST
 ${'='.repeat(50)}
@@ -420,7 +448,7 @@ ${data.customerPhone ? `- Phone: ${data.customerPhone}` : ''}
 ${data.customerNotes ? `Customer Notes:\n${data.customerNotes}\n` : ''}
 Requested Items (${data.items.length}):
 ${itemsText}
-
+${attachmentsText}
 Request ID: ${data.requestId}
 
 View in portal: ${process.env.PORTAL_URL || 'https://app.nusaf.net'}/admin/quote-requests/${data.requestId}
@@ -488,6 +516,12 @@ export async function sendQuoteRequestConfirmation(
       </tbody>
     </table>
 
+    ${data.attachments && data.attachments.length > 0 ? `
+    <p style="background-color: #e8f4f8; padding: 12px 15px; border-radius: 6px; margin-bottom: 20px;">
+      <strong>Attachments received:</strong> ${data.attachments.map((a) => a.filename).join(', ')}
+    </p>
+    ` : ''}
+
     <p>If you have any urgent requirements or questions, please don't hesitate to contact us:</p>
 
     <table style="margin: 20px 0;">
@@ -520,6 +554,11 @@ export async function sendQuoteRequestConfirmation(
 </html>
   `.trim();
 
+  // Build attachments mention for plain text
+  const attachmentsMention = data.attachments && data.attachments.length > 0
+    ? `\nAttachments received: ${data.attachments.map((a) => a.filename).join(', ')}\n`
+    : '';
+
   const text = `
 Dear ${data.customerName},
 
@@ -532,7 +571,7 @@ Company: ${data.customerCompany}
 
 Items:
 ${itemsText}
-
+${attachmentsMention}
 If you have any urgent requirements or questions, please don't hesitate to contact us:
 - Email: sales@nusaf.co.za
 - Phone: +27 11 592 1962

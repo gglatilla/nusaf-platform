@@ -15,6 +15,11 @@ import {
   DialogCloseButton,
 } from '@/components/ui/dialog';
 import { useGuestQuoteStore } from '@/stores/guest-quote-store';
+import {
+  FileUploadZone,
+  UploadedFile,
+  getAttachmentsFromFiles,
+} from './FileUploadZone';
 
 const quoteRequestSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -36,6 +41,7 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const { items, sessionId, clearBasket } = useGuestQuoteStore();
 
@@ -49,10 +55,20 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
   });
 
   const onSubmit = async (data: QuoteRequestFormData) => {
+    // Check if any files are still uploading
+    const stillUploading = uploadedFiles.some((f) => f.status === 'uploading');
+    if (stillUploading) {
+      setSubmitError('Please wait for file uploads to complete');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
+      // Get attachment data from successfully uploaded files
+      const attachments = getAttachmentsFromFiles(uploadedFiles);
+
       const response = await fetch('/api/v1/public/quote-requests', {
         method: 'POST',
         headers: {
@@ -74,6 +90,8 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
               quantity: item.quantity,
             })),
           },
+          // Include attachments if any were uploaded
+          attachments: attachments.length > 0 ? attachments : undefined,
         }),
       });
 
@@ -85,6 +103,7 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
 
       setIsSuccess(true);
       clearBasket();
+      setUploadedFiles([]);
       reset();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred');
@@ -97,6 +116,7 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
     if (!isSubmitting) {
       setIsSuccess(false);
       setSubmitError(null);
+      setUploadedFiles([]);
       onClose();
     }
   };
@@ -238,6 +258,19 @@ export function QuoteRequestModal({ isOpen, onClose }: QuoteRequestModalProps) {
                   {errors.notes && (
                     <p className="mt-1 text-sm text-red-500">{errors.notes.message}</p>
                   )}
+                </div>
+
+                {/* File Attachments (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Attachments <span className="text-slate-400">(optional)</span>
+                  </label>
+                  <FileUploadZone
+                    files={uploadedFiles}
+                    onFilesChange={setUploadedFiles}
+                    sessionId={sessionId}
+                    disabled={isSubmitting}
+                  />
                 </div>
 
                 {/* Honeypot field - hidden from users, visible to bots */}

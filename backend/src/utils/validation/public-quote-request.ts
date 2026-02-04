@@ -1,5 +1,54 @@
 import { z } from 'zod';
 
+// Quote request attachment constraints
+export const QUOTE_ATTACHMENT_ALLOWED_MIME_TYPES = [
+  // Images
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  // Documents
+  'application/pdf',
+  // CAD formats (MIME types vary by system)
+  'application/dxf',
+  'image/vnd.dxf',
+  'image/x-dxf',
+  'application/acad',
+  'application/x-acad',
+  'image/vnd.dwg',
+  'application/x-dwg',
+  'model/step',
+  'application/step',
+  'application/stp',
+  // Fallback for unknown CAD
+  'application/octet-stream',
+];
+
+export const QUOTE_ATTACHMENT_ALLOWED_EXTENSIONS = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.dxf',
+  '.dwg',
+  '.step',
+  '.stp',
+];
+
+export const QUOTE_ATTACHMENT_MAX_SIZE = 10 * 1024 * 1024; // 10MB per file
+export const QUOTE_ATTACHMENT_MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total
+export const QUOTE_ATTACHMENT_MAX_FILES = 5;
+
+// Schema for attachment metadata (after upload)
+export const quoteAttachmentSchema = z.object({
+  key: z.string().min(1, 'File key is required'),
+  filename: z.string().min(1, 'Filename is required'),
+  mimeType: z.string().min(1, 'MIME type is required'),
+  sizeBytes: z.number().int().positive('File size must be positive'),
+});
+
+export type QuoteAttachment = z.infer<typeof quoteAttachmentSchema>;
+
 export const createPublicQuoteRequestSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
   companyName: z
@@ -24,6 +73,18 @@ export const createPublicQuoteRequestSchema = z.object({
       )
       .min(1, 'At least one item is required'),
   }),
+  // Optional file attachments (already uploaded to R2)
+  attachments: z
+    .array(quoteAttachmentSchema)
+    .max(QUOTE_ATTACHMENT_MAX_FILES, `Maximum ${QUOTE_ATTACHMENT_MAX_FILES} files allowed`)
+    .optional(),
 });
 
 export type CreatePublicQuoteRequestInput = z.infer<typeof createPublicQuoteRequestSchema>;
+
+// Schema for file upload request
+export const quoteAttachmentUploadSchema = z.object({
+  sessionId: z.string().min(1, 'Session ID is required'),
+});
+
+export type QuoteAttachmentUploadInput = z.infer<typeof quoteAttachmentUploadSchema>;

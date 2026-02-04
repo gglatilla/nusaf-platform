@@ -1,17 +1,171 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import path from 'path';
 import { prisma } from '../../../../config/database';
 import {
   createPublicQuoteRequestSchema,
   CreatePublicQuoteRequestInput,
+  QUOTE_ATTACHMENT_ALLOWED_MIME_TYPES,
+  QUOTE_ATTACHMENT_ALLOWED_EXTENSIONS,
+  QUOTE_ATTACHMENT_MAX_SIZE,
+  quoteAttachmentUploadSchema,
+  QuoteAttachment,
 } from '../../../../utils/validation/public-quote-request';
 import { quoteRequestLimiter } from '../../../../middleware/rate-limit';
 import {
   sendQuoteRequestNotification,
   sendQuoteRequestConfirmation,
 } from '../../../../services/email.service';
+import {
+  isR2Configured,
+  uploadToR2,
+  generateQuoteRequestKey,
+  getPublicUrl,
+} from '../../../../services/r2-storage.service';
 import { ZodError } from 'zod';
 
 const router = Router();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: QUOTE_ATTACHMENT_MAX_SIZE,
+  },
+  fileFilter: (_req, file, cb) => {
+    // Check MIME type
+    const mimeTypeAllowed = QUOTE_ATTACHMENT_ALLOWED_MIME_TYPES.includes(file.mimetype);
+    // Check extension (important for CAD files where MIME types are unreliable)
+    const ext = path.extname(file.originalname).toLowerCase();
+    const extensionAllowed = QUOTE_ATTACHMENT_ALLOWED_EXTENSIONS.includes(ext);
+
+    if (mimeTypeAllowed || extensionAllowed) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          `File type not allowed. Allowed types: PDF, JPEG, PNG, WebP, DXF, DWG, STEP`
+        )
+      );
+    }
+  },
+});
+
+/**
+ * POST /api/v1/public/quote-requests/upload
+ * Upload a file attachment for a quote request
+ * Rate limited: same as quote request creation
+ */
+router.post(
+  '/upload',
+  quoteRequestLimiter,
+  upload.single('file'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Validate sessionId from body
+      const bodyResult = quoteAttachmentUploadSchema.safeParse(req.body);
+      if (!bodyResult.success) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Session ID is required',
+            details: bodyResult.error.errors,
+          },
+        });
+        return;
+      }
+
+      const { sessionId } = bodyResult.data;
+
+      // Check if file was uploaded
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'NO_FILE',
+            message: 'No file was uploaded',
+          },
+        });
+        return;
+      }
+
+      // Check if R2 is configured
+      if (!isR2Configured()) {
+        console.warn('[QuoteRequest] R2 not configured, file upload disabled');
+        res.status(503).json({
+          success: false,
+          error: {
+            code: 'STORAGE_UNAVAILABLE',
+            message: 'File storage is temporarily unavailable. Please try again later.',
+          },
+        });
+        return;
+      }
+
+      // Generate storage key and upload
+      const key = generateQuoteRequestKey(sessionId, req.file.originalname);
+
+      try {
+        await uploadToR2(key, req.file.buffer, req.file.mimetype);
+      } catch (uploadError) {
+        console.error('[QuoteRequest] R2 upload failed:', uploadError);
+        res.status(500).json({
+          success: false,
+          error: {
+            code: 'UPLOAD_FAILED',
+            message: 'Failed to upload file. Please try again.',
+          },
+        });
+        return;
+      }
+
+      // Build attachment metadata
+      const attachment: QuoteAttachment = {
+        key,
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        sizeBytes: req.file.size,
+      };
+
+      console.log(
+        `[QuoteRequest] File uploaded: ${req.file.originalname} (${req.file.size} bytes) -> ${key}`
+      );
+
+      res.status(201).json({
+        success: true,
+        data: {
+          ...attachment,
+          url: getPublicUrl(key),
+        },
+      });
+    } catch (error) {
+      // Handle multer errors
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          res.status(400).json({
+            success: false,
+            error: {
+              code: 'FILE_TOO_LARGE',
+              message: `File size exceeds maximum of ${QUOTE_ATTACHMENT_MAX_SIZE / (1024 * 1024)}MB`,
+            },
+          });
+          return;
+        }
+      }
+
+      console.error('[QuoteRequest] Upload error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to upload file',
+        },
+      });
+    }
+  }
+);
 
 /**
  * POST /api/v1/public/quote-requests
@@ -63,6 +217,10 @@ router.post('/', quoteRequestLimiter, async (req: Request, res: Response): Promi
           name: validatedData.name,
           items: validatedData.cartData.items,
         },
+        // Store attachment metadata if any files were uploaded
+        attachments: validatedData.attachments && validatedData.attachments.length > 0
+          ? validatedData.attachments
+          : undefined,
       },
     });
 
@@ -85,6 +243,12 @@ router.post('/', quoteRequestLimiter, async (req: Request, res: Response): Promi
         quantity: item.quantity,
       })),
       submittedAt: quoteRequest.createdAt,
+      // Include attachment info for emails
+      attachments: validatedData.attachments?.map((att) => ({
+        filename: att.filename,
+        url: getPublicUrl(att.key),
+        sizeBytes: att.sizeBytes,
+      })),
     };
 
     // Send emails asynchronously (don't block the response)

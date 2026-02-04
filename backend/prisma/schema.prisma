@@ -766,6 +766,9 @@ model QuoteRequest {
   // Cart data (stored as JSON before conversion to Quote)
   cartData Json @map("cart_data")
 
+  // File attachments (drawings, specs) - Array of {key, filename, mimeType, sizeBytes}
+  attachments Json? @map("attachments")
+
   // Status
   isConverted Boolean   @default(false) @map("is_converted")
   convertedAt DateTime? @map("converted_at")

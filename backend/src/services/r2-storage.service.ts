@@ -134,6 +134,18 @@ export function generateImportKey(fileName: string, supplierCode: string): strin
 }
 
 /**
+ * Generate a unique key for quote request attachments
+ * @param sessionId - Guest session ID
+ * @param fileName - Original file name
+ * @returns A unique key for storing the file
+ */
+export function generateQuoteRequestKey(sessionId: string, fileName: string): string {
+  const timestamp = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `quote-requests/${sessionId}/${timestamp}_${sanitizedFileName}`;
+}
+
+/**
  * Storage key types for product assets
  */
 export type StorageKeyType = 'document' | 'image';
