@@ -4,7 +4,7 @@
 [TASK-016] Public Website Product Pages - Full Audit & Implementation
 
 ## Status
-IN_PROGRESS | 70% complete (Phase 1-3 mostly done)
+IN_PROGRESS | 80% complete (Phase 1-4.1 done)
 
 ## Plan Summary
 Comprehensive audit of public website product pages against website-design skill specs.
@@ -36,8 +36,8 @@ Comprehensive audit of public website product pages against website-design skill
   - [x] Consistent transitions (duration-200)
 - [ ] 3.3 Content Verification (QA task - verify specs display correctly)
 
-### Phase 4: P3 Nice-to-Have **<-- NEXT**
-- [ ] 4.1 Resources Section
+### Phase 4: P3 Nice-to-Have **<-- IN PROGRESS**
+- [x] 4.1 Resources Section
 - [ ] 4.2 Additional Polish
 - [ ] 4.3 Page Compliance Audit
 
@@ -49,6 +49,7 @@ Comprehensive audit of public website product pages against website-design skill
 5. `102f642` - TASK-016: Improve mobile breadcrumb with collapsible dropdown (P1-3)
 6. `0faddac` - TASK-016: Add SEO structured data (JSON-LD) for rich results (P2-1)
 7. `07e85fd` - TASK-016: Add subtle lift effect on card hover (P2-2)
+8. `9f04b3c` - TASK-016: Add Resources page with supplier catalogues (P3-1)
 
 ## Files Modified This Session (Recent)
 **Phase 3.1 (SEO):**
@@ -61,19 +62,30 @@ Comprehensive audit of public website product pages against website-design skill
 - `frontend/src/components/website/products/ProductCard.tsx` - Hover lift effect
 - `frontend/src/components/website/sections/ProductCategoriesSection.tsx` - Hover lift effect
 
+**Phase 4.1 (Resources Section):**
+- `frontend/src/app/(website)/resources/page.tsx` - New resources page
+- `frontend/src/components/website/WebsiteHeader.tsx` - Added Resources nav
+- `frontend/src/components/website/MobileMenuWrapper.tsx` - Added Resources nav
+- `frontend/src/components/website/WebsiteFooter.tsx` - Added Resources link
+
 ## Next Steps (Exact)
-1. Phase 4.1 Resources Section (P3 Nice-to-Have):
-   - Technical documentation links
-   - PDF catalogue downloads
-   - Possibly gated content (email for download)
+1. Phase 4.2 Additional Polish:
+   - Review all pages for consistency
+   - Check button/link styles
+   - Verify spacing and typography
+2. Phase 4.3 Page Compliance Audit:
+   - Check pages against website-design skill checklist
+   - Meta titles/descriptions
+   - Mobile responsive verification
 
 ## Context for Next Session
-Phase 3 (P2 Medium-Priority) is mostly complete:
-- SEO structured data added (Product, Breadcrumb, Organization JSON-LD)
-- UI polish with card hover lift effects
-- Content verification is a QA task (manual testing)
+Phase 4.1 Resources Section complete:
+- Created /resources page with supplier catalogue downloads
+- Added Chiaravalli, Regina, Tecom external links
+- Technical documentation section with categorized links
+- Resources added to header, mobile menu, and footer navigation
 
-Starting Phase 4 (P3 Nice-to-Have) next if time permits.
+Continuing with Phase 4.2-4.3 Polish and Audit.
 
 ## Database Migrations Applied
 - 20260204100000_add_cad_document_types
