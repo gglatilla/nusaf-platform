@@ -50,7 +50,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <div
         className={cn(
           'flex flex-col min-h-screen transition-all duration-300',
-          isCollapsed ? 'lg:pl-16' : 'lg:pl-60'
+          isCollapsed ? 'lg:pl-16' : 'lg:pl-56 xl:pl-60'
         )}
       >
         <Header

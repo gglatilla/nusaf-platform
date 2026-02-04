@@ -15,7 +15,7 @@ export function Header({ onMenuClick, isCollapsed }: HeaderProps) {
       className={cn(
         'sticky top-0 z-30 flex items-center h-16 bg-white border-b border-slate-200 px-4',
         // Adjust left padding based on sidebar state
-        isCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+        isCollapsed ? 'lg:pl-20' : 'lg:pl-60 xl:pl-64'
       )}
     >
       {/* Mobile menu button */}

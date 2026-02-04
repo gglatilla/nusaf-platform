@@ -70,8 +70,8 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
           // Mobile: slide in from left
           'lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          // Width: 240px full, 64px collapsed
-          isCollapsed ? 'lg:w-16' : 'lg:w-60',
+          // Width: 224px on lg, 240px on xl+, 64px collapsed
+          isCollapsed ? 'lg:w-16' : 'lg:w-56 xl:w-60',
           'w-60' // Mobile always full width
         )}
       >
