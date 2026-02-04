@@ -14,7 +14,7 @@ export function CTABannerSection() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/catalog"
+            href="/browse"
             className="inline-flex items-center justify-center px-8 py-4 bg-white text-primary-600 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
           >
             Explore Products

@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
-import { X, ChevronDown, Package } from 'lucide-react';
-import { api, PublicCategory } from '@/lib/api';
+import { X } from 'lucide-react';
 
 interface NavigationItem {
   name: string;
@@ -17,27 +16,6 @@ interface MobileNavDrawerProps {
 }
 
 export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawerProps) {
-  const [categories, setCategories] = useState<PublicCategory[]>([]);
-  const [isProductsOpen, setIsProductsOpen] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-
-  // Fetch categories when drawer opens
-  useEffect(() => {
-    if (isOpen && categories.length === 0) {
-      const fetchCategories = async () => {
-        try {
-          const response = await api.getPublicCategories();
-          if (response.success && response.data) {
-            setCategories(response.data.categories);
-          }
-        } catch (error) {
-          console.error('Failed to fetch categories:', error);
-        }
-      };
-      fetchCategories();
-    }
-  }, [isOpen, categories.length]);
-
   // Prevent body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
@@ -62,14 +40,6 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
     }
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
-
-  // Reset state when drawer closes
-  useEffect(() => {
-    if (!isOpen) {
-      setIsProductsOpen(false);
-      setExpandedCategory(null);
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -100,97 +70,15 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-4 py-6">
             <ul className="space-y-1">
-              {/* Products with expandable categories */}
+              {/* Products - direct link to browse */}
               <li>
-                <button
-                  onClick={() => setIsProductsOpen(!isProductsOpen)}
-                  className="flex items-center justify-between w-full px-4 py-3 text-base font-medium text-slate-700 hover:text-primary-600 hover:bg-slate-50 rounded-lg transition-colors"
+                <Link
+                  href="/browse"
+                  onClick={onClose}
+                  className="block px-4 py-3 text-base font-medium text-slate-700 hover:text-primary-600 hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   Products
-                  <ChevronDown
-                    className={`w-5 h-5 transition-transform duration-200 ${
-                      isProductsOpen ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* Categories accordion */}
-                {isProductsOpen && (
-                  <div className="mt-1 ml-4 space-y-1">
-                    {/* View All Products link */}
-                    <Link
-                      href="/browse"
-                      onClick={onClose}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:bg-slate-50 rounded-lg"
-                    >
-                      <Package className="w-4 h-4" />
-                      Browse All Categories
-                    </Link>
-
-                    {/* Category list */}
-                    {categories.map((category) => (
-                      <div key={category.id}>
-                        {category.subCategories.length > 0 ? (
-                          <>
-                            <button
-                              onClick={() =>
-                                setExpandedCategory(
-                                  expandedCategory === category.id ? null : category.id
-                                )
-                              }
-                              className="flex items-center justify-between w-full px-4 py-2 text-sm text-slate-600 hover:text-primary-600 hover:bg-slate-50 rounded-lg"
-                            >
-                              {category.name}
-                              <ChevronDown
-                                className={`w-4 h-4 transition-transform duration-200 ${
-                                  expandedCategory === category.id ? 'rotate-180' : ''
-                                }`}
-                              />
-                            </button>
-                            {expandedCategory === category.id && (
-                              <div className="ml-4 mt-1 space-y-1">
-                                <Link
-                                  href={`/browse/${category.slug}`}
-                                  onClick={onClose}
-                                  className="block px-4 py-1.5 text-xs text-primary-600 hover:bg-slate-50 rounded"
-                                >
-                                  View all {category.name}
-                                </Link>
-                                {category.subCategories.map((sub) => (
-                                  <Link
-                                    key={sub.id}
-                                    href={`/browse/${category.slug}/${sub.slug}`}
-                                    onClick={onClose}
-                                    className="block px-4 py-1.5 text-xs text-slate-500 hover:text-primary-600 hover:bg-slate-50 rounded"
-                                  >
-                                    {sub.name}
-                                  </Link>
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <Link
-                            href={`/browse/${category.slug}`}
-                            onClick={onClose}
-                            className="block px-4 py-2 text-sm text-slate-600 hover:text-primary-600 hover:bg-slate-50 rounded-lg"
-                          >
-                            {category.name}
-                          </Link>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Search link */}
-                    <Link
-                      href="/catalog"
-                      onClick={onClose}
-                      className="block px-4 py-2 text-sm text-slate-500 hover:text-primary-600 hover:bg-slate-50 rounded-lg"
-                    >
-                      Search by SKU
-                    </Link>
-                  </div>
-                )}
+                </Link>
               </li>
 
               {/* Other navigation items */}

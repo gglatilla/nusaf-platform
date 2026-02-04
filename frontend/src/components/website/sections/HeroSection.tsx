@@ -1,5 +1,9 @@
+'use client';
+
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Container } from '../Container';
+import { ProductSearchBar } from '../products';
 
 export function HeroSection() {
   return (
@@ -17,7 +21,7 @@ export function HeroSection() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/catalog"
+            href="/browse"
             className="inline-flex items-center justify-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors shadow-lg shadow-primary-600/25"
           >
             Explore Products
@@ -28,6 +32,16 @@ export function HeroSection() {
           >
             Request Quote
           </Link>
+        </div>
+
+        {/* Quick search */}
+        <div className="mt-10 max-w-lg mx-auto">
+          <p className="text-sm text-slate-500 mb-2">Or search directly</p>
+          <Suspense fallback={<div className="h-11 w-full bg-slate-100 rounded-lg animate-pulse" />}>
+            <ProductSearchBar
+              placeholder="Search by SKU or competitor part number..."
+            />
+          </Suspense>
         </div>
       </Container>
     </section>

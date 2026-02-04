@@ -1,9 +1,10 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { WebsiteHeader } from '@/components/website/WebsiteHeader';
 import { WebsiteFooter } from '@/components/website/WebsiteFooter';
 import { QuoteModalWrapper } from '@/components/website/QuoteModalWrapper';
 import { Container } from '@/components/website/Container';
-import { Breadcrumbs, CategoryCard } from '@/components/website/products';
+import { Breadcrumbs, CategoryCard, ProductSearchBar } from '@/components/website/products';
 import { api } from '@/lib/api';
 
 export const metadata: Metadata = {
@@ -67,6 +68,15 @@ export default async function ProductsPage() {
                   European manufacturers. Local stock available for fast delivery across South
                   Africa.
                 </p>
+
+                {/* Search bar */}
+                <div className="mt-6 max-w-md">
+                  <Suspense fallback={<div className="h-11 w-full bg-slate-100 rounded-lg animate-pulse" />}>
+                    <ProductSearchBar
+                      placeholder="Search by SKU, description, or competitor part..."
+                    />
+                  </Suspense>
+                </div>
               </div>
             </Container>
           </section>
@@ -95,31 +105,11 @@ export default async function ProductsPage() {
                     ))}
                   </div>
 
-                  {/* Quick access to search */}
+                  {/* Tip text */}
                   <div className="mt-12 text-center">
-                    <p className="text-slate-500 mb-4">
-                      Looking for a specific product? Use our search to find by SKU or competitor
-                      part number.
+                    <p className="text-sm text-slate-500">
+                      Tip: Use the search bar above to find products by SKU, description, or competitor part number.
                     </p>
-                    <a
-                      href="/catalog"
-                      className="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                    >
-                      Search All Products
-                      <svg
-                        className="ml-2 w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
-                    </a>
                   </div>
                 </>
               )}
