@@ -10,6 +10,7 @@ const footerNavigation = {
   ],
   company: [
     { name: 'About Us', href: '/about' },
+    { name: 'Resources', href: '/resources' },
     { name: 'Contact', href: '/contact' },
     { name: 'Customer Portal', href: 'https://app.nusaf.net/login' },
   ],
