@@ -6,7 +6,7 @@ import { QuoteModalWrapper } from '@/components/website/QuoteModalWrapper';
 import { Container } from '@/components/website/Container';
 import { Breadcrumbs } from '@/components/website/products';
 import { AddToQuoteButton } from '@/components/website/products';
-import { ProductImageGallery, ProductTabs, RelatedProducts } from '@/components/website/product-detail';
+import { ProductMediaViewer, ProductTabs, RelatedProducts } from '@/components/website/product-detail';
 import { api, PublicProductDetail, PublicProduct } from '@/lib/api';
 
 interface ProductPageProps {
@@ -97,9 +97,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           {/* Product header - two column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
-            {/* Left column - Image gallery */}
+            {/* Left column - Media viewer (photos & drawings) */}
             <div>
-              <ProductImageGallery images={product.images} productTitle={product.title} />
+              <ProductMediaViewer
+                images={product.images}
+                documents={product.documents}
+                productTitle={product.title}
+              />
             </div>
 
             {/* Right column - Product info */}
