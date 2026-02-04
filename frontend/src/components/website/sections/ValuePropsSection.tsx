@@ -1,4 +1,5 @@
 import { Package, Truck, Users, Shield } from 'lucide-react';
+import { Container } from '../Container';
 
 const valueProps = [
   {
@@ -25,9 +26,9 @@ const valueProps = [
 
 export function ValuePropsSection() {
   return (
-    <section className="bg-slate-50 py-16 lg:py-20 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section className="bg-slate-50 py-12 sm:py-16 lg:py-20">
+      <Container size="xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {valueProps.map((prop) => {
             const Icon = prop.icon;
             return (
@@ -44,7 +45,7 @@ export function ValuePropsSection() {
             );
           })}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

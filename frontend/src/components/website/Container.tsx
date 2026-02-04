@@ -7,8 +7,8 @@ interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
 
 const sizeStyles = {
   sm: 'max-w-3xl',
-  md: 'max-w-4xl',
-  lg: 'max-w-6xl',
+  md: 'max-w-5xl',
+  lg: 'max-w-6xl xl:max-w-7xl',  // Scales up on larger screens
   xl: 'max-w-7xl',
   full: 'max-w-full',
 };
@@ -21,7 +21,7 @@ export function Container({
 }: ContainerProps) {
   return (
     <div
-      className={cn('mx-auto px-4 sm:px-6 lg:px-8', sizeStyles[size], className)}
+      className={cn('mx-auto px-4 sm:px-6 lg:px-8 xl:px-10', sizeStyles[size], className)}
       {...props}
     >
       {children}

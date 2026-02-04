@@ -77,7 +77,7 @@ export default function IssueDetailPage() {
     return (
       <>
         <PageHeader title="Loading..." />
-        <div className="p-6 lg:p-8">
+        <div className="p-4 sm:p-6 xl:p-8">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-slate-200 rounded w-1/3" />
             <div className="h-24 bg-slate-200 rounded" />
@@ -92,7 +92,7 @@ export default function IssueDetailPage() {
     return (
       <>
         <PageHeader title="Issue Not Found" />
-        <div className="p-6 lg:p-8">
+        <div className="p-4 sm:p-6 xl:p-8">
           <p className="text-slate-600">The requested issue could not be found.</p>
           <Link href="/issues" className="text-primary-600 hover:text-primary-700 mt-4 inline-block">
             Back to Issues
@@ -141,7 +141,7 @@ export default function IssueDetailPage() {
         }
       />
 
-      <div className="p-6 lg:p-8 space-y-6">
+      <div className="p-4 sm:p-6 xl:p-8 space-y-6">
         {/* Status and badges */}
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <div className="flex flex-wrap gap-3 mb-6">

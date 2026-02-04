@@ -283,7 +283,7 @@ export default function SettingsPage() {
         }
       />
 
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 xl:p-8">
         {/* Tabs */}
         <div className="border-b border-slate-200 mb-6">
           <nav className="-mb-px flex gap-6">

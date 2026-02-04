@@ -1,3 +1,5 @@
+import { Container } from '../Container';
+
 export function TrustedBySection() {
   // Placeholder logos - replace with actual client logos
   const placeholderLogos = [
@@ -9,8 +11,8 @@ export function TrustedBySection() {
   ];
 
   return (
-    <section className="bg-slate-50 py-16 px-4">
-      <div className="max-w-6xl mx-auto text-center">
+    <section className="bg-slate-50 py-12 sm:py-16">
+      <Container size="xl" className="text-center">
         <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-10">
           Trusted by manufacturers across South Africa
         </p>
@@ -25,7 +27,7 @@ export function TrustedBySection() {
             </div>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

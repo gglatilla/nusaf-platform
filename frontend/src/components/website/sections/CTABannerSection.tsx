@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
+import { Container } from '../Container';
 
 export function CTABannerSection() {
   return (
-    <section className="bg-primary-600 py-16 lg:py-20 px-4">
-      <div className="max-w-4xl mx-auto text-center">
+    <section className="bg-primary-600 py-12 sm:py-16 lg:py-20">
+      <Container size="md" className="text-center">
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4">
           Ready to optimise your production line?
         </h2>
@@ -35,7 +36,7 @@ export function CTABannerSection() {
             +27 (0) 00 000 0000
           </a>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

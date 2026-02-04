@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { Container } from '../Container';
 
 export function HeroSection() {
   return (
-    <section className="bg-gradient-to-b from-white to-slate-50 py-20 lg:py-28 px-4">
-      <div className="max-w-6xl mx-auto text-center">
+    <section className="bg-gradient-to-b from-white to-slate-50 py-16 sm:py-20 lg:py-28">
+      <Container size="xl" className="text-center">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
           Industrial Components.
           <br />
@@ -28,7 +29,7 @@ export function HeroSection() {
             Request Quote
           </Link>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

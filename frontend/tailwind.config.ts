@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '480px', // For very small phone handling
+      },
       colors: {
         // Primary - Electric Blue family
         primary: {

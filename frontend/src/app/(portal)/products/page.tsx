@@ -224,7 +224,7 @@ export default function ProductsPage() {
         }
       />
 
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 xl:p-8">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filter sidebar - Categories only */}
           <aside className="lg:w-64 flex-shrink-0">

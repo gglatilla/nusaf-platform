@@ -400,7 +400,7 @@ export default function NewImportPage() {
         }
       />
 
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 xl:p-8">
         {/* Progress steps */}
         {currentStep !== 'complete' && (
           <div className="mb-8">

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Disc, Cog, Circle, Settings, RotateCcw, Minus } from 'lucide-react';
+import { Container } from '../Container';
 
 const categories = [
   {
@@ -36,16 +37,16 @@ const categories = [
 
 export function ProductCategoriesSection() {
   return (
-    <section className="py-16 lg:py-20 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">Our Products</h2>
+    <section className="py-12 sm:py-16 lg:py-20">
+      <Container size="xl">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Our Products</h2>
           <p className="text-slate-600 max-w-xl mx-auto">
             Browse our comprehensive range of industrial components from leading European
             manufacturers.
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
           {categories.map((category) => {
             const Icon = category.icon;
             return (
@@ -64,7 +65,7 @@ export function ProductCategoriesSection() {
             );
           })}
         </div>
-        <div className="text-center mt-10">
+        <div className="text-center mt-8 sm:mt-10">
           <Link
             href="/catalog"
             className="inline-flex items-center text-primary-600 font-medium hover:text-primary-700"
@@ -85,7 +86,7 @@ export function ProductCategoriesSection() {
             </svg>
           </Link>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

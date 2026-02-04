@@ -42,7 +42,7 @@ export default function ImportsPage() {
         }
       />
 
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 xl:p-8">
         {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Link
