@@ -117,7 +117,7 @@ export default function ServicesPage() {
               {services.map((service) => (
                 <div
                   key={service.title}
-                  className="bg-white p-6 rounded-xl border border-slate-200 hover:border-primary-200 hover:shadow-lg transition-all"
+                  className="bg-white p-6 rounded-xl border border-slate-200 hover:border-primary-500 hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
                 >
                   <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
                     <service.icon className="w-6 h-6 text-primary-600" />
