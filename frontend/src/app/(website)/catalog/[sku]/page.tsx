@@ -7,7 +7,10 @@ import { Container } from '@/components/website/Container';
 import { Breadcrumbs } from '@/components/website/products';
 import { AddToQuoteButton } from '@/components/website/products';
 import { ProductMediaViewer, ProductTabs, RelatedProducts } from '@/components/website/product-detail';
+import { ProductJsonLd, BreadcrumbJsonLd, buildProductSchema } from '@/components/seo';
 import { api, PublicProductDetail, PublicProduct } from '@/lib/api';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
 
 interface ProductPageProps {
   params: Promise<{ sku: string }>;
@@ -88,8 +91,23 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   breadcrumbItems.push({ label: product.sku });
 
+  // Build JSON-LD structured data
+  const productSchema = buildProductSchema(product, BASE_URL);
+  const breadcrumbSchema = [
+    { name: 'Home', url: BASE_URL },
+    { name: 'Products', url: `${BASE_URL}/catalog` },
+    ...(product.category
+      ? [{ name: product.category.name, url: `${BASE_URL}/browse/${product.category.code}` }]
+      : []),
+    { name: product.title, url: `${BASE_URL}/catalog/${product.sku}` },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
+      {/* SEO: JSON-LD Structured Data */}
+      <ProductJsonLd data={productSchema} />
+      <BreadcrumbJsonLd items={breadcrumbSchema} />
+
       <WebsiteHeader />
       <main className="flex-1 py-8 bg-slate-50">
         <Container>
