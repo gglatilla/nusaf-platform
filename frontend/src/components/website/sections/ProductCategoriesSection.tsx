@@ -52,7 +52,7 @@ export function ProductCategoriesSection() {
               <Link
                 key={category.name}
                 href={category.href}
-                className="group bg-white p-6 rounded-xl border border-slate-200 text-center hover:border-primary-500 hover:shadow-lg transition-all"
+                className="group bg-white p-6 rounded-xl border border-slate-200 text-center hover:border-primary-500 hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
               >
                 <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-primary-50 transition-colors">
                   <Icon className="w-8 h-8 text-slate-400 group-hover:text-primary-600 transition-colors" />

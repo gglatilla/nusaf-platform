@@ -16,7 +16,7 @@ export function ProductCard({ product, matchedVia }: ProductCardProps) {
   const imageUrl = product.primaryImage?.url;
 
   return (
-    <div className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary-500 hover:shadow-lg transition-all">
+    <div className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary-500 hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
       {/* Image */}
       <Link href={`/catalog/${product.sku}`} className="block relative aspect-square bg-slate-50">
         {imageUrl ? (
