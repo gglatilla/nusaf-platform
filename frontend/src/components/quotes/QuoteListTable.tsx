@@ -51,25 +51,25 @@ function getExpiryInfo(validUntil: string | null, status: string): { text: strin
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
-      <td className="px-6 py-4">
+      <td className="px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-28" />
       </td>
-      <td className="px-6 py-4">
+      <td className="px-4 lg:px-6 py-4">
         <div className="h-5 bg-slate-200 rounded w-20" />
       </td>
-      <td className="px-6 py-4">
+      <td className="hidden xl:table-cell px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-8" />
       </td>
-      <td className="px-6 py-4">
+      <td className="px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-24" />
       </td>
-      <td className="px-6 py-4">
+      <td className="hidden lg:table-cell px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-16" />
       </td>
-      <td className="px-6 py-4">
+      <td className="hidden lg:table-cell px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-20" />
       </td>
-      <td className="px-6 py-4">
+      <td className="px-4 lg:px-6 py-4">
         <div className="h-4 bg-slate-200 rounded w-4" />
       </td>
     </tr>
@@ -83,25 +83,25 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Quote #
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Items
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Total
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="hidden lg:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Valid Until
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="hidden lg:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Date
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 lg:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
@@ -139,25 +139,25 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Quote #
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Status
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Items
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Total
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="hidden lg:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Valid Until
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="hidden lg:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Date
             </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th className="px-4 lg:px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -167,7 +167,7 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
             const expiryInfo = getExpiryInfo(quote.validUntil, quote.status);
             return (
               <tr key={quote.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                   <Link
                     href={`/quotes/${quote.id}`}
                     className="text-sm font-medium text-primary-600 hover:text-primary-700"
@@ -175,16 +175,16 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
                     {quote.quoteNumber}
                   </Link>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                   <QuoteStatusBadge status={quote.status} />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                   {quote.itemCount}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                   {formatCurrency(quote.total)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
                   {expiryInfo ? (
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${expiryInfo.className}`}>
                       {expiryInfo.text}
@@ -193,10 +193,10 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
                     <span className="text-sm text-slate-400">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                   {formatDate(quote.createdAt)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
                   <Link
                     href={`/quotes/${quote.id}`}
                     className="text-slate-400 hover:text-slate-600"
