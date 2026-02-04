@@ -3,7 +3,7 @@
 ---
 
 ## Current
-- [TASK-016] Public Website Product Pages (IN_PROGRESS)
+(none)
 
 ## Up Next
 (none)
@@ -35,8 +35,8 @@
 - [TASK-012-2F] Order Fulfillment — Analytics/Dashboards [Orders, UI/Frontend]
 - [TASK-011b] Sales dashboard + quote analytics [Quotes, UI/Frontend]
 - [TASK-014] Modular chain configurator [Configurator, UI/Frontend]
-- [TASK-015] Public website — Homepage [Public Website]
-- [TASK-016] Public website — Product pages [Public Website, UI/Frontend]
+- [TASK-015] Public website — Homepage [Public Website] ✓
+- [TASK-016] Public website — Product pages [Public Website, UI/Frontend] ✓
 
 ## Blocked
 (none)
@@ -108,6 +108,7 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-022] Fulfillment Orchestration Engine ✓
 - [TASK-022A] Fulfillment Orchestration UI ✓
 - [TASK-015] Public Website Homepage ✓
+- [TASK-016] Public Website Product Pages ✓
 
 ---
 
