@@ -14,6 +14,8 @@ interface ProductTableProps {
   sortBy: string;
   onSortChange: (sort: string) => void;
   isAdmin?: boolean;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 const statusDotColors: Record<StockStatus, string> = {
@@ -71,10 +73,41 @@ function SortableHeader({ label, field, currentSort, onSort, align = 'left' }: S
   );
 }
 
-export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortChange, isAdmin = false }: ProductTableProps) {
+export function ProductTable({
+  products,
+  isLoading,
+  onRowClick,
+  sortBy,
+  onSortChange,
+  isAdmin = false,
+  selectedIds = [],
+  onSelectionChange,
+}: ProductTableProps) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const publishProduct = usePublishProduct();
   const unpublishProduct = useUnpublishProduct();
+
+  const hasSelection = onSelectionChange !== undefined;
+  const allSelected = hasSelection && products.length > 0 && products.every(p => selectedIds.includes(p.id));
+  const someSelected = hasSelection && selectedIds.length > 0 && !allSelected;
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(products.map(p => p.id));
+    }
+  };
+
+  const handleSelectOne = (productId: string) => {
+    if (!onSelectionChange) return;
+    if (selectedIds.includes(productId)) {
+      onSelectionChange(selectedIds.filter(id => id !== productId));
+    } else {
+      onSelectionChange([...selectedIds, productId]);
+    }
+  };
 
   const formatPrice = (price: number | null) => {
     if (!price) return 'Price on Request';
@@ -110,6 +143,7 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
+              {hasSelection && <th className="px-4 py-3 w-10"></th>}
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 w-14"></th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">SKU</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Description</th>
@@ -122,6 +156,7 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
           <tbody>
             {[...Array(5)].map((_, i) => (
               <tr key={i} className="border-b border-slate-100">
+                {hasSelection && <td className="px-4 py-4"><div className="h-4 w-4 bg-slate-200 rounded animate-pulse" /></td>}
                 <td className="px-4 py-4"><div className="h-10 w-10 bg-slate-200 rounded animate-pulse" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-24" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-48" /></td>
@@ -150,6 +185,17 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
       <table className="w-full">
         <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
+            {hasSelection && (
+              <th className="px-4 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+              </th>
+            )}
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 w-14"></th>
             <SortableHeader label="SKU" field="nusafSku" currentSort={sortBy} onSort={onSortChange} />
             <SortableHeader label="Description" field="description" currentSort={sortBy} onSort={onSortChange} />
@@ -167,12 +213,26 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
 
             const thumbnailUrl = product.primaryImage?.thumbnailUrl || product.primaryImage?.url;
 
+            const isSelected = selectedIds.includes(product.id);
+
             return (
               <tr
                 key={product.id}
                 onClick={() => onRowClick(product)}
-                className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 cursor-pointer transition-colors"
+                className={`border-b border-slate-100 last:border-b-0 hover:bg-slate-50 cursor-pointer transition-colors ${
+                  isSelected ? 'bg-primary-50' : ''
+                }`}
               >
+                {hasSelection && (
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleSelectOne(product.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   {thumbnailUrl ? (
                     <img

@@ -14,7 +14,7 @@ export function useProductImages(productId: string | null, options?: { enabled?:
     queryFn: async () => {
       if (!productId) throw new Error('Product ID is required');
       const response = await api.getProductImages(productId);
-      return response.data.images;
+      return response.data?.images ?? [];
     },
     enabled: (options?.enabled ?? true) && !!productId,
   });
@@ -154,7 +154,7 @@ export function useProductDocuments(productId: string | null, options?: { enable
     queryFn: async () => {
       if (!productId) throw new Error('Product ID is required');
       const response = await api.getProductDocuments(productId);
-      return response.data.documents;
+      return response.data?.documents ?? [];
     },
     enabled: (options?.enabled ?? true) && !!productId,
   });

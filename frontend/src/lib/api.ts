@@ -2942,7 +2942,7 @@ class ApiClient {
   async getProductDocuments(productId: string): Promise<ApiResponse<{
     documents: Array<{
       id: string;
-      type: string;
+      type: ProductDocumentType;
       name: string;
       fileName: string;
       fileUrl: string;
