@@ -368,6 +368,7 @@ export default function ProductsPage() {
         product={selectedProduct}
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
+        showStockQuantity={showQuantity}
       />
 
       {/* Bulk actions bar - appears when items are selected */}

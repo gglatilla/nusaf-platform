@@ -21,12 +21,14 @@ interface ProductDetailModalProps {
   product: CatalogProduct | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showStockQuantity?: boolean; // Internal users see numbers, customers see badges only
 }
 
 export function ProductDetailModal({
   product,
   open,
   onOpenChange,
+  showStockQuantity = true,
 }: ProductDetailModalProps) {
   const [showAddToQuote, setShowAddToQuote] = useState(false);
 
@@ -178,9 +180,11 @@ export function ProductDetailModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <StockStatusBadge status={inventory.stockStatus} />
-                      <span className="text-sm text-slate-600">
-                        {inventory.available} available
-                      </span>
+                      {showStockQuantity && (
+                        <span className="text-sm text-slate-600">
+                          {inventory.available} available
+                        </span>
+                      )}
                     </div>
                     <Link
                       href={`/products/${product.id}`}

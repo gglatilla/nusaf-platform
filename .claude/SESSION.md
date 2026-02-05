@@ -43,11 +43,11 @@ NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Leve
 - [ ] TASK-024-3D: Create SEOSection (meta title, description)
 - [ ] TASK-024-3E: Wire up existing media components
 
-### Phase 4: Customer Portal Adjustments (0/4)
-- [ ] TASK-024-4A: Update product cards to show tier pricing
-- [ ] TASK-024-4B: Remove list price from customer view
-- [ ] TASK-024-4C: Add "Your Price" label
-- [ ] TASK-024-4D: Ensure stock badges (not numbers) for customers
+### Phase 4: Customer Portal Adjustments (3/4)
+- [x] TASK-024-4A: Update product cards to show tier pricing ✓ (backend-controlled via product.price)
+- [x] TASK-024-4B: Remove list price from customer view ✓ (frontend never shows listPrice to customers)
+- [ ] TASK-024-4C: Add "Your Price" label (backend needs to return priceLabel="Your Price" for customers)
+- [x] TASK-024-4D: Ensure stock badges (not numbers) for customers ✓ (showQuantity=false for customers)
 
 ## Files To Modify
 
@@ -64,7 +64,7 @@ NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Leve
 - No database changes needed - just UI reorganization
 
 ## Next Step
-TASK-024-2A: Create InventoryItemForm component (Phase 2 starting)
+Backend check: Verify products API returns "Your Price" in priceLabel for customers
 
 ## Progress Summary
 Phase 1 is nearly complete. Created:
