@@ -38,6 +38,16 @@
 - [TASK-015] Public website — Homepage [Public Website] ✓
 - [TASK-016] Public website — Product pages [Public Website, UI/Frontend] ✓
 
+### Phase F: Product Master Data Management (IN PROGRESS)
+- [TASK-023] Product Master Data Management [Master Data, UI/Frontend, Backend]
+  - Phase 0: Full-Page Editor (7 micro-tasks)
+  - Phase 1: Marketing + Publishing (7 micro-tasks)
+  - Phase 2: Media Management (6 micro-tasks)
+  - Phase 3: List Enhancements (7 micro-tasks)
+  - Phase 4: Completeness Scoring (4 micro-tasks)
+  - Phase 5: Publishing Safeguards (3 micro-tasks)
+  - Full spec: `.claude/plans/proud-finding-wren.md`
+
 ## Blocked
 (none)
 

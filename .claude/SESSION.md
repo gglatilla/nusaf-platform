@@ -1,77 +1,81 @@
 # Current Session
 
 ## Active Task
-None - Task queue empty
+[TASK-023] Product Master Data Management
 
 ## Status
-COMPLETED | Ready for next task
+IN_PROGRESS | 3% complete (Phase 0: 1/7)
 
-## Completed Work
+## Micro-Task Progress
 
-### URL Restructure + Route Conflict Fix (This Session)
-Fixed Vercel build errors caused by Next.js route group conflicts after URL restructure.
+### Phase 0: Full-Page Product Editor (1/7)
+- [x] TASK-023-0A: Create ProductEditor shared component ✓
+- [ ] TASK-023-0B: Create ProductImageGallery component
+- [ ] TASK-023-0C: Create ProductDocumentsList component
+- [ ] TASK-023-0D: Create product edit page
+- [ ] TASK-023-0E: Create product create page
+- [ ] TASK-023-0F: Update product detail page navigation
+- [ ] TASK-023-0G: Update product list page navigation
 
-**Problem:** Next.js route groups share URL namespace. Having both:
-- `(portal)/products/[id]` and `(website)/products/[slug]`
-- `(website)/catalog/[sku]` and `(portal)/catalog/[slug]`
+### Phase 1: Marketing + Publishing (0/7)
+- [ ] TASK-023-1A: Add Marketing section to ProductEditor
+- [ ] TASK-023-1B: Create SpecificationsEditor component
+- [ ] TASK-023-1C: Create PublishStatusBadge component
+- [ ] TASK-023-1D: Add publish/unpublish API endpoints
+- [ ] TASK-023-1E: Add publish hooks to frontend
+- [ ] TASK-023-1F: Add publish controls to product edit page
+- [ ] TASK-023-1G: Add preview mode to public API
 
-Caused build failures with "cannot use different slug names" errors.
+### Phase 2: Media Management (0/6)
+- [ ] TASK-023-2A: Create image upload hook
+- [ ] TASK-023-2B: Create document upload hook
+- [ ] TASK-023-2C: Implement image reorder functionality
+- [ ] TASK-023-2D: Implement set primary image
+- [ ] TASK-023-2E: Wire up ProductImageGallery to ProductEditor
+- [ ] TASK-023-2F: Wire up ProductDocumentsList to ProductEditor
 
-**Solution:**
-1. Renamed portal products route to `/catalog` (internal URL)
-2. Standardized all dynamic parameters to use consistent names
-3. Removed old `/browse` and `/catalog` directories from website (handled by next.config.js redirects)
+### Phase 3: Product List Enhancements (0/7)
+- [ ] TASK-023-3A: Add publish status column to ProductTable
+- [ ] TASK-023-3B: Add thumbnail column to ProductTable
+- [ ] TASK-023-3C: Add publish filter to product list page
+- [ ] TASK-023-3D: Add quick actions menu to ProductTable
+- [ ] TASK-023-3E: Add checkbox selection to ProductTable
+- [ ] TASK-023-3F: Add bulk publish endpoint
+- [ ] TASK-023-3G: Add bulk actions bar to product list
 
-**Files Modified:**
-- `frontend/src/app/(portal)/products/` → renamed to `catalog/`
-- `frontend/src/app/(portal)/catalog/[slug]/page.tsx` - Updated param from `id` to `slug`
-- `frontend/src/app/(website)/products/[slug]/page.tsx` - Updated param from `categorySlug` to `slug`
-- `frontend/src/app/(website)/products/[slug]/[subSlug]/page.tsx` - Updated params
-- `frontend/src/middleware.ts` - Added `/catalog` to portal routes
-- `frontend/src/lib/navigation.ts` - Changed `/products` to `/catalog` for portal nav
-- `frontend/src/components/quotes/QuoteCart.tsx` - `/products` → `/catalog`
-- `frontend/src/components/quotes/QuoteListTable.tsx` - `/products` → `/catalog`
-- `frontend/src/app/(portal)/quotes/[id]/page.tsx` - `/products` → `/catalog`
-- `frontend/src/app/(portal)/dashboard/page.tsx` - `/products` → `/catalog`
+### Phase 4: Completeness Scoring (0/4)
+- [ ] TASK-023-4A: Create completeness scoring utility
+- [ ] TASK-023-4B: Create CompletenessIndicator component
+- [ ] TASK-023-4C: Add completeness to product edit page
+- [ ] TASK-023-4D: Add completeness column to ProductTable
 
-**Files Removed:**
-- `frontend/src/app/(website)/browse/` - Old route, handled by redirect
-- `frontend/src/app/(website)/catalog/` - Old route, handled by redirect
+### Phase 5: Publishing Safeguards (0/3)
+- [ ] TASK-023-5A: Create PublishValidationModal component
+- [ ] TASK-023-5B: Add publish validation to edit page
+- [ ] TASK-023-5C: Add audit logging for incomplete publishes
 
-## Final URL Structure
+## Files Modified
+- `frontend/src/components/products/ProductEditor.tsx` (created)
+- `frontend/src/components/products/index.ts` (added export)
 
-**Marketing Website (www.nusaf.net):**
-- `/products` - Public product catalog
-- `/products/{slug}` - Category page
-- `/products/{slug}/{subSlug}` - Subcategory page
-- `/products/p/{sku}` - Product detail page
+## Decisions Made
+- Using full-page editor layout (like Shopify) instead of modal
+- "Warn but Allow" publishing policy
+- Completeness scoring with weighted categories
+- Portal uses `/catalog` for products (from previous session URL restructure)
 
-**Customer Portal (app.nusaf.net):**
-- `/catalog` - Internal product catalog (with prices, stock)
-- `/catalog/{slug}` - Product detail page (internal)
+## Next Step
+TASK-023-0B: Create ProductImageGallery component
 
-**Redirects (301 permanent in next.config.js):**
-- `/browse` → `/products`
-- `/browse/:slug` → `/products/:slug`
-- `/browse/:cat/:sub` → `/products/:cat/:sub`
-- `/catalog` → `/products` (on public site only)
-- `/catalog/:sku` → `/products/p/:sku`
+## Plan File
+`.claude/plans/proud-finding-wren.md`
 
-## Key Architecture Notes
-
-**Domain-Based Routing:**
-- `www.nusaf.net` / `nusaf.net` → Marketing website (public)
-- `app.nusaf.net` → Customer portal (authenticated)
-
-**SEO Status:**
-- Site currently has `X-Robots-Tag: noindex, nofollow` (staging mode)
-- When going to production, update next.config.js to remove noindex header
-
-## Next Steps
-Task queue is empty. Awaiting next task assignment.
+## Previous Session Context
+URL restructure completed - portal products moved from `/products` to `/catalog`. Marketing website uses `/products`. All redirects in place.
 
 ## Context for Next Session
-- URL restructure complete and build verified
-- Old route files removed - redirects handled by next.config.js
-- Portal uses `/catalog`, website uses `/products`
-- All changes committed and pushed to remote
+Starting TASK-023 - Product Master Data Management. This enables:
+1. Products to appear on website (isPublished flag)
+2. Marketing content entry (SEO fields)
+3. Full product editing (not just inventory defaults)
+4. Image/document uploads
