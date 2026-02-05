@@ -1945,12 +1945,16 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    skipContentType = false
   ): Promise<T> {
     const url = `${API_URL}${endpoint}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+
+    // Only set Content-Type for non-FormData requests
+    if (!skipContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.accessToken) {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
@@ -2824,6 +2828,162 @@ class ApiClient {
   }>> {
     return this.request(`/products/${id}/unpublish`, {
       method: 'POST',
+    });
+  }
+
+  // ============================================
+  // PRODUCT IMAGES METHODS
+  // ============================================
+
+  /**
+   * Get images for a product
+   */
+  async getProductImages(productId: string): Promise<ApiResponse<{
+    images: Array<{
+      id: string;
+      url: string;
+      thumbnailUrl: string | null;
+      altText: string | null;
+      caption: string | null;
+      isPrimary: boolean;
+      sortOrder: number;
+    }>;
+  }>> {
+    return this.request(`/products/${productId}/images`);
+  }
+
+  /**
+   * Upload an image for a product
+   */
+  async uploadProductImage(
+    productId: string,
+    file: File,
+    options?: {
+      altText?: string;
+      caption?: string;
+      isPrimary?: boolean;
+      sortOrder?: number;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    url: string;
+    thumbnailUrl: string | null;
+    altText: string | null;
+    caption: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+  }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options?.altText) formData.append('altText', options.altText);
+    if (options?.caption) formData.append('caption', options.caption);
+    if (options?.isPrimary !== undefined) formData.append('isPrimary', String(options.isPrimary));
+    if (options?.sortOrder !== undefined) formData.append('sortOrder', String(options.sortOrder));
+
+    return this.request(`/products/${productId}/images`, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header - browser will set it with boundary for FormData
+    }, true); // skipContentType = true
+  }
+
+  /**
+   * Update image metadata
+   */
+  async updateProductImage(
+    productId: string,
+    imageId: string,
+    data: {
+      altText?: string | null;
+      caption?: string | null;
+      isPrimary?: boolean;
+      sortOrder?: number;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    url: string;
+    thumbnailUrl: string | null;
+    altText: string | null;
+    caption: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+  }>> {
+    return this.request(`/products/${productId}/images/${imageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Delete a product image
+   */
+  async deleteProductImage(productId: string, imageId: string): Promise<void> {
+    await this.request(`/products/${productId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // PRODUCT DOCUMENTS METHODS
+  // ============================================
+
+  /**
+   * Get documents for a product
+   */
+  async getProductDocuments(productId: string): Promise<ApiResponse<{
+    documents: Array<{
+      id: string;
+      type: string;
+      name: string;
+      fileName: string;
+      fileUrl: string;
+      fileSize: number;
+      mimeType: string;
+      sortOrder: number;
+    }>;
+  }>> {
+    return this.request(`/products/${productId}/documents`);
+  }
+
+  /**
+   * Upload a document for a product
+   */
+  async uploadProductDocument(
+    productId: string,
+    file: File,
+    options: {
+      type: string;
+      name: string;
+      sortOrder?: number;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    type: string;
+    name: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number;
+    mimeType: string;
+    sortOrder: number;
+  }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', options.type);
+    formData.append('name', options.name);
+    if (options.sortOrder !== undefined) formData.append('sortOrder', String(options.sortOrder));
+
+    return this.request(`/products/${productId}/documents`, {
+      method: 'POST',
+      body: formData,
+    }, true); // skipContentType = true
+  }
+
+  /**
+   * Delete a product document
+   */
+  async deleteProductDocument(productId: string, documentId: string): Promise<void> {
+    await this.request(`/products/${productId}/documents/${documentId}`, {
+      method: 'DELETE',
     });
   }
 
