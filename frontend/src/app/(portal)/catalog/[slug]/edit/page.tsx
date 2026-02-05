@@ -2,9 +2,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Globe, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, Globe, Eye, Loader2 } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
-import { useUpdateProduct } from '@/hooks/useProducts';
+import { useUpdateProduct, usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
 import { ProductEditor, ProductFormData } from '@/components/products';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,8 @@ export default function ProductEditPage() {
   });
 
   const updateProduct = useUpdateProduct();
+  const publishProduct = usePublishProduct();
+  const unpublishProduct = useUnpublishProduct();
 
   // Check if user is admin (can edit product)
   const canEditProduct = user?.role === 'ADMIN';
@@ -83,6 +85,25 @@ export default function ProductEditPage() {
 
   // Publish status (from product data if available)
   const isPublished = (product as any)?.isPublished ?? false;
+  const isPublishing = publishProduct.isPending || unpublishProduct.isPending;
+
+  const handlePublish = async () => {
+    try {
+      await publishProduct.mutateAsync(productId);
+      refetch();
+    } catch (error) {
+      console.error('Failed to publish product:', error);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      await unpublishProduct.mutateAsync(productId);
+      refetch();
+    } catch (error) {
+      console.error('Failed to unpublish product:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -146,20 +167,26 @@ export default function ProductEditPage() {
             Preview
           </a>
 
-          {/* Publish/Unpublish Button (placeholder - will be wired up in Phase 1) */}
+          {/* Publish/Unpublish Button */}
           <button
             type="button"
-            disabled
+            onClick={isPublished ? handleUnpublish : handlePublish}
+            disabled={isPublishing}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed',
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
               isPublished
-                ? 'text-slate-700 bg-white border border-slate-200'
-                : 'text-white bg-green-600'
+                ? 'text-slate-700 bg-white border border-slate-200 hover:bg-slate-50'
+                : 'text-white bg-green-600 hover:bg-green-700'
             )}
-            title="Publishing will be enabled after saving"
           >
-            <Globe className="h-4 w-4" />
-            {isPublished ? 'Unpublish' : 'Publish'}
+            {isPublishing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Globe className="h-4 w-4" />
+            )}
+            {isPublishing
+              ? (isPublished ? 'Unpublishing...' : 'Publishing...')
+              : (isPublished ? 'Unpublish' : 'Publish')}
           </button>
         </div>
       </div>
