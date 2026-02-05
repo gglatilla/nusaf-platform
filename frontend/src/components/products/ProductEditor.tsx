@@ -52,7 +52,7 @@ function Field({
   label: string;
   required?: boolean;
   error?: string;
-  hint?: string;
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
