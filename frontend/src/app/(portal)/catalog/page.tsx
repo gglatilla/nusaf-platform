@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import {
   ProductGrid,
@@ -29,6 +31,7 @@ export default function ProductsPage() {
 
   // Role-based feature flags
   const isInternal = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
+  const isAdmin = user?.role === 'ADMIN';
   const showQuantity = !!isInternal; // Internal users see numbers, customers see text
 
   // Read URL params
@@ -122,7 +125,7 @@ export default function ProductsPage() {
       if (newView !== 'grid') newParams.set('view', newView);
 
       const queryString = newParams.toString();
-      router.push(queryString ? `/products?${queryString}` : '/products', { scroll: false });
+      router.push(queryString ? `/catalog?${queryString}` : '/catalog', { scroll: false });
     },
     [categoryId, subCategoryId, search, page, pageSize, stockFilter, sortBy, warehouse, viewMode, router]
   );
@@ -192,7 +195,7 @@ export default function ProductsPage() {
     setSortBy('');
     setWarehouse(user?.primaryWarehouse as WarehouseValue || 'ALL');
     setPage(1);
-    router.push('/products', { scroll: false });
+    router.push('/catalog', { scroll: false });
   };
 
   // Handle view details - open modal
@@ -219,6 +222,16 @@ export default function ProductsPage() {
             {/* View toggle - internal users only */}
             {isInternal && (
               <ViewToggle view={viewMode} onChange={handleViewChange} />
+            )}
+            {/* Add Product button - admin only */}
+            {isAdmin && (
+              <Link
+                href="/catalog/new"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add Product
+              </Link>
             )}
           </div>
         }
