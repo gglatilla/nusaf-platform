@@ -1,8 +1,31 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../config/database';
+import { verifyToken, type AuthenticatedRequest } from '../../../../middleware/auth';
 
 const router = Router();
+
+/**
+ * Middleware to optionally authenticate for preview mode
+ * Returns null user if no valid token, does not block the request
+ */
+async function optionalAuth(req: Express.Request): Promise<{ userId: string; role: string } | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    const payload = verifyToken(token);
+    if (payload) {
+      return { userId: payload.userId, role: payload.role };
+    }
+  } catch {
+    // Invalid token - just return null
+  }
+  return null;
+}
 
 /**
  * Convert a name to a URL-friendly slug
@@ -687,18 +710,37 @@ router.get('/:sku/related', async (req, res) => {
 /**
  * GET /api/v1/public/products/:sku
  * Get product details by SKU (no prices, no auth required)
+ * Query params:
+ *   - preview: if "true" and user is admin, allows viewing unpublished products
  */
 router.get('/:sku', async (req, res) => {
   try {
     const { sku } = req.params;
+    const previewMode = req.query.preview === 'true';
+
+    // Check if preview mode is requested by an admin
+    let allowPreview = false;
+    if (previewMode) {
+      const authUser = await optionalAuth(req as unknown as Express.Request);
+      if (authUser && authUser.role === 'ADMIN') {
+        allowPreview = true;
+      }
+    }
+
+    // Build where clause - allow unpublished if preview mode enabled by admin
+    const where: Prisma.ProductWhereInput = {
+      nusafSku: sku,
+      isActive: true,
+      deletedAt: null,
+    };
+
+    // Only require isPublished if not in preview mode
+    if (!allowPreview) {
+      where.isPublished = true;
+    }
 
     const product = await prisma.product.findFirst({
-      where: {
-        nusafSku: sku,
-        isActive: true,
-        deletedAt: null,
-        isPublished: true,
-      },
+      where,
       include: {
         category: { select: { id: true, code: true, name: true } },
         subCategory: { select: { id: true, code: true, name: true } },
@@ -745,7 +787,7 @@ router.get('/:sku', async (req, res) => {
     }
 
     // Transform - no prices exposed
-    const responseData = {
+    const responseData: Record<string, unknown> = {
       id: product.id,
       sku: product.nusafSku,
       title: product.marketingTitle || product.description,
@@ -760,6 +802,12 @@ router.get('/:sku', async (req, res) => {
       documents: product.productDocuments,
       crossReferences: product.crossReferences,
     };
+
+    // Add preview indicator if viewing unpublished product
+    if (allowPreview && !product.isPublished) {
+      responseData.isPreview = true;
+      responseData.isPublished = false;
+    }
 
     return res.json({
       success: true,
