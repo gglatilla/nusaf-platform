@@ -109,3 +109,41 @@ export function useDeleteProduct() {
     },
   });
 }
+
+/**
+ * Hook for publishing a product to the website
+ */
+export function usePublishProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.publishProduct(id);
+      return response.data;
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['product', id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['productInventory', id] });
+    },
+  });
+}
+
+/**
+ * Hook for unpublishing a product from the website
+ */
+export function useUnpublishProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.unpublishProduct(id);
+      return response.data;
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['product', id] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['productInventory', id] });
+    },
+  });
+}

@@ -17,11 +17,11 @@ IN_PROGRESS | 23% complete (Phase 0: COMPLETE, Phase 1: 0/7)
 - [x] TASK-023-0F: Update product detail page navigation ✓
 - [x] TASK-023-0G: Update product list page navigation ✓
 
-### Phase 1: Marketing + Publishing (2/7)
+### Phase 1: Marketing + Publishing (4/7)
 - [x] TASK-023-1A: Add Marketing section to ProductEditor ✓ (already exists in ProductEditor)
 - [x] TASK-023-1B: Create SpecificationsEditor component ✓
-- [ ] TASK-023-1C: Create PublishStatusBadge component
-- [ ] TASK-023-1D: Add publish/unpublish API endpoints
+- [x] TASK-023-1C: Create PublishStatusBadge component ✓
+- [x] TASK-023-1D: Add publish/unpublish API endpoints ✓
 - [ ] TASK-023-1E: Add publish hooks to frontend
 - [ ] TASK-023-1F: Add publish controls to product edit page
 - [ ] TASK-023-1G: Add preview mode to public API
@@ -71,7 +71,7 @@ IN_PROGRESS | 23% complete (Phase 0: COMPLETE, Phase 1: 0/7)
 - Portal uses `/catalog` for products (from previous session URL restructure)
 
 ## Next Step
-TASK-023-1C: Create PublishStatusBadge component
+TASK-023-1E: Add publish hooks to frontend
 
 ## Phase 0 Summary
 Full-page product editor infrastructure is complete:

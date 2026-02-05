@@ -2799,6 +2799,34 @@ class ApiClient {
     });
   }
 
+  /**
+   * Publish a product to the website
+   */
+  async publishProduct(id: string): Promise<ApiResponse<{
+    id: string;
+    nusafSku: string;
+    isPublished: boolean;
+    publishedAt: string | null;
+  }>> {
+    return this.request(`/products/${id}/publish`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Unpublish a product from the website
+   */
+  async unpublishProduct(id: string): Promise<ApiResponse<{
+    id: string;
+    nusafSku: string;
+    isPublished: boolean;
+    publishedAt: string | null;
+  }>> {
+    return this.request(`/products/${id}/unpublish`, {
+      method: 'POST',
+    });
+  }
+
   // ============================================
   // BOM (BILL OF MATERIALS) METHODS
   // ============================================
