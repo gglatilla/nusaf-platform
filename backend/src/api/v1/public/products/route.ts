@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../config/database';
 import { verifyAccessToken } from '../../../../utils/jwt';
@@ -721,7 +721,7 @@ router.get('/:sku', async (req, res) => {
     // Check if preview mode is requested by an admin
     let allowPreview = false;
     if (previewMode) {
-      const authUser = await optionalAuth(req as unknown as Express.Request);
+      const authUser = await optionalAuth(req);
       if (authUser && authUser.role === 'ADMIN') {
         allowPreview = true;
       }
