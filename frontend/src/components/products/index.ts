@@ -19,3 +19,5 @@ export { WhereUsedSection } from './WhereUsedSection';
 export { ProductBomTab } from './ProductBomTab';
 export { ProductEditor } from './ProductEditor';
 export type { ProductFormData } from './ProductEditor';
+export { ProductImageGallery } from './ProductImageGallery';
+export type { ProductImage } from './ProductImageGallery';
