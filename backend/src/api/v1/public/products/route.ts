@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../config/database';
-import { verifyToken, type AuthenticatedRequest } from '../../../../middleware/auth';
+import { verifyAccessToken } from '../../../../utils/jwt';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ const router = Router();
  * Middleware to optionally authenticate for preview mode
  * Returns null user if no valid token, does not block the request
  */
-async function optionalAuth(req: Express.Request): Promise<{ userId: string; role: string } | null> {
+async function optionalAuth(req: Request): Promise<{ userId: string; role: string } | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return null;
@@ -17,7 +17,7 @@ async function optionalAuth(req: Express.Request): Promise<{ userId: string; rol
 
   const token = authHeader.substring(7);
   try {
-    const payload = verifyToken(token);
+    const payload = verifyAccessToken(token);
     if (payload) {
       return { userId: payload.userId, role: payload.role };
     }

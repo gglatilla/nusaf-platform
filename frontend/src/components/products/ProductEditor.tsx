@@ -1,11 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Package, ImageIcon, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, ImageIcon, FileText } from 'lucide-react';
 import type { ProductWithInventory, ProductType, CatalogCategory } from '@/lib/api';
 import { useCategories } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import {
+  useProductImages,
+  useUploadProductImage,
+  useSetPrimaryImage,
+  useDeleteProductImage,
+  useProductDocuments,
+  useUploadProductDocument,
+  useDeleteProductDocument,
+} from '@/hooks/useProductMedia';
 import { SpecificationsEditor } from './SpecificationsEditor';
+import { ProductImageGallery } from './ProductImageGallery';
+import { ProductDocumentsList, type ProductDocumentType } from './ProductDocumentsList';
 import { cn } from '@/lib/utils';
 
 // Collapsible section component
@@ -165,6 +176,16 @@ export function ProductEditor({ product, onSave, isLoading, isCreating }: Produc
   const categories: CatalogCategory[] = categoriesData ?? [];
   const suppliers = suppliersData?.suppliers ?? [];
 
+  // Media hooks - only active when editing existing product
+  const productId = product?.id ?? '';
+  const { data: images = [] } = useProductImages(productId, { enabled: !!productId });
+  const { data: documents = [] } = useProductDocuments(productId, { enabled: !!productId });
+  const uploadImage = useUploadProductImage(productId);
+  const setPrimaryImage = useSetPrimaryImage(productId);
+  const deleteImage = useDeleteProductImage(productId);
+  const uploadDocument = useUploadProductDocument(productId);
+  const deleteDocument = useDeleteProductDocument(productId);
+
   // Get subcategories for selected category
   const selectedCategory = categories.find((c: CatalogCategory) => c.id === formData.categoryId);
   const subCategories = selectedCategory?.subCategories ?? [];
@@ -294,31 +315,59 @@ export function ProductEditor({ product, onSave, isLoading, isCreating }: Produc
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Media */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Image Gallery Placeholder */}
+          {/* Image Gallery */}
           <div className="border border-slate-200 rounded-lg bg-white p-4">
             <div className="flex items-center gap-2 mb-3">
               <ImageIcon className="h-4 w-4 text-slate-500" />
               <span className="font-medium text-slate-900">Images</span>
             </div>
-            <div className="aspect-square bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center">
-              <div className="text-center">
-                <Package className="h-12 w-12 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No images yet</p>
-                <p className="text-xs text-slate-400 mt-1">Image upload coming soon</p>
+            {isCreating ? (
+              <div className="py-6 text-center text-sm text-slate-500">
+                Save the product first to upload images
               </div>
-            </div>
+            ) : (
+              <ProductImageGallery
+                productId={productId}
+                images={images}
+                canEdit={true}
+                onUpload={async (file) => {
+                  await uploadImage.mutateAsync({ file, isPrimary: images.length === 0 });
+                }}
+                onSetPrimary={async (imageId) => {
+                  await setPrimaryImage.mutateAsync(imageId);
+                }}
+                onDelete={async (imageId) => {
+                  await deleteImage.mutateAsync(imageId);
+                }}
+                isUploading={uploadImage.isPending}
+              />
+            )}
           </div>
 
-          {/* Documents Placeholder */}
+          {/* Documents */}
           <div className="border border-slate-200 rounded-lg bg-white p-4">
             <div className="flex items-center gap-2 mb-3">
               <FileText className="h-4 w-4 text-slate-500" />
               <span className="font-medium text-slate-900">Documents</span>
             </div>
-            <div className="py-6 text-center">
-              <p className="text-sm text-slate-500">No documents yet</p>
-              <p className="text-xs text-slate-400 mt-1">Document upload coming soon</p>
-            </div>
+            {isCreating ? (
+              <div className="py-6 text-center text-sm text-slate-500">
+                Save the product first to upload documents
+              </div>
+            ) : (
+              <ProductDocumentsList
+                productId={productId}
+                documents={documents}
+                canEdit={true}
+                onUpload={async (file, type, name) => {
+                  await uploadDocument.mutateAsync({ file, type, name });
+                }}
+                onDelete={async (documentId) => {
+                  await deleteDocument.mutateAsync(documentId);
+                }}
+                isUploading={uploadDocument.isPending}
+              />
+            )}
           </div>
         </div>
 
