@@ -300,7 +300,7 @@ export default function InventoryItemsPage() {
                   isLoading={isLoadingProducts}
                   sortBy={sortBy}
                   onSortChange={handleSortChange}
-                  canEdit={canEdit}
+                  canEdit={!!canEdit}
                   menuOpen={menuOpen}
                   onMenuToggle={setMenuOpen}
                 />
@@ -447,11 +447,8 @@ function InventoryItemTable({
             const available = stockSummary?.totalAvailable ?? 0;
             const thumbnailUrl = item.primaryImage?.thumbnailUrl || item.primaryImage?.url;
 
-            // Determine item type label (assuming productType field exists)
-            const typeLabel = item.productType === 'RAW_MATERIAL' ? 'Raw Material'
-              : item.productType === 'COMPONENT' ? 'Component'
-              : item.productType === 'ASSEMBLY' ? 'Assembly'
-              : 'Finished Good';
+            // Determine item type label using category as fallback since CatalogProduct doesn't have productType
+            const typeLabel = item.category?.name || 'Product';
 
             return (
               <tr
@@ -488,7 +485,7 @@ function InventoryItemTable({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-sm text-slate-700">{item.supplierName || '—'}</span>
+                  <span className="text-sm text-slate-700">{item.supplier?.name || '—'}</span>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">

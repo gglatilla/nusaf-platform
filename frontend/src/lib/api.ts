@@ -552,6 +552,17 @@ export interface UpdateProductData {
   defaultMinStock?: number | null;
   defaultMaxStock?: number | null;
   leadTimeDays?: number | null;
+  supplierLeadDays?: number | null;
+  reorderPoint?: number | null;
+  reorderQty?: number | null;
+  minStock?: number | null;
+  maxStock?: number | null;
+  // Marketing fields
+  marketingTitle?: string | null;
+  marketingDescription?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  specifications?: Record<string, string> | null;
 }
 
 // ============================================

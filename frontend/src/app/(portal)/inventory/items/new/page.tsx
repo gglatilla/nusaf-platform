@@ -5,18 +5,20 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useCreateProduct, useCategories } from '@/hooks/useProducts';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAuthStore } from '@/stores/auth-store';
 
 interface FormData {
   nusafSku: string;
   supplierSku: string;
+  supplierId: string;
   description: string;
   productType: string;
   unitOfMeasure: string;
   categoryId: string;
   subCategoryId: string;
   weight: string;
-  supplierLeadDays: string;
+  leadTimeDays: string;
   reorderPoint: string;
   reorderQty: string;
   minStock: string;
@@ -26,13 +28,14 @@ interface FormData {
 const initialFormData: FormData = {
   nusafSku: '',
   supplierSku: '',
+  supplierId: '',
   description: '',
-  productType: 'FINISHED_GOOD',
+  productType: 'STOCK_ONLY',
   unitOfMeasure: 'EACH',
   categoryId: '',
   subCategoryId: '',
   weight: '',
-  supplierLeadDays: '',
+  leadTimeDays: '',
   reorderPoint: '',
   reorderQty: '',
   minStock: '',
@@ -43,6 +46,8 @@ export default function NewInventoryItemPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuthStore();
   const { data: categories = [] } = useCategories();
+  const { data: suppliersData } = useSuppliers({ isActive: true, pageSize: 100 });
+  const suppliers = suppliersData?.suppliers ?? [];
   const createProduct = useCreateProduct();
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -78,6 +83,9 @@ export default function NewInventoryItemPage() {
     if (!formData.categoryId) {
       newErrors.categoryId = 'Category is required';
     }
+    if (!formData.supplierId) {
+      newErrors.supplierId = 'Supplier is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -91,14 +99,15 @@ export default function NewInventoryItemPage() {
     try {
       const data = {
         nusafSku: formData.nusafSku.trim(),
-        supplierSku: formData.supplierSku.trim() || null,
+        supplierSku: formData.supplierSku.trim(),
+        supplierId: formData.supplierId,
         description: formData.description.trim(),
-        productType: formData.productType,
+        productType: formData.productType as 'STOCK_ONLY' | 'ASSEMBLY_REQUIRED' | 'MADE_TO_ORDER' | 'KIT',
         unitOfMeasure: formData.unitOfMeasure,
-        categoryId: formData.categoryId || null,
+        categoryId: formData.categoryId,
         subCategoryId: formData.subCategoryId || null,
         weight: formData.weight ? parseFloat(formData.weight) : null,
-        supplierLeadDays: formData.supplierLeadDays ? parseInt(formData.supplierLeadDays) : null,
+        leadTimeDays: formData.leadTimeDays ? parseInt(formData.leadTimeDays) : null,
         defaultReorderPoint: formData.reorderPoint ? parseInt(formData.reorderPoint) : null,
         defaultReorderQty: formData.reorderQty ? parseInt(formData.reorderQty) : null,
         defaultMinStock: formData.minStock ? parseInt(formData.minStock) : null,
@@ -196,10 +205,10 @@ export default function NewInventoryItemPage() {
                 onChange={(e) => handleChange('productType', e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="FINISHED_GOOD">Finished Good</option>
-                <option value="RAW_MATERIAL">Raw Material</option>
-                <option value="COMPONENT">Component</option>
-                <option value="ASSEMBLY">Assembly</option>
+                <option value="STOCK_ONLY">Stock Only</option>
+                <option value="ASSEMBLY_REQUIRED">Assembly Required</option>
+                <option value="MADE_TO_ORDER">Made to Order</option>
+                <option value="KIT">Kit</option>
               </select>
             </div>
             <div className="md:col-span-2">
@@ -301,6 +310,28 @@ export default function NewInventoryItemPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
+                Supplier <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.supplierId}
+                onChange={(e) => handleChange('supplierId', e.target.value)}
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.supplierId ? 'border-red-500' : 'border-slate-300'
+                }`}
+              >
+                <option value="">Select supplier...</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+              {errors.supplierId && (
+                <p className="mt-1 text-xs text-red-500">{errors.supplierId}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Supplier SKU
               </label>
               <input
@@ -317,8 +348,8 @@ export default function NewInventoryItemPage() {
               </label>
               <input
                 type="number"
-                value={formData.supplierLeadDays}
-                onChange={(e) => handleChange('supplierLeadDays', e.target.value)}
+                value={formData.leadTimeDays}
+                onChange={(e) => handleChange('leadTimeDays', e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="14"
               />

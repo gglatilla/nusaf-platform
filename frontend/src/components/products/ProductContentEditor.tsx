@@ -158,10 +158,8 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
   };
 
   // Media handlers
-  const handleImageUpload = async (files: FileList) => {
-    for (const file of Array.from(files)) {
-      await uploadImage.mutateAsync({ file, isPrimary: images.length === 0 });
-    }
+  const handleImageUpload = async (file: File) => {
+    await uploadImage.mutateAsync({ file, isPrimary: images.length === 0 });
   };
 
   const handleSetPrimaryImage = async (imageId: string) => {
@@ -172,10 +170,8 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
     await deleteImage.mutateAsync(imageId);
   };
 
-  const handleDocumentUpload = async (files: FileList, type: ProductDocumentType) => {
-    for (const file of Array.from(files)) {
-      await uploadDocument.mutateAsync({ file, type, name: file.name });
-    }
+  const handleDocumentUpload = async (file: File, type: ProductDocumentType, name: string) => {
+    await uploadDocument.mutateAsync({ file, type, name });
   };
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -198,13 +194,13 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
             </div>
             <div>
               <span className="text-xs text-slate-500">Supplier</span>
-              <p className="text-sm text-slate-900">{product.supplierName || '—'}</p>
+              <p className="text-sm text-slate-900">{product.supplier?.name || '—'}</p>
             </div>
             <div>
               <span className="text-xs text-slate-500">Category</span>
               <p className="text-sm text-slate-900">
-                {product.categoryName || '—'}
-                {product.subCategoryName && ` > ${product.subCategoryName}`}
+                {product.category?.name || '—'}
+                {product.subCategory?.name && ` > ${product.subCategory.name}`}
               </p>
             </div>
             <div>
@@ -227,20 +223,22 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
 
         <Section title="Product Images" icon={ImageIcon} defaultOpen={true}>
           <ProductImageGallery
+            productId={productId}
             images={images}
+            canEdit={true}
             onUpload={handleImageUpload}
             onSetPrimary={handleSetPrimaryImage}
             onDelete={handleDeleteImage}
-            isUploading={uploadImage.isPending}
           />
         </Section>
 
         <Section title="Documents" icon={FileText} defaultOpen={false}>
           <ProductDocumentsList
+            productId={productId}
             documents={documents}
+            canEdit={true}
             onUpload={handleDocumentUpload}
             onDelete={handleDeleteDocument}
-            isUploading={uploadDocument.isPending}
           />
         </Section>
       </div>
@@ -322,7 +320,7 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
         {/* Technical Specifications */}
         <Section title="Technical Specifications" defaultOpen={true}>
           <SpecificationsEditor
-            specifications={formData.specifications}
+            value={formData.specifications}
             onChange={(specs) => handleChange('specifications', specs)}
           />
         </Section>

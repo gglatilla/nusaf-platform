@@ -266,7 +266,7 @@ export default function InventoryItemDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
                   <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                    {product.supplierName || '—'}
+                    {product.supplier?.name || '—'}
                   </div>
                 </div>
                 <div>
@@ -280,14 +280,14 @@ export default function InventoryItemDetailPage() {
                   {canEdit ? (
                     <input
                       type="number"
-                      value={formData.supplierLeadDays || ''}
-                      onChange={(e) => handleFieldChange('supplierLeadDays', e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={formData.leadTimeDays || ''}
+                      onChange={(e) => handleFieldChange('leadTimeDays', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="14"
                     />
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.supplierLeadDays ? `${product.supplierLeadDays} days` : '—'}
+                      {product.leadTimeDays ? `${product.leadTimeDays} days` : '—'}
                     </div>
                   )}
                 </div>
@@ -335,14 +335,14 @@ export default function InventoryItemDetailPage() {
                   {canEdit ? (
                     <input
                       type="number"
-                      value={formData.reorderPoint || ''}
-                      onChange={(e) => handleFieldChange('reorderPoint', e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={formData.defaultReorderPoint || ''}
+                      onChange={(e) => handleFieldChange('defaultReorderPoint', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="0"
                     />
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.reorderPoint ?? '—'}
+                      {product.defaultReorderPoint ?? '—'}
                     </div>
                   )}
                 </div>
@@ -351,14 +351,14 @@ export default function InventoryItemDetailPage() {
                   {canEdit ? (
                     <input
                       type="number"
-                      value={formData.reorderQty || ''}
-                      onChange={(e) => handleFieldChange('reorderQty', e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={formData.defaultReorderQty || ''}
+                      onChange={(e) => handleFieldChange('defaultReorderQty', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="0"
                     />
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.reorderQty ?? '—'}
+                      {product.defaultReorderQty ?? '—'}
                     </div>
                   )}
                 </div>
@@ -367,14 +367,14 @@ export default function InventoryItemDetailPage() {
                   {canEdit ? (
                     <input
                       type="number"
-                      value={formData.minStock || ''}
-                      onChange={(e) => handleFieldChange('minStock', e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={formData.defaultMinStock || ''}
+                      onChange={(e) => handleFieldChange('defaultMinStock', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="0"
                     />
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.minStock ?? '—'}
+                      {product.defaultMinStock ?? '—'}
                     </div>
                   )}
                 </div>
@@ -383,14 +383,14 @@ export default function InventoryItemDetailPage() {
                   {canEdit ? (
                     <input
                       type="number"
-                      value={formData.maxStock || ''}
-                      onChange={(e) => handleFieldChange('maxStock', e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={formData.defaultMaxStock || ''}
+                      onChange={(e) => handleFieldChange('defaultMaxStock', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="0"
                     />
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.maxStock ?? '—'}
+                      {product.defaultMaxStock ?? '—'}
                     </div>
                   )}
                 </div>
@@ -404,9 +404,9 @@ export default function InventoryItemDetailPage() {
             <section className="bg-white rounded-lg border border-slate-200 p-6">
               <div className="text-center">
                 <span className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-full ${
-                  product.productType === 'FINISHED_GOOD' ? 'bg-green-100 text-green-800' :
-                  product.productType === 'RAW_MATERIAL' ? 'bg-amber-100 text-amber-800' :
-                  product.productType === 'COMPONENT' ? 'bg-blue-100 text-blue-800' :
+                  product.productType === 'STOCK_ONLY' ? 'bg-green-100 text-green-800' :
+                  product.productType === 'ASSEMBLY_REQUIRED' ? 'bg-amber-100 text-amber-800' :
+                  product.productType === 'MADE_TO_ORDER' ? 'bg-blue-100 text-blue-800' :
                   'bg-purple-100 text-purple-800'
                 }`}>
                   {typeLabel}
@@ -432,30 +432,30 @@ export default function InventoryItemDetailPage() {
             {/* Current Stock */}
             <section className="bg-white rounded-lg border border-slate-200 p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-3">Current Stock</h3>
-              {product.stockSummary ? (
+              {(product.inventory || product.stockSummary) ? (
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-slate-600">Available</span>
                     <span className="text-sm font-medium text-slate-900">
-                      {product.stockSummary.totalAvailable ?? 0}
+                      {product.inventory?.available ?? product.stockSummary?.totalAvailable ?? 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-slate-600">Reserved</span>
                     <span className="text-sm font-medium text-slate-900">
-                      {product.stockSummary.totalReserved ?? 0}
+                      {product.inventory?.reserved ?? 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-slate-600">On Order</span>
                     <span className="text-sm font-medium text-slate-900">
-                      {product.stockSummary.totalOnOrder ?? 0}
+                      {product.inventory?.onOrder ?? 0}
                     </span>
                   </div>
                   <div className="pt-2 border-t border-slate-100 flex justify-between">
                     <span className="text-sm font-medium text-slate-700">Total On Hand</span>
                     <span className="text-sm font-bold text-slate-900">
-                      {product.stockSummary.totalOnHand ?? 0}
+                      {product.inventory?.onHand ?? product.stockSummary?.totalOnHand ?? 0}
                     </span>
                   </div>
                 </div>
@@ -471,7 +471,7 @@ export default function InventoryItemDetailPage() {
             </section>
 
             {/* Quick Links */}
-            {product.productType === 'FINISHED_GOOD' && (
+            {product.productType === 'STOCK_ONLY' && (
               <section className="bg-white rounded-lg border border-slate-200 p-6">
                 <h3 className="text-sm font-semibold text-slate-900 mb-3">Quick Links</h3>
                 <div className="space-y-2">
@@ -481,7 +481,7 @@ export default function InventoryItemDetailPage() {
                   >
                     Edit Marketing Content →
                   </Link>
-                  {product.isPublished && (
+                  {product.isActive && (
                     <a
                       href={`/products/${product.nusafSku}`}
                       target="_blank"
