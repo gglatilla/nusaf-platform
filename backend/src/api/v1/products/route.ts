@@ -88,6 +88,7 @@ router.get('/', authenticate, async (req, res) => {
       include,
       stockStatus,
       warehouseId,
+      isPublished,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
@@ -132,6 +133,15 @@ router.get('/', authenticate, async (req, res) => {
 
     if (supplierId && typeof supplierId === 'string') {
       where.supplierId = supplierId;
+    }
+
+    // Filter by publish status
+    if (typeof isPublished === 'string') {
+      if (isPublished === 'true') {
+        where.isPublished = true;
+      } else if (isPublished === 'false') {
+        where.isPublished = false;
+      }
     }
 
     // Search by SKU or description

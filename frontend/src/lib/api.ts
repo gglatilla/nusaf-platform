@@ -784,6 +784,7 @@ export interface ProductsQueryParams {
   include?: string;
   stockStatus?: string;
   warehouseId?: string;
+  isPublished?: string;
 }
 
 // Recalculate prices response

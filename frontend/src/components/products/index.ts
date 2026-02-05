@@ -25,3 +25,5 @@ export { ProductDocumentsList } from './ProductDocumentsList';
 export type { ProductDocument, ProductDocumentType } from './ProductDocumentsList';
 export { SpecificationsEditor } from './SpecificationsEditor';
 export { PublishStatusBadge } from './PublishStatusBadge';
+export { PublishFilterChips } from './PublishFilterChips';
+export type { PublishFilterValue } from './PublishFilterChips';

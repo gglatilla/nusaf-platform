@@ -16,6 +16,7 @@ import {
   WarehouseSelector,
   ViewToggle,
   ProductTable,
+  PublishFilterChips,
 } from '@/components/products';
 import { useProducts, useCategories } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
@@ -23,6 +24,7 @@ import type { CatalogProduct } from '@/lib/api';
 import type { StockFilterValue } from '@/components/products/StockFilterChips';
 import type { WarehouseValue } from '@/components/products/WarehouseSelector';
 import type { ViewMode } from '@/components/products/ViewToggle';
+import type { PublishFilterValue } from '@/components/products/PublishFilterChips';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -44,6 +46,7 @@ export default function ProductsPage() {
   const urlSort = searchParams.get('sort') || '';
   const urlWarehouse = (searchParams.get('warehouse') || user?.primaryWarehouse || 'ALL') as WarehouseValue;
   const urlView = (searchParams.get('view') || 'grid') as ViewMode;
+  const urlPublishStatus = (searchParams.get('publishStatus') || 'ALL') as PublishFilterValue;
 
   // Validate stockStatus from URL
   const validStockStatuses: StockFilterValue[] = ['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'ON_ORDER'];
@@ -59,6 +62,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState(urlSort);
   const [warehouse, setWarehouse] = useState<WarehouseValue>(urlWarehouse);
   const [viewMode, setViewMode] = useState<ViewMode>(urlView);
+  const [publishFilter, setPublishFilter] = useState<PublishFilterValue>(urlPublishStatus);
 
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
@@ -78,6 +82,7 @@ export default function ProductsPage() {
     stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
     sort: sortBy || undefined,
     warehouseId: warehouse !== 'ALL' ? warehouse : undefined,
+    isPublished: publishFilter === 'PUBLISHED' ? 'true' : publishFilter === 'DRAFT' ? 'false' : undefined,
   });
 
   const products = productsData?.products ?? [];
@@ -101,6 +106,7 @@ export default function ProductsPage() {
       sort?: string;
       warehouse?: WarehouseValue;
       view?: ViewMode;
+      publishStatus?: PublishFilterValue;
     }) => {
       const newParams = new URLSearchParams();
 
@@ -113,6 +119,7 @@ export default function ProductsPage() {
       const newSort = params.sort ?? sortBy;
       const newWarehouse = params.warehouse ?? warehouse;
       const newView = params.view ?? viewMode;
+      const newPublishStatus = params.publishStatus ?? publishFilter;
 
       if (newCategoryId) newParams.set('categoryId', newCategoryId);
       if (newSubCategoryId) newParams.set('subCategoryId', newSubCategoryId);
@@ -123,11 +130,12 @@ export default function ProductsPage() {
       if (newSort) newParams.set('sort', newSort);
       if (newWarehouse !== 'ALL') newParams.set('warehouse', newWarehouse);
       if (newView !== 'grid') newParams.set('view', newView);
+      if (newPublishStatus !== 'ALL') newParams.set('publishStatus', newPublishStatus);
 
       const queryString = newParams.toString();
       router.push(queryString ? `/catalog?${queryString}` : '/catalog', { scroll: false });
     },
-    [categoryId, subCategoryId, search, page, pageSize, stockFilter, sortBy, warehouse, viewMode, router]
+    [categoryId, subCategoryId, search, page, pageSize, stockFilter, sortBy, warehouse, viewMode, publishFilter, router]
   );
 
   // Handle category change
@@ -186,6 +194,13 @@ export default function ProductsPage() {
     updateUrl({ view: newView });
   };
 
+  // Handle publish filter change
+  const handlePublishFilterChange = (newFilter: PublishFilterValue) => {
+    setPublishFilter(newFilter);
+    setPage(1);
+    updateUrl({ publishStatus: newFilter, page: 1 });
+  };
+
   // Handle clear filters
   const handleClearFilters = () => {
     setCategoryId(null);
@@ -194,6 +209,7 @@ export default function ProductsPage() {
     setStockFilter('ALL');
     setSortBy('');
     setWarehouse(user?.primaryWarehouse as WarehouseValue || 'ALL');
+    setPublishFilter('ALL');
     setPage(1);
     router.push('/catalog', { scroll: false });
   };
@@ -263,7 +279,15 @@ export default function ProductsPage() {
               <>
                 {/* Filter chips and sort */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <StockFilterChips selected={stockFilter} onChange={handleStockFilterChange} />
+                  <div className="flex flex-wrap items-center gap-4">
+                    <StockFilterChips selected={stockFilter} onChange={handleStockFilterChange} />
+                    {isAdmin && (
+                      <>
+                        <div className="h-6 w-px bg-slate-300" />
+                        <PublishFilterChips selected={publishFilter} onChange={handlePublishFilterChange} />
+                      </>
+                    )}
+                  </div>
                   {viewMode === 'grid' && (
                     <ProductSort value={sortBy} onChange={handleSortChange} />
                   )}
