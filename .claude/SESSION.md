@@ -1,61 +1,78 @@
 # Current Session
 
 ## Active Task
-None - All tasks completed
+URL Restructure for Marketing Website
 
 ## Status
-IDLE | Ready for next task
+COMPLETED | 100%
 
-## Last Completed Work
+## Completed Work
 
-### Session 1: Responsive Layout Improvements
-Improved UI for 13" laptop screens (1280-1440px) and mobile devices.
+### URL Restructure (This Session)
+Restructured marketing website URLs to follow B2B e-commerce best practices.
 
-**Changes Made:**
-1. Added `xs` breakpoint (480px) to Tailwind config
-2. Updated Container component with responsive max-width scaling
-3. Updated homepage sections to use Container component
-4. Improved ProductGrid and ProductCategoriesSection spacing
-5. Adjusted portal sidebar width for 13" screens (lg:w-56 xl:w-60)
-6. Made portal tables responsive with column hiding
-7. Updated portal page padding pattern (p-4 sm:p-6 xl:p-8)
+**New URL Structure:**
+- `/products` - Main product listing (replaces `/browse` + `/catalog`)
+- `/products/{categorySlug}` - Category pages (replaces `/browse/{slug}`)
+- `/products/{categorySlug}/{subCategorySlug}` - Subcategory pages
+- `/products/p/{sku}` - Product detail pages (replaces `/catalog/{sku}`)
 
-**Commits:**
-- `741612e` - Responsive: Adjust portal sidebar width for 13" screens
-- `f8ef897` - Responsive: Make portal tables responsive for 13" screens
-- `2e45c9e` - Responsive: Update portal page padding pattern
+**Files Created:**
+- `frontend/src/lib/urls.ts` - Centralized URL builder utility
+- `frontend/src/app/(website)/products/page.tsx` - Main products page
+- `frontend/src/app/(website)/products/[categorySlug]/page.tsx` - Category page
+- `frontend/src/app/(website)/products/[categorySlug]/[subCategorySlug]/page.tsx` - Subcategory
+- `frontend/src/app/(website)/products/p/[sku]/page.tsx` - Product detail
+- `frontend/src/app/sitemap.ts` - Auto-generated sitemap
+- `frontend/src/app/robots.ts` - Robots.txt generator
 
-### Session 2: Website Navigation & Search Bars
-Modified website navigation and added search functionality.
+**Files Updated:**
+- `frontend/next.config.js` - Added 301 redirects from old URLs
+- `frontend/src/middleware.ts` - Updated route handling (removed /products from portal-only)
+- `frontend/src/components/website/GuestQuoteBasket.tsx` - /products link
+- `frontend/src/components/website/WebsiteHeader.tsx` - /products link
+- `frontend/src/components/website/WebsiteFooter.tsx` - Category links with slugs
+- `frontend/src/components/website/MobileNavDrawer.tsx` - /products link
+- `frontend/src/components/website/MegaMenu.tsx` - All /browse → /products
+- `frontend/src/components/website/sections/HeroSection.tsx` - /products link
+- `frontend/src/components/website/sections/CTABannerSection.tsx` - /products link
+- `frontend/src/components/website/sections/ProductCategoriesSection.tsx` - Category slugs
+- `frontend/src/components/website/products/ProductCard.tsx` - /products/p/{sku}
+- `frontend/src/components/website/products/ProductSearchBar.tsx` - basePath /products
+- `frontend/src/components/website/products/CategoryFilter.tsx` - basePath /products
+- `frontend/src/components/website/product-detail/RelatedProducts.tsx` - /products/{slug}
+- `frontend/src/components/seo/JsonLd.tsx` - Updated product URL in schema
+- `frontend/src/app/(website)/solutions/page.tsx` - /products links
+- `frontend/src/app/(website)/resources/page.tsx` - /products links + slugs
+- `frontend/src/app/(website)/services/page.tsx` - /products link
+- `frontend/src/app/(website)/about/page.tsx` - /products link
 
-**Changes Made:**
-1. Products nav now links directly to `/browse` (removed dropdown menu)
-2. Mobile nav simplified - Products goes directly to `/browse`
-3. "Explore Products" CTAs updated to link to `/browse` instead of `/catalog`
-4. Added ProductSearchBar to home page hero section
-5. Added ProductSearchBar to browse page hero section
-6. Search works with SKU, partial SKU, description, and competitor part numbers
+**Redirects Configured (301 permanent):**
+- `/browse` → `/products`
+- `/browse/:slug` → `/products/:slug`
+- `/browse/:cat/:sub` → `/products/:cat/:sub`
+- `/catalog` → `/products`
+- `/catalog/:sku` → `/products/p/:sku`
 
-**Commit:**
-- `1d09316` - Website: Remove Products dropdown and add search bars
+## Key Architecture Notes
 
-**Files Modified:**
-- `frontend/src/components/website/WebsiteHeader.tsx` - Replaced MegaMenu with Link
-- `frontend/src/components/website/MobileNavDrawer.tsx` - Simplified accordion to Link
-- `frontend/src/components/website/sections/HeroSection.tsx` - Updated CTA + added search
-- `frontend/src/components/website/sections/CTABannerSection.tsx` - Updated CTA link
-- `frontend/src/app/(website)/browse/page.tsx` - Added search bar in hero
+**Domain-Based Routing:**
+- `www.nusaf.net` / `nusaf.net` → Marketing website (public)
+- `app.nusaf.net` → Customer portal (authenticated)
 
-## Key Routes
-- `/browse` - View All Categories (category grid)
-- `/catalog` - Product search results with filters
-- Search bars navigate to `/catalog?search=<term>`
+**Both domains use /products but for different purposes:**
+- Marketing `/products` = Public product catalog (categories, search)
+- Portal `/products` = Internal catalog (with prices, stock)
+
+**SEO Status:**
+- Site currently has `X-Robots-Tag: noindex, nofollow` (staging mode)
+- No SEO ranking to lose - safe to restructure URLs before production
+- Sitemap and robots.txt generators created for production
 
 ## Next Steps
 Task queue is empty. Awaiting next task assignment.
 
 ## Context for Next Session
-- Website navigation simplified - Products goes directly to /browse
-- Search bars added to home page and browse page
-- Responsive layout improvements complete for 13" screens
-- Portal tables hide low-priority columns on smaller screens
+- URL restructure complete - all old /browse and /catalog links now redirect
+- Old route files (browse/, catalog/) kept for redirect testing - can be deleted later
+- When going to production, update next.config.js to remove noindex header
