@@ -47,7 +47,7 @@ function formatCurrency(amount: number | null): string {
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const productId = params.id as string;
+  const productId = params.slug as string;
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [showEditModal, setShowEditModal] = useState(false);
   const { user } = useAuthStore();
@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-lg text-red-600 mb-4">Product not found</p>
-        <Link href="/products" className="text-primary-600 hover:text-primary-700">
+        <Link href="/catalog" className="text-primary-600 hover:text-primary-700">
           Back to Products
         </Link>
       </div>
@@ -106,7 +106,7 @@ export default function ProductDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/products" className="text-slate-400 hover:text-slate-600">
+          <Link href="/catalog" className="text-slate-400 hover:text-slate-600">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>

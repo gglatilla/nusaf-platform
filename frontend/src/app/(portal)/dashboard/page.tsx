@@ -118,7 +118,7 @@ export default function DashboardPage() {
                   Browse products to request a quote
                 </p>
                 <Link
-                  href="/products"
+                  href="/catalog"
                   className="inline-block mt-4 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
                 >
                   Browse Products

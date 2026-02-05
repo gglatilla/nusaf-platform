@@ -320,7 +320,7 @@ export default function QuoteDetailPage() {
           {/* Continue Shopping */}
           {isEditable && (
             <Link
-              href="/products"
+              href="/catalog"
               className="block w-full text-center px-4 py-2 border border-primary-600 text-primary-600 text-sm font-medium rounded-md hover:bg-primary-50 transition-colors"
             >
               Continue Shopping

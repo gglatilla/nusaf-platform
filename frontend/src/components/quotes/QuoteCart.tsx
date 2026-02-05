@@ -65,7 +65,7 @@ export function QuoteCart() {
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-600 mb-4">Your quote is empty</p>
               <Link
-                href="/products"
+                href="/catalog"
                 onClick={() => setIsOpen(false)}
                 className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
               >

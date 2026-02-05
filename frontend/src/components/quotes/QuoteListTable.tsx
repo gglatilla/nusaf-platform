@@ -125,7 +125,7 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
           When you create quotes, they will appear here.
         </p>
         <Link
-          href="/products"
+          href="/catalog"
           className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
         >
           Browse Products

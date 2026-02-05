@@ -10,15 +10,15 @@ import { api, PublicProduct } from '@/lib/api';
 import { productUrls } from '@/lib/urls';
 
 interface SubCategoryPageProps {
-  params: Promise<{ categorySlug: string; subCategorySlug: string }>;
+  params: Promise<{ slug: string; subSlug: string }>;
 }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: SubCategoryPageProps): Promise<Metadata> {
-  const { categorySlug, subCategorySlug } = await params;
+  const { slug, subSlug } = await params;
 
   try {
-    const response = await api.getPublicSubCategory(categorySlug, subCategorySlug);
+    const response = await api.getPublicSubCategory(slug, subSlug);
     if (response.success && response.data) {
       const subCategory = response.data;
       const parentCategory = response.data.category;
@@ -46,14 +46,14 @@ export async function generateMetadata({ params }: SubCategoryPageProps): Promis
 }
 
 export default async function SubCategoryPage({ params }: SubCategoryPageProps) {
-  const { categorySlug, subCategorySlug } = await params;
+  const { slug, subSlug } = await params;
 
   // Fetch subcategory details with parent
   let subCategory: { id: string; code: string; name: string; slug: string; description: string | null; productCount: number } | null = null;
   let parentCategory: { id: string; code: string; name: string; slug: string } | null = null;
 
   try {
-    const response = await api.getPublicSubCategory(categorySlug, subCategorySlug);
+    const response = await api.getPublicSubCategory(slug, subSlug);
     if (response.success && response.data) {
       subCategory = {
         id: response.data.id,

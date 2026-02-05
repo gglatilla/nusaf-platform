@@ -5,13 +5,13 @@ import type { NextRequest } from 'next/server';
 const portalDomains = ['app.nusaf.net', 'app.nusaf.co.za'];
 
 // Portal-only routes (should redirect from public site to portal)
-// Note: /products is NOT in this list - it's available on BOTH domains:
-// - www.nusaf.net/products = Public product catalog (categories, search)
-// - app.nusaf.net/products = Authenticated internal catalog (with prices, stock)
+// - www.nusaf.net/products = Public product catalog (SEO-friendly)
+// - app.nusaf.net/catalog = Internal catalog (with prices, stock)
 const portalRoutes = [
   '/login',
   '/register',
   '/dashboard',
+  '/catalog',
   '/imports',
   '/quotes',
   '/orders',

@@ -3,7 +3,7 @@
 ---
 
 ## Current
-(none)
+- [TASK-023] Product Master Data Management [Master Data, UI/Frontend, Backend]
 
 ## Up Next
 (none)

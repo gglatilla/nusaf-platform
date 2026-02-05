@@ -36,7 +36,7 @@ export interface NavGroup {
  */
 export const mainNavigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Products', href: '/products', icon: Package },
+  { name: 'Products', href: '/catalog', icon: Package },
   { name: 'Quotes', href: '/quotes', icon: FileText },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Picking Slips', href: '/picking-slips', icon: ClipboardList },

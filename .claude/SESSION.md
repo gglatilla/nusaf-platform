@@ -1,14 +1,14 @@
 # Current Session
 
 ## Active Task
-URL Restructure for Marketing Website
+URL Restructure for Marketing Website - Route Conflict Fix
 
 ## Status
 COMPLETED | 100%
 
 ## Completed Work
 
-### URL Restructure (This Session)
+### URL Restructure (Previous Session)
 Restructured marketing website URLs to follow B2B e-commerce best practices.
 
 **New URL Structure:**
@@ -17,41 +17,53 @@ Restructured marketing website URLs to follow B2B e-commerce best practices.
 - `/products/{categorySlug}/{subCategorySlug}` - Subcategory pages
 - `/products/p/{sku}` - Product detail pages (replaces `/catalog/{sku}`)
 
-**Files Created:**
-- `frontend/src/lib/urls.ts` - Centralized URL builder utility
-- `frontend/src/app/(website)/products/page.tsx` - Main products page
-- `frontend/src/app/(website)/products/[categorySlug]/page.tsx` - Category page
-- `frontend/src/app/(website)/products/[categorySlug]/[subCategorySlug]/page.tsx` - Subcategory
-- `frontend/src/app/(website)/products/p/[sku]/page.tsx` - Product detail
-- `frontend/src/app/sitemap.ts` - Auto-generated sitemap
-- `frontend/src/app/robots.ts` - Robots.txt generator
+### Route Conflict Fix (This Session)
+Fixed Vercel build errors caused by Next.js route group conflicts.
 
-**Files Updated:**
-- `frontend/next.config.js` - Added 301 redirects from old URLs
-- `frontend/src/middleware.ts` - Updated route handling (removed /products from portal-only)
-- `frontend/src/components/website/GuestQuoteBasket.tsx` - /products link
-- `frontend/src/components/website/WebsiteHeader.tsx` - /products link
-- `frontend/src/components/website/WebsiteFooter.tsx` - Category links with slugs
-- `frontend/src/components/website/MobileNavDrawer.tsx` - /products link
-- `frontend/src/components/website/MegaMenu.tsx` - All /browse → /products
-- `frontend/src/components/website/sections/HeroSection.tsx` - /products link
-- `frontend/src/components/website/sections/CTABannerSection.tsx` - /products link
-- `frontend/src/components/website/sections/ProductCategoriesSection.tsx` - Category slugs
-- `frontend/src/components/website/products/ProductCard.tsx` - /products/p/{sku}
-- `frontend/src/components/website/products/ProductSearchBar.tsx` - basePath /products
-- `frontend/src/components/website/products/CategoryFilter.tsx` - basePath /products
-- `frontend/src/components/website/product-detail/RelatedProducts.tsx` - /products/{slug}
-- `frontend/src/components/seo/JsonLd.tsx` - Updated product URL in schema
-- `frontend/src/app/(website)/solutions/page.tsx` - /products links
-- `frontend/src/app/(website)/resources/page.tsx` - /products links + slugs
-- `frontend/src/app/(website)/services/page.tsx` - /products link
-- `frontend/src/app/(website)/about/page.tsx` - /products link
+**Problem:** Next.js route groups share URL namespace. Having both:
+- `(portal)/products/[id]` and `(website)/products/[slug]`
+- `(website)/catalog/[sku]` and `(portal)/catalog/[slug]`
 
-**Redirects Configured (301 permanent):**
+Caused build failures with "cannot use different slug names" errors.
+
+**Solution:**
+1. Renamed portal products route to `/catalog` (internal URL)
+2. Standardized all dynamic parameters to use consistent names
+3. Removed old `/browse` and `/catalog` directories from website (handled by next.config.js redirects)
+
+**Files Modified:**
+- `frontend/src/app/(portal)/products/` → renamed to `catalog/`
+- `frontend/src/app/(portal)/catalog/[slug]/page.tsx` - Updated param from `id` to `slug`
+- `frontend/src/app/(website)/products/[slug]/page.tsx` - Updated param from `categorySlug` to `slug`
+- `frontend/src/app/(website)/products/[slug]/[subSlug]/page.tsx` - Updated params
+- `frontend/src/middleware.ts` - Added `/catalog` to portal routes
+- `frontend/src/lib/navigation.ts` - Changed `/products` to `/catalog` for portal nav
+- `frontend/src/components/quotes/QuoteCart.tsx` - `/products` → `/catalog`
+- `frontend/src/components/quotes/QuoteListTable.tsx` - `/products` → `/catalog`
+- `frontend/src/app/(portal)/quotes/[id]/page.tsx` - `/products` → `/catalog`
+- `frontend/src/app/(portal)/dashboard/page.tsx` - `/products` → `/catalog`
+
+**Files Removed:**
+- `frontend/src/app/(website)/browse/` - Old route, handled by redirect
+- `frontend/src/app/(website)/catalog/` - Old route, handled by redirect
+
+## Final URL Structure
+
+**Marketing Website (www.nusaf.net):**
+- `/products` - Public product catalog
+- `/products/{slug}` - Category page
+- `/products/{slug}/{subSlug}` - Subcategory page
+- `/products/p/{sku}` - Product detail page
+
+**Customer Portal (app.nusaf.net):**
+- `/catalog` - Internal product catalog (with prices, stock)
+- `/catalog/{slug}` - Product detail page (internal)
+
+**Redirects (301 permanent in next.config.js):**
 - `/browse` → `/products`
 - `/browse/:slug` → `/products/:slug`
 - `/browse/:cat/:sub` → `/products/:cat/:sub`
-- `/catalog` → `/products`
+- `/catalog` → `/products` (on public site only - middleware handles domain)
 - `/catalog/:sku` → `/products/p/:sku`
 
 ## Key Architecture Notes
@@ -60,19 +72,14 @@ Restructured marketing website URLs to follow B2B e-commerce best practices.
 - `www.nusaf.net` / `nusaf.net` → Marketing website (public)
 - `app.nusaf.net` → Customer portal (authenticated)
 
-**Both domains use /products but for different purposes:**
-- Marketing `/products` = Public product catalog (categories, search)
-- Portal `/products` = Internal catalog (with prices, stock)
-
 **SEO Status:**
 - Site currently has `X-Robots-Tag: noindex, nofollow` (staging mode)
-- No SEO ranking to lose - safe to restructure URLs before production
-- Sitemap and robots.txt generators created for production
+- When going to production, update next.config.js to remove noindex header
 
 ## Next Steps
 Task queue is empty. Awaiting next task assignment.
 
 ## Context for Next Session
-- URL restructure complete - all old /browse and /catalog links now redirect
-- Old route files (browse/, catalog/) kept for redirect testing - can be deleted later
-- When going to production, update next.config.js to remove noindex header
+- URL restructure complete and build verified
+- Old route files removed - redirects handled by next.config.js
+- Portal uses `/catalog`, website uses `/products`

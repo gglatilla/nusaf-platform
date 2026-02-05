@@ -10,15 +10,15 @@ import { api, PublicCategory, PublicProduct } from '@/lib/api';
 import { productUrls } from '@/lib/urls';
 
 interface CategoryPageProps {
-  params: Promise<{ categorySlug: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const { categorySlug } = await params;
+  const { slug } = await params;
 
   try {
-    const response = await api.getPublicCategory(categorySlug);
+    const response = await api.getPublicCategory(slug);
     if (response.success && response.data) {
       const category = response.data;
       return {
@@ -45,12 +45,12 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { categorySlug } = await params;
+  const { slug } = await params;
 
   // Fetch category details
   let category: PublicCategory | null = null;
   try {
-    const response = await api.getPublicCategory(categorySlug);
+    const response = await api.getPublicCategory(slug);
     if (response.success && response.data) {
       category = response.data;
     }
