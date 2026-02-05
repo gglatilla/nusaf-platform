@@ -1,8 +1,11 @@
 'use client';
 
-import { ChevronUp, ChevronDown, ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { ChevronUp, ChevronDown, ImageIcon, MoreHorizontal, Edit, Eye, Globe, EyeOff } from 'lucide-react';
 import type { CatalogProduct, StockStatus } from '@/lib/api';
 import { PublishStatusBadge } from './PublishStatusBadge';
+import { usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 
 interface ProductTableProps {
   products: CatalogProduct[];
@@ -10,6 +13,7 @@ interface ProductTableProps {
   onRowClick: (product: CatalogProduct) => void;
   sortBy: string;
   onSortChange: (sort: string) => void;
+  isAdmin?: boolean;
 }
 
 const statusDotColors: Record<StockStatus, string> = {
@@ -67,13 +71,37 @@ function SortableHeader({ label, field, currentSort, onSort, align = 'left' }: S
   );
 }
 
-export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortChange }: ProductTableProps) {
+export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortChange, isAdmin = false }: ProductTableProps) {
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const publishProduct = usePublishProduct();
+  const unpublishProduct = useUnpublishProduct();
+
   const formatPrice = (price: number | null) => {
     if (!price) return 'Price on Request';
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
       currency: 'ZAR',
     }).format(price);
+  };
+
+  const handlePublish = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(null);
+    try {
+      await publishProduct.mutateAsync(productId);
+    } catch (error) {
+      console.error('Failed to publish product:', error);
+    }
+  };
+
+  const handleUnpublish = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(null);
+    try {
+      await unpublishProduct.mutateAsync(productId);
+    } catch (error) {
+      console.error('Failed to unpublish product:', error);
+    }
   };
 
   if (isLoading) {
@@ -88,6 +116,7 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
               <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-600">Status</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Price</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Available</th>
+              {isAdmin && <th className="px-4 py-3 w-12"></th>}
             </tr>
           </thead>
           <tbody>
@@ -99,6 +128,7 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-16 mx-auto" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-20 ml-auto" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-16 ml-auto" /></td>
+                {isAdmin && <td className="px-4 py-4"><div className="h-4 w-4 bg-slate-200 rounded animate-pulse ml-auto" /></td>}
               </tr>
             ))}
           </tbody>
@@ -126,6 +156,7 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
             <SortableHeader label="Price" field="price" currentSort={sortBy} onSort={onSortChange} align="right" />
             <SortableHeader label="Available" field="available" currentSort={sortBy} onSort={onSortChange} align="right" />
+            {isAdmin && <th className="px-4 py-3 w-12"></th>}
           </tr>
         </thead>
         <tbody>
@@ -181,6 +212,88 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
                     </span>
                   </div>
                 </td>
+                {isAdmin && (
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(menuOpen === product.id ? null : product.id);
+                        }}
+                        className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+
+                      {menuOpen === product.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setMenuOpen(null)}
+                          />
+                          <div className="absolute right-0 z-20 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen(null);
+                                onRowClick(product);
+                              }}
+                              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </button>
+                            <Link
+                              href={`/catalog/${product.nusafSku}/edit`}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen(null);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Link>
+                            {product.isPublished ? (
+                              <button
+                                onClick={(e) => handleUnpublish(product.id, e)}
+                                disabled={unpublishProduct.isPending}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                <EyeOff className="h-4 w-4" />
+                                Unpublish
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => handlePublish(product.id, e)}
+                                disabled={publishProduct.isPending}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                <Globe className="h-4 w-4" />
+                                Publish
+                              </button>
+                            )}
+                            {product.isPublished && (
+                              <a
+                                href={`/products/${product.nusafSku}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMenuOpen(null);
+                                }}
+                              >
+                                <Globe className="h-4 w-4" />
+                                View on Website
+                              </a>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             );
           })}

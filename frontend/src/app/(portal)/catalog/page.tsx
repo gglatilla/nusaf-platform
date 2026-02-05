@@ -309,6 +309,7 @@ export default function ProductsPage() {
                     onRowClick={handleViewDetails}
                     sortBy={sortBy}
                     onSortChange={handleSortChange}
+                    isAdmin={isAdmin}
                   />
                 )}
 
