@@ -4,7 +4,7 @@
 [TASK-024] Architecture Restructure: Inventory vs Product Catalog
 
 ## Status
-IN_PROGRESS | Phase 1 COMPLETE - Starting Phase 2
+IN_PROGRESS | Phases 1, 2, 4 COMPLETE - Phase 3 remaining
 
 ## Overview
 Separating the mixed Product/Catalog system into two distinct modules:
@@ -43,10 +43,10 @@ NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Leve
 - [ ] TASK-024-3D: Create SEOSection (meta title, description)
 - [ ] TASK-024-3E: Wire up existing media components
 
-### Phase 4: Customer Portal Adjustments (3/4)
-- [x] TASK-024-4A: Update product cards to show tier pricing ✓ (backend-controlled via product.price)
+### Phase 4: Customer Portal Adjustments (4/4) ✓ COMPLETE
+- [x] TASK-024-4A: Update product cards to show tier pricing ✓ (backend returns tier price for customers)
 - [x] TASK-024-4B: Remove list price from customer view ✓ (frontend never shows listPrice to customers)
-- [ ] TASK-024-4C: Add "Your Price" label (backend needs to return priceLabel="Your Price" for customers)
+- [x] TASK-024-4C: Add "Your Price" label ✓ (backend returns priceLabel="Your Price" for customers)
 - [x] TASK-024-4D: Ensure stock badges (not numbers) for customers ✓ (showQuantity=false for customers)
 
 ## Files To Modify
@@ -64,7 +64,7 @@ NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Leve
 - No database changes needed - just UI reorganization
 
 ## Next Step
-Backend check: Verify products API returns "Your Price" in priceLabel for customers
+Phase 3: Product Catalog Page (Marketing-focused enhancements)
 
 ## Progress Summary
 Phase 1 is nearly complete. Created:
