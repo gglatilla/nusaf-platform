@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Globe, EyeOff, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import {
   ProductGrid,
@@ -18,7 +18,7 @@ import {
   ProductTable,
   PublishFilterChips,
 } from '@/components/products';
-import { useProducts, useCategories } from '@/hooks/useProducts';
+import { useProducts, useCategories, useBulkPublishProducts } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
 import type { CatalogProduct } from '@/lib/api';
 import type { StockFilterValue } from '@/components/products/StockFilterChips';
@@ -67,8 +67,12 @@ export default function ProductsPage() {
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
 
+  // Selection state for bulk actions (admin only, table view only)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   // React Query hooks
   const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
+  const bulkPublish = useBulkPublishProducts();
   const {
     data: productsData,
     isLoading: isLoadingProducts,
@@ -219,6 +223,31 @@ export default function ProductsPage() {
     setSelectedProduct(product);
   };
 
+  // Handle bulk publish/unpublish
+  const handleBulkPublish = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await bulkPublish.mutateAsync({ productIds: selectedIds, action: 'publish' });
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Bulk publish failed:', error);
+    }
+  };
+
+  const handleBulkUnpublish = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await bulkPublish.mutateAsync({ productIds: selectedIds, action: 'unpublish' });
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Bulk unpublish failed:', error);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
   const error = productsError ? 'Failed to load products. Please try again.' : null;
 
   return (
@@ -310,6 +339,8 @@ export default function ProductsPage() {
                     sortBy={sortBy}
                     onSortChange={handleSortChange}
                     isAdmin={isAdmin}
+                    selectedIds={isAdmin ? selectedIds : undefined}
+                    onSelectionChange={isAdmin ? setSelectedIds : undefined}
                   />
                 )}
 
@@ -338,6 +369,43 @@ export default function ProductsPage() {
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
       />
+
+      {/* Bulk actions bar - appears when items are selected */}
+      {isAdmin && viewMode === 'table' && selectedIds.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 text-white shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">
+                {selectedIds.length} {selectedIds.length === 1 ? 'product' : 'products'} selected
+              </span>
+              <button
+                onClick={handleClearSelection}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBulkPublish}
+                disabled={bulkPublish.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50"
+              >
+                <Globe className="h-4 w-4" />
+                Publish Selected
+              </button>
+              <button
+                onClick={handleBulkUnpublish}
+                disabled={bulkPublish.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg disabled:opacity-50"
+              >
+                <EyeOff className="h-4 w-4" />
+                Unpublish Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
