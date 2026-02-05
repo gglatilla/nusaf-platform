@@ -6,7 +6,7 @@ import { ArrowLeft, Globe, Eye, Loader2 } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useUpdateProduct, usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
-import { ProductEditor, ProductFormData } from '@/components/products';
+import { ProductContentEditor, type ProductContentFormData } from '@/components/products/ProductContentEditor';
 import { cn } from '@/lib/utils';
 
 function LoadingSkeleton() {
@@ -41,7 +41,7 @@ export default function ProductEditPage() {
   const publishProduct = usePublishProduct();
   const unpublishProduct = useUnpublishProduct();
 
-  // Check if user is admin (can edit product)
+  // Check if user is admin (can edit product content)
   const canEditProduct = user?.role === 'ADMIN';
 
   // Redirect non-admins
@@ -50,33 +50,14 @@ export default function ProductEditPage() {
     return null;
   }
 
-  const handleSave = async (formData: ProductFormData) => {
+  const handleSave = async (formData: ProductContentFormData) => {
+    // Only save marketing-related fields
     const data = {
-      supplierSku: formData.supplierSku,
-      description: formData.description,
-      supplierId: formData.supplierId,
-      categoryId: formData.categoryId,
-      subCategoryId: formData.subCategoryId || null,
-      unitOfMeasure: formData.unitOfMeasure,
-      costPrice: formData.costPrice ? parseFloat(formData.costPrice) : null,
-      listPrice: formData.listPrice ? parseFloat(formData.listPrice) : null,
-      productType: formData.productType,
-      assemblyLeadDays: formData.assemblyLeadDays ? parseInt(formData.assemblyLeadDays) : null,
-      isConfigurable: formData.isConfigurable,
-      longDescription: formData.longDescription || null,
-      weight: formData.weight ? parseFloat(formData.weight) : null,
-      // Marketing fields
       marketingTitle: formData.marketingTitle || null,
       marketingDescription: formData.marketingDescription || null,
       metaTitle: formData.metaTitle || null,
       metaDescription: formData.metaDescription || null,
       specifications: Object.keys(formData.specifications).length > 0 ? formData.specifications : null,
-      // Inventory defaults
-      defaultReorderPoint: formData.defaultReorderPoint ? parseInt(formData.defaultReorderPoint) : null,
-      defaultReorderQty: formData.defaultReorderQty ? parseInt(formData.defaultReorderQty) : null,
-      defaultMinStock: formData.defaultMinStock ? parseInt(formData.defaultMinStock) : null,
-      defaultMaxStock: formData.defaultMaxStock ? parseInt(formData.defaultMaxStock) : null,
-      leadTimeDays: formData.leadTimeDays ? parseInt(formData.leadTimeDays) : null,
     };
 
     await updateProduct.mutateAsync({ id: productId, data });
@@ -131,12 +112,12 @@ export default function ProductEditPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href={`/catalog/${productId}`} className="text-slate-400 hover:text-slate-600">
+          <Link href="/catalog" className="text-slate-400 hover:text-slate-600">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">Edit Product</h1>
+              <h1 className="text-2xl font-semibold text-slate-900">Edit Marketing Content</h1>
               <span className="font-mono text-lg text-slate-600">{product.nusafSku}</span>
               {/* Publish Status Badge */}
               <span
@@ -191,12 +172,11 @@ export default function ProductEditPage() {
         </div>
       </div>
 
-      {/* Product Editor */}
-      <ProductEditor
+      {/* Marketing Content Editor */}
+      <ProductContentEditor
         product={product}
         onSave={handleSave}
-        isLoading={false}
-        isCreating={false}
+        isLoading={updateProduct.isPending}
       />
     </div>
   );

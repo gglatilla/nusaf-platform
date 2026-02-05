@@ -253,8 +253,8 @@ export default function ProductsPage() {
   return (
     <>
       <PageHeader
-        title="Products"
-        description="Browse our product catalog"
+        title="Product Catalog"
+        description={isAdmin ? "Manage product marketing content and publish to website" : "Browse our product catalog"}
         actions={
           <div className="flex items-center gap-4">
             {/* Warehouse selector - internal users only */}

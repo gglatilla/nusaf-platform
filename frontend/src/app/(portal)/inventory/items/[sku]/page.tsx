@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, ExternalLink, Loader2 } from 'lucide-react';
-import { useProduct, useUpdateProduct, useCategories } from '@/hooks/useProducts';
+import { useUpdateProduct, useCategories } from '@/hooks/useProducts';
+import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
 import type { UpdateProductData } from '@/lib/api';
@@ -15,7 +16,7 @@ export default function InventoryItemDetailPage() {
   const sku = params.sku as string;
 
   const { user, isLoading: authLoading } = useAuthStore();
-  const { data: product, isLoading: productLoading, error: productError } = useProduct(sku);
+  const { data: product, isLoading: productLoading, error: productError } = useProductWithInventory(sku);
   const { data: categories = [] } = useCategories();
   const updateProduct = useUpdateProduct();
 
@@ -35,15 +36,15 @@ export default function InventoryItemDetailPage() {
       setFormData({
         description: product.description || '',
         unitOfMeasure: product.unitOfMeasure || 'EACH',
-        productType: product.productType || 'FINISHED_GOOD',
+        productType: product.productType || 'STOCK_ONLY',
         categoryId: product.categoryId || undefined,
         subCategoryId: product.subCategoryId || undefined,
         weight: product.weight || undefined,
-        supplierLeadDays: product.supplierLeadDays || undefined,
-        reorderPoint: product.reorderPoint || undefined,
-        reorderQty: product.reorderQty || undefined,
-        minStock: product.minStock || undefined,
-        maxStock: product.maxStock || undefined,
+        leadTimeDays: product.leadTimeDays || undefined,
+        defaultReorderPoint: product.defaultReorderPoint || undefined,
+        defaultReorderQty: product.defaultReorderQty || undefined,
+        defaultMinStock: product.defaultMinStock || undefined,
+        defaultMaxStock: product.defaultMaxStock || undefined,
       });
     }
   }, [product]);
@@ -114,10 +115,10 @@ export default function InventoryItemDetailPage() {
   };
 
   // Item type label
-  const typeLabel = product.productType === 'RAW_MATERIAL' ? 'Raw Material'
-    : product.productType === 'COMPONENT' ? 'Component'
-    : product.productType === 'ASSEMBLY' ? 'Assembly'
-    : 'Finished Good';
+  const typeLabel = product.productType === 'ASSEMBLY_REQUIRED' ? 'Assembly Required'
+    : product.productType === 'MADE_TO_ORDER' ? 'Made to Order'
+    : product.productType === 'KIT' ? 'Kit'
+    : 'Stock Only';
 
   return (
     <>
@@ -126,8 +127,8 @@ export default function InventoryItemDetailPage() {
         description={product.description}
         actions={
           <div className="flex items-center gap-3">
-            {/* Link to marketing edit if finished good */}
-            {product.productType === 'FINISHED_GOOD' && (
+            {/* Link to marketing edit if stock item */}
+            {product.productType === 'STOCK_ONLY' && (
               <Link
                 href={`/catalog/${product.nusafSku}/edit`}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
@@ -187,14 +188,14 @@ export default function InventoryItemDetailPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Item Type</label>
                   {canEdit ? (
                     <select
-                      value={formData.productType || 'FINISHED_GOOD'}
+                      value={formData.productType || 'STOCK_ONLY'}
                       onChange={(e) => handleFieldChange('productType', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     >
-                      <option value="FINISHED_GOOD">Finished Good</option>
-                      <option value="RAW_MATERIAL">Raw Material</option>
-                      <option value="COMPONENT">Component</option>
-                      <option value="ASSEMBLY">Assembly</option>
+                      <option value="STOCK_ONLY">Stock Only</option>
+                      <option value="ASSEMBLY_REQUIRED">Assembly Required</option>
+                      <option value="MADE_TO_ORDER">Made to Order</option>
+                      <option value="KIT">Kit</option>
                     </select>
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">

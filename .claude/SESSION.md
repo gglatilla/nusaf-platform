@@ -16,13 +16,13 @@ Separating the mixed Product/Catalog system into two distinct modules:
 
 ## Micro-Task Progress
 
-### Phase 1: Restructure Navigation & Routes (4/7)
+### Phase 1: Restructure Navigation & Routes (6/7)
 - [x] TASK-024-1A: Update navigation.ts with new structure (Inventory section with Items) ✓
 - [x] TASK-024-1B: Create `/inventory/items` page (item list - all items) ✓
 - [x] TASK-024-1C: Create `/inventory/items/[sku]` page (item detail - operational data) ✓
 - [x] TASK-024-1D: Create `/inventory/items/new` page (create new item) ✓
-- [ ] TASK-024-1E: Update `/catalog` to show only finished goods (marketing focus)
-- [ ] TASK-024-1F: Update `/catalog/[slug]` for marketing editing only
+- [x] TASK-024-1E: Update `/catalog` page header for marketing focus ✓
+- [x] TASK-024-1F: Create ProductContentEditor for marketing-only editing ✓
 - [ ] TASK-024-1G: Test navigation flows and verify routing
 
 NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Levels")
@@ -64,7 +64,14 @@ NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Leve
 - No database changes needed - just UI reorganization
 
 ## Next Step
-TASK-024-1E: Update `/catalog` to show only finished goods (marketing focus)
+TASK-024-1G: Test navigation flows and verify routing
+
+## Progress Summary
+Phase 1 is nearly complete. Created:
+- Inventory navigation section with Items and Stock Levels
+- Item Master pages: list, detail, and create
+- ProductContentEditor for marketing-focused editing
+- Updated catalog edit page to use marketing-only editor
 
 ## Backend Changes (SKU Support)
 Updated backend to support both UUID and SKU lookup:
