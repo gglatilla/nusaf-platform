@@ -4,7 +4,7 @@
 [TASK-023] Product Master Data Management
 
 ## Status
-IN_PROGRESS | 45% complete (Phase 0: COMPLETE, Phase 1: COMPLETE, Phase 2: 0/6)
+IN_PROGRESS | 65% complete (Phase 0-2: COMPLETE, Phase 3: 0/7)
 
 ## Micro-Task Progress
 
@@ -26,13 +26,13 @@ IN_PROGRESS | 45% complete (Phase 0: COMPLETE, Phase 1: COMPLETE, Phase 2: 0/6)
 - [x] TASK-023-1F: Add publish controls to product edit page ✓
 - [x] TASK-023-1G: Add preview mode to public API ✓
 
-### Phase 2: Media Management (0/6)
-- [ ] TASK-023-2A: Create image upload hook
-- [ ] TASK-023-2B: Create document upload hook
-- [ ] TASK-023-2C: Implement image reorder functionality
-- [ ] TASK-023-2D: Implement set primary image
-- [ ] TASK-023-2E: Wire up ProductImageGallery to ProductEditor
-- [ ] TASK-023-2F: Wire up ProductDocumentsList to ProductEditor
+### Phase 2: Media Management (6/6) ✓ COMPLETE
+- [x] TASK-023-2A: Create image upload hook ✓
+- [x] TASK-023-2B: Create document upload hook ✓
+- [x] TASK-023-2C: Implement image reorder functionality ✓
+- [x] TASK-023-2D: Implement set primary image ✓
+- [x] TASK-023-2E: Wire up ProductImageGallery to ProductEditor ✓
+- [x] TASK-023-2F: Wire up ProductDocumentsList to ProductEditor ✓
 
 ### Phase 3: Product List Enhancements (0/7)
 - [ ] TASK-023-3A: Add publish status column to ProductTable
@@ -71,7 +71,15 @@ IN_PROGRESS | 45% complete (Phase 0: COMPLETE, Phase 1: COMPLETE, Phase 2: 0/6)
 - Portal uses `/catalog` for products (from previous session URL restructure)
 
 ## Next Step
-TASK-023-2A: Create image upload hook
+TASK-023-3A: Add publish status column to ProductTable
+
+## Phase 2 Summary
+Media Management is complete:
+- API methods for images and documents (upload, update, delete)
+- useProductMedia.ts hooks for all media operations
+- ProductImageGallery wired up with upload, setPrimary, delete
+- ProductDocumentsList wired up with upload, delete
+- First uploaded image auto-set as primary
 
 ## Phase 1 Summary
 Marketing + Publishing functionality is complete:
