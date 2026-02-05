@@ -4,7 +4,7 @@
 [TASK-024] Architecture Restructure: Inventory vs Product Catalog
 
 ## Status
-IN_PROGRESS | Phase 1 starting
+IN_PROGRESS | Phase 1 nearly complete - TypeScript errors fixed
 
 ## Overview
 Separating the mixed Product/Catalog system into two distinct modules:
@@ -72,6 +72,12 @@ Phase 1 is nearly complete. Created:
 - Item Master pages: list, detail, and create
 - ProductContentEditor for marketing-focused editing
 - Updated catalog edit page to use marketing-only editor
+
+### TypeScript Fixes (Just Completed)
+- Fixed ProductContentEditor: Added `productId` and `canEdit` props to ProductImageGallery and ProductDocumentsList
+- Fixed inventory/items/new: Added supplier selector with validation (required field)
+- Updated productType options to use correct enum values (STOCK_ONLY, ASSEMBLY_REQUIRED, etc.)
+- All TypeScript errors resolved
 
 ## Backend Changes (SKU Support)
 Updated backend to support both UUID and SKU lookup:
