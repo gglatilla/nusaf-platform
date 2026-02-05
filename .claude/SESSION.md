@@ -4,7 +4,7 @@
 [TASK-023] Product Master Data Management
 
 ## Status
-IN_PROGRESS | 65% complete (Phase 0-2: COMPLETE, Phase 3: 0/7)
+IN_PROGRESS | 71% complete (Phase 0-2: COMPLETE, Phase 3: 2/7)
 
 ## Micro-Task Progress
 
@@ -34,9 +34,9 @@ IN_PROGRESS | 65% complete (Phase 0-2: COMPLETE, Phase 3: 0/7)
 - [x] TASK-023-2E: Wire up ProductImageGallery to ProductEditor ✓
 - [x] TASK-023-2F: Wire up ProductDocumentsList to ProductEditor ✓
 
-### Phase 3: Product List Enhancements (0/7)
-- [ ] TASK-023-3A: Add publish status column to ProductTable
-- [ ] TASK-023-3B: Add thumbnail column to ProductTable
+### Phase 3: Product List Enhancements (2/7)
+- [x] TASK-023-3A: Add publish status column to ProductTable ✓
+- [x] TASK-023-3B: Add thumbnail column to ProductTable ✓
 - [ ] TASK-023-3C: Add publish filter to product list page
 - [ ] TASK-023-3D: Add quick actions menu to ProductTable
 - [ ] TASK-023-3E: Add checkbox selection to ProductTable
@@ -63,6 +63,8 @@ IN_PROGRESS | 65% complete (Phase 0-2: COMPLETE, Phase 3: 0/7)
 - `frontend/src/app/(portal)/catalog/new/page.tsx` (created)
 - `frontend/src/app/(portal)/catalog/[slug]/page.tsx` (modified - removed modal, link to edit page)
 - `frontend/src/app/(portal)/catalog/page.tsx` (modified - added Add Product button, fixed URLs)
+- `frontend/src/components/products/ProductTable.tsx` (modified - added thumbnail and status columns)
+- `backend/src/api/v1/products/route.ts` (modified - added isPublished, primaryImage to response)
 
 ## Decisions Made
 - Using full-page editor layout (like Shopify) instead of modal
@@ -71,7 +73,7 @@ IN_PROGRESS | 65% complete (Phase 0-2: COMPLETE, Phase 3: 0/7)
 - Portal uses `/catalog` for products (from previous session URL restructure)
 
 ## Next Step
-TASK-023-3A: Add publish status column to ProductTable
+TASK-023-3C: Add publish filter to product list page
 
 ## Phase 2 Summary
 Media Management is complete:

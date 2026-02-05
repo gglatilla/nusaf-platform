@@ -188,6 +188,11 @@ router.get('/', authenticate, async (req, res) => {
           supplier: { select: { id: true, code: true, name: true } },
           category: { select: { id: true, code: true, name: true } },
           subCategory: { select: { id: true, code: true, name: true } },
+          productImages: {
+            where: { isPrimary: true },
+            take: 1,
+            select: { url: true, thumbnailUrl: true },
+          },
         },
         orderBy,
         skip,
@@ -226,6 +231,11 @@ router.get('/', authenticate, async (req, res) => {
         status: 'OUT_OF_STOCK' as StockStatus,
       };
 
+      // Get primary image if available
+      const primaryImage = product.productImages && product.productImages.length > 0
+        ? { url: product.productImages[0].url, thumbnailUrl: product.productImages[0].thumbnailUrl }
+        : null;
+
       const result: Record<string, unknown> = {
         id: product.id,
         nusafSku: product.nusafSku,
@@ -238,6 +248,11 @@ router.get('/', authenticate, async (req, res) => {
         price: displayPrice,
         priceLabel,
         hasPrice: !!listPrice,
+        // Publishing status
+        isPublished: product.isPublished,
+        publishedAt: product.publishedAt,
+        // Primary image for thumbnail
+        primaryImage,
       };
 
       // Add stock summary if requested

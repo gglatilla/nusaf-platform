@@ -1,7 +1,8 @@
 'use client';
 
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ImageIcon } from 'lucide-react';
 import type { CatalogProduct, StockStatus } from '@/lib/api';
+import { PublishStatusBadge } from './PublishStatusBadge';
 
 interface ProductTableProps {
   products: CatalogProduct[];
@@ -81,8 +82,10 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 w-14"></th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">SKU</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Description</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-slate-600">Status</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Price</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Available</th>
             </tr>
@@ -90,8 +93,10 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
           <tbody>
             {[...Array(5)].map((_, i) => (
               <tr key={i} className="border-b border-slate-100">
+                <td className="px-4 py-4"><div className="h-10 w-10 bg-slate-200 rounded animate-pulse" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-24" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-48" /></td>
+                <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-16 mx-auto" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-20 ml-auto" /></td>
                 <td className="px-4 py-4"><div className="h-4 bg-slate-200 rounded animate-pulse w-16 ml-auto" /></td>
               </tr>
@@ -115,8 +120,10 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
       <table className="w-full">
         <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 w-14"></th>
             <SortableHeader label="SKU" field="nusafSku" currentSort={sortBy} onSort={onSortChange} />
             <SortableHeader label="Description" field="description" currentSort={sortBy} onSort={onSortChange} />
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
             <SortableHeader label="Price" field="price" currentSort={sortBy} onSort={onSortChange} align="right" />
             <SortableHeader label="Available" field="available" currentSort={sortBy} onSort={onSortChange} align="right" />
           </tr>
@@ -127,6 +134,8 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
             const status = stockSummary?.status || 'OUT_OF_STOCK';
             const available = stockSummary?.totalAvailable ?? 0;
 
+            const thumbnailUrl = product.primaryImage?.thumbnailUrl || product.primaryImage?.url;
+
             return (
               <tr
                 key={product.id}
@@ -134,10 +143,30 @@ export function ProductTable({ products, isLoading, onRowClick, sortBy, onSortCh
                 className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-3">
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt={product.nusafSku}
+                      className="w-10 h-10 object-cover rounded border border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded border border-slate-200 bg-slate-50 flex items-center justify-center">
+                      <ImageIcon className="w-5 h-5 text-slate-300" />
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   <span className="font-mono text-sm text-slate-900">{product.nusafSku}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-sm text-slate-700 line-clamp-1">{product.description}</span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <PublishStatusBadge
+                    isPublished={product.isPublished ?? false}
+                    publishedAt={product.publishedAt}
+                    size="sm"
+                  />
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className={`text-sm ${product.hasPrice ? 'font-medium text-slate-900' : 'text-slate-500 italic'}`}>

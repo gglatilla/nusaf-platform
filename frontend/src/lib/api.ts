@@ -417,6 +417,14 @@ export interface CatalogProduct {
     totalAvailable: number;
     status: StockStatus;
   };
+  // Publishing status
+  isPublished?: boolean;
+  publishedAt?: string | null;
+  // Primary image for thumbnail
+  primaryImage?: {
+    url: string;
+    thumbnailUrl: string | null;
+  } | null;
 }
 
 // Re-export inventory types from shared
