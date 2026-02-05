@@ -11,3 +11,7 @@ export { AdjustmentApproveModal } from './AdjustmentApproveModal';
 export { MovementLogTable } from './MovementLogTable';
 export { ReorderSettingsTable } from './ReorderSettingsTable';
 export { EditReorderModal } from './EditReorderModal';
+export { InventoryItemForm } from './InventoryItemForm';
+export type { InventoryItemFormData } from './InventoryItemForm';
+export { StockLevelsDisplay } from './StockLevelsDisplay';
+export { ItemTypeBadge } from './ItemTypeBadge';
