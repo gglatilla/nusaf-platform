@@ -4,7 +4,7 @@
 [TASK-023] Product Master Data Management
 
 ## Status
-IN_PROGRESS | 23% complete (Phase 0: COMPLETE, Phase 1: 0/7)
+IN_PROGRESS | 45% complete (Phase 0: COMPLETE, Phase 1: COMPLETE, Phase 2: 0/6)
 
 ## Micro-Task Progress
 
@@ -17,14 +17,14 @@ IN_PROGRESS | 23% complete (Phase 0: COMPLETE, Phase 1: 0/7)
 - [x] TASK-023-0F: Update product detail page navigation ✓
 - [x] TASK-023-0G: Update product list page navigation ✓
 
-### Phase 1: Marketing + Publishing (4/7)
+### Phase 1: Marketing + Publishing (7/7) ✓ COMPLETE
 - [x] TASK-023-1A: Add Marketing section to ProductEditor ✓ (already exists in ProductEditor)
 - [x] TASK-023-1B: Create SpecificationsEditor component ✓
 - [x] TASK-023-1C: Create PublishStatusBadge component ✓
 - [x] TASK-023-1D: Add publish/unpublish API endpoints ✓
-- [ ] TASK-023-1E: Add publish hooks to frontend
-- [ ] TASK-023-1F: Add publish controls to product edit page
-- [ ] TASK-023-1G: Add preview mode to public API
+- [x] TASK-023-1E: Add publish hooks to frontend ✓
+- [x] TASK-023-1F: Add publish controls to product edit page ✓
+- [x] TASK-023-1G: Add preview mode to public API ✓
 
 ### Phase 2: Media Management (0/6)
 - [ ] TASK-023-2A: Create image upload hook
@@ -71,7 +71,16 @@ IN_PROGRESS | 23% complete (Phase 0: COMPLETE, Phase 1: 0/7)
 - Portal uses `/catalog` for products (from previous session URL restructure)
 
 ## Next Step
-TASK-023-1E: Add publish hooks to frontend
+TASK-023-2A: Create image upload hook
+
+## Phase 1 Summary
+Marketing + Publishing functionality is complete:
+- SpecificationsEditor component with suggested keys
+- PublishStatusBadge component
+- Publish/unpublish API endpoints (POST /products/:id/publish|unpublish)
+- Frontend hooks (usePublishProduct, useUnpublishProduct)
+- Publish button wired up on product edit page
+- Preview mode for admins to view unpublished products
 
 ## Phase 0 Summary
 Full-page product editor infrastructure is complete:
