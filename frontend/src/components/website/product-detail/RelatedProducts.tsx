@@ -59,7 +59,7 @@ export function RelatedProducts({
       {products.length > 8 && (
         <div className="mt-6 text-center">
           <a
-            href={`/catalog?category=${products[0]?.category?.code || ''}`}
+            href={`/products/${products[0]?.category?.code || ''}`}
             className="text-sm font-medium text-primary-600 hover:text-primary-700"
           >
             View all related products

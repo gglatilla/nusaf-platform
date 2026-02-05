@@ -5,32 +5,32 @@ import { Container } from '../Container';
 const categories = [
   {
     name: 'Levelling Feet',
-    href: '/catalog?category=levelling-feet',
+    href: '/products/levelling-feet',
     icon: Disc,
   },
   {
     name: 'Conveyor Components',
-    href: '/catalog?category=conveyor',
+    href: '/products/conveyor-components',
     icon: Minus,
   },
   {
     name: 'Power Transmission',
-    href: '/catalog?category=power-transmission',
+    href: '/products/power-transmission',
     icon: Cog,
   },
   {
     name: 'Gearboxes & Motors',
-    href: '/catalog?category=gearboxes',
+    href: '/products/gearbox-motors',
     icon: Settings,
   },
   {
     name: 'Bearings',
-    href: '/catalog?category=bearings',
+    href: '/products/bearings',
     icon: Circle,
   },
   {
     name: 'V-Belts',
-    href: '/catalog?category=v-belts',
+    href: '/products/v-belts',
     icon: RotateCcw,
   },
 ];
@@ -67,7 +67,7 @@ export function ProductCategoriesSection() {
         </div>
         <div className="text-center mt-8 sm:mt-10">
           <Link
-            href="/catalog"
+            href="/products"
             className="inline-flex items-center text-primary-600 font-medium hover:text-primary-700"
           >
             View all products

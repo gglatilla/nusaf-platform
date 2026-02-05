@@ -104,7 +104,7 @@ export function MegaMenu() {
               </p>
             </div>
             <Link
-              href="/browse"
+              href="/products"
               className="text-sm font-medium text-primary-600 hover:text-primary-700"
               onClick={() => setIsOpen(false)}
             >
@@ -127,7 +127,7 @@ export function MegaMenu() {
                 {categories.slice(0, 8).map((category) => (
                   <div key={category.id}>
                     <Link
-                      href={`/browse/${category.slug}`}
+                      href={`/products/${category.slug}`}
                       className="flex items-center gap-2 font-medium text-slate-900 hover:text-primary-600 transition-colors"
                       onClick={() => setIsOpen(false)}
                     >
@@ -139,7 +139,7 @@ export function MegaMenu() {
                         {category.subCategories.slice(0, 5).map((sub) => (
                           <li key={sub.id}>
                             <Link
-                              href={`/browse/${category.slug}/${sub.slug}`}
+                              href={`/products/${category.slug}/${sub.slug}`}
                               className="text-sm text-slate-500 hover:text-primary-600 transition-colors"
                               onClick={() => setIsOpen(false)}
                             >
@@ -150,7 +150,7 @@ export function MegaMenu() {
                         {category.subCategories.length > 5 && (
                           <li>
                             <Link
-                              href={`/browse/${category.slug}`}
+                              href={`/products/${category.slug}`}
                               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                               onClick={() => setIsOpen(false)}
                             >
@@ -169,7 +169,7 @@ export function MegaMenu() {
             {categories.length > 8 && (
               <div className="mt-6 pt-4 border-t border-slate-200 text-center">
                 <Link
-                  href="/browse"
+                  href="/products"
                   className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
                   onClick={() => setIsOpen(false)}
                 >
@@ -182,7 +182,7 @@ export function MegaMenu() {
           {/* Footer with quick links */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
             <Link
-              href="/catalog"
+              href="/products"
               className="text-sm text-slate-600 hover:text-primary-600"
               onClick={() => setIsOpen(false)}
             >

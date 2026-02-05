@@ -70,10 +70,10 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-4 py-6">
             <ul className="space-y-1">
-              {/* Products - direct link to browse */}
+              {/* Products - direct link to products */}
               <li>
                 <Link
-                  href="/browse"
+                  href="/products"
                   onClick={onClose}
                   className="block px-4 py-3 text-base font-medium text-slate-700 hover:text-primary-600 hover:bg-slate-50 rounded-lg transition-colors"
                 >

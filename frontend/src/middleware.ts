@@ -5,6 +5,9 @@ import type { NextRequest } from 'next/server';
 const portalDomains = ['app.nusaf.net', 'app.nusaf.co.za'];
 
 // Portal-only routes (should redirect from public site to portal)
+// Note: /products is NOT in this list - it's available on BOTH domains:
+// - www.nusaf.net/products = Public product catalog (categories, search)
+// - app.nusaf.net/products = Authenticated internal catalog (with prices, stock)
 const portalRoutes = [
   '/login',
   '/register',
@@ -14,7 +17,6 @@ const portalRoutes = [
   '/orders',
   '/settings',
   '/profile',
-  '/products', // Portal product pages (authenticated, with prices)
   '/picking-slips',
   '/job-cards',
   '/transfer-requests',
@@ -28,8 +30,8 @@ const portalRoutes = [
 ];
 
 // Public website routes (served on www.nusaf.net)
-const publicRoutes = ['/', '/about', '/contact', '/solutions', '/services', '/resources'];
-// Note: /products on public site will be handled by TASK-016 (different from portal /products)
+// /products and its sub-routes are now public (was /browse + /catalog)
+const publicRoutes = ['/', '/about', '/contact', '/solutions', '/services', '/resources', '/products'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

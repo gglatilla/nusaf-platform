@@ -122,7 +122,7 @@ export function buildProductSchema(
       : undefined,
     brand: 'Nusaf', // Could also use supplier brand if available
     category: product.category?.name,
-    url: `${baseUrl}/catalog/${product.sku}`,
+    url: `${baseUrl}/products/p/${product.sku}`,
   };
 }
 

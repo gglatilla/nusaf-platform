@@ -23,7 +23,7 @@ export function WebsiteHeader() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
             <Link
-              href="/browse"
+              href="/products"
               className="text-sm font-medium text-slate-700 hover:text-primary-600 transition-colors"
             >
               Products

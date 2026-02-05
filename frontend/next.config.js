@@ -20,6 +20,37 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // Old /browse routes → new /products routes
+      {
+        source: '/browse',
+        destination: '/products',
+        permanent: true,
+      },
+      {
+        source: '/browse/:slug',
+        destination: '/products/:slug',
+        permanent: true,
+      },
+      {
+        source: '/browse/:cat/:sub',
+        destination: '/products/:cat/:sub',
+        permanent: true,
+      },
+      // Old /catalog routes → new /products routes
+      {
+        source: '/catalog',
+        destination: '/products',
+        permanent: true,
+      },
+      {
+        source: '/catalog/:sku',
+        destination: '/products/p/:sku',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = withNextIntl(nextConfig);

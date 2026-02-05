@@ -54,7 +54,7 @@ export function GuestQuoteBasket() {
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-600 mb-4">Your quote basket is empty</p>
               <Link
-                href="/catalog"
+                href="/products"
                 onClick={() => setIsOpen(false)}
                 className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700"
               >

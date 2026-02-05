@@ -18,7 +18,7 @@ interface CategoryFilterProps {
   basePath?: string;
 }
 
-export function CategoryFilter({ basePath = '/catalog' }: CategoryFilterProps) {
+export function CategoryFilter({ basePath = '/products' }: CategoryFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentCategory = searchParams.get('category') || '';

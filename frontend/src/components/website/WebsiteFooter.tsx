@@ -2,11 +2,11 @@ import Link from 'next/link';
 
 const footerNavigation = {
   products: [
-    { name: 'Conveyor Components', href: '/catalog?category=conveyor' },
-    { name: 'Power Transmission', href: '/catalog?category=power-transmission' },
-    { name: 'Bearings', href: '/catalog?category=bearings' },
-    { name: 'Gearboxes & Motors', href: '/catalog?category=gearboxes' },
-    { name: 'Levelling Feet', href: '/catalog?category=levelling-feet' },
+    { name: 'Conveyor Components', href: '/products/conveyor-components' },
+    { name: 'Power Transmission', href: '/products/power-transmission' },
+    { name: 'Bearings', href: '/products/bearings' },
+    { name: 'Gearboxes & Motors', href: '/products/gearbox-motors' },
+    { name: 'Levelling Feet', href: '/products/levelling-feet' },
   ],
   company: [
     { name: 'About Us', href: '/about' },

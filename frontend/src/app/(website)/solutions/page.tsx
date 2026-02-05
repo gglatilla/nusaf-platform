@@ -29,7 +29,7 @@ const industries = [
       'Cooling and freezing tunnels',
     ],
     products: ['Stainless steel chain', 'Food-grade belting', 'Hygienic components'],
-    href: '/catalog',
+    href: '/products',
   },
   {
     icon: HardHat,
@@ -43,7 +43,7 @@ const industries = [
       'Bulk transport',
     ],
     products: ['Heavy-duty chain', 'Mining sprockets', 'Wear-resistant components'],
-    href: '/catalog',
+    href: '/products',
   },
   {
     icon: Factory,
@@ -57,7 +57,7 @@ const industries = [
       'Material flow',
     ],
     products: ['Gearboxes', 'Bearings', 'Drives and motors'],
-    href: '/catalog',
+    href: '/products',
   },
   {
     icon: Package2,
@@ -71,7 +71,7 @@ const industries = [
       'Accumulation conveyors',
     ],
     products: ['Tabletop chain', 'Modular belting', 'Conveyor components'],
-    href: '/catalog',
+    href: '/products',
   },
 ];
 

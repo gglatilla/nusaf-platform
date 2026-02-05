@@ -73,9 +73,9 @@ const documentation = [
     title: 'Technical Specifications',
     description: 'Detailed specifications and dimensional data for product selection.',
     items: [
-      { name: 'Sprocket Specifications', href: '/catalog?category=power-transmission' },
-      { name: 'Chain Pitch Reference', href: '/catalog?category=conveyor' },
-      { name: 'Gearbox Selection Guide', href: '/catalog?category=gearboxes' },
+      { name: 'Sprocket Specifications', href: '/products/power-transmission' },
+      { name: 'Chain Pitch Reference', href: '/products/conveyor-components' },
+      { name: 'Gearbox Selection Guide', href: '/products/gearbox-motors' },
     ],
   },
   {
@@ -233,7 +233,7 @@ export default function ResourcesPage() {
                   Contact Technical Support
                 </Link>
                 <Link
-                  href="/catalog"
+                  href="/products"
                   className="inline-flex items-center justify-center px-6 py-3 bg-white text-slate-700 font-medium rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
                 >
                   Browse Products
