@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Package, ImageIcon, FileText } from 'lucide-
 import type { ProductWithInventory, ProductType, CatalogCategory } from '@/lib/api';
 import { useCategories } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { SpecificationsEditor } from './SpecificationsEditor';
 import { cn } from '@/lib/utils';
 
 // Collapsible section component
@@ -645,10 +646,13 @@ export function ProductEditor({ product, onSave, isLoading, isCreating }: Produc
                 />
               </Field>
 
-              <Field label="Technical Specifications" hint="Key-value pairs for product specs (coming soon)">
-                <div className="py-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50">
-                  <p className="text-sm text-slate-500">Specifications editor coming soon</p>
-                </div>
+              <Field label="Technical Specifications" hint="Key-value pairs for product specs">
+                <SpecificationsEditor
+                  value={formData.specifications}
+                  onChange={(specs) =>
+                    setFormData((prev) => ({ ...prev, specifications: specs }))
+                  }
+                />
               </Field>
             </div>
           </Section>

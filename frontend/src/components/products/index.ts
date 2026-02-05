@@ -23,3 +23,4 @@ export { ProductImageGallery } from './ProductImageGallery';
 export type { ProductImage } from './ProductImageGallery';
 export { ProductDocumentsList } from './ProductDocumentsList';
 export type { ProductDocument, ProductDocumentType } from './ProductDocumentsList';
+export { SpecificationsEditor } from './SpecificationsEditor';
