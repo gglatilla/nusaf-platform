@@ -2840,6 +2840,23 @@ class ApiClient {
     });
   }
 
+  /**
+   * Bulk publish or unpublish multiple products
+   */
+  async bulkPublishProducts(
+    productIds: string[],
+    action: 'publish' | 'unpublish'
+  ): Promise<ApiResponse<{
+    action: string;
+    updated: number;
+    productIds: string[];
+  }>> {
+    return this.request('/products/bulk-publish', {
+      method: 'POST',
+      body: JSON.stringify({ productIds, action }),
+    });
+  }
+
   // ============================================
   // PRODUCT IMAGES METHODS
   // ============================================

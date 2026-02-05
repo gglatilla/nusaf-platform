@@ -147,3 +147,25 @@ export function useUnpublishProduct() {
     },
   });
 }
+
+/**
+ * Hook for bulk publishing/unpublishing multiple products
+ */
+export function useBulkPublishProducts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ productIds, action }: { productIds: string[]; action: 'publish' | 'unpublish' }) => {
+      const response = await api.bulkPublishProducts(productIds, action);
+      return response.data;
+    },
+    onSuccess: (_data, { productIds }) => {
+      // Invalidate individual products
+      productIds.forEach(id => {
+        queryClient.invalidateQueries({ queryKey: ['product', id] });
+      });
+      // Invalidate product list
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}

@@ -4,7 +4,7 @@
 [TASK-023] Product Master Data Management
 
 ## Status
-IN_PROGRESS | 81% complete (Phase 0-2: COMPLETE, Phase 3: 5/7)
+IN_PROGRESS | 84% complete (Phase 0-2: COMPLETE, Phase 3: 6/7)
 
 ## Micro-Task Progress
 
@@ -40,7 +40,7 @@ IN_PROGRESS | 81% complete (Phase 0-2: COMPLETE, Phase 3: 5/7)
 - [x] TASK-023-3C: Add publish filter to product list page ✓
 - [x] TASK-023-3D: Add quick actions menu to ProductTable ✓
 - [x] TASK-023-3E: Add checkbox selection to ProductTable ✓
-- [ ] TASK-023-3F: Add bulk publish endpoint
+- [x] TASK-023-3F: Add bulk publish endpoint ✓
 - [ ] TASK-023-3G: Add bulk actions bar to product list
 
 ### Phase 4: Completeness Scoring (0/4)
@@ -76,7 +76,7 @@ IN_PROGRESS | 81% complete (Phase 0-2: COMPLETE, Phase 3: 5/7)
 - Portal uses `/catalog` for products (from previous session URL restructure)
 
 ## Next Step
-TASK-023-3F: Add bulk publish endpoint
+TASK-023-3G: Add bulk actions bar to product list
 
 ## Phase 2 Summary
 Media Management is complete:

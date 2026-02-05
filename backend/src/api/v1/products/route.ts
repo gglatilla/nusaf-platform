@@ -877,6 +877,95 @@ router.post('/:id/unpublish', authenticate, requireRole('ADMIN'), async (req, re
 });
 
 /**
+ * POST /api/v1/products/bulk-publish
+ * Publish or unpublish multiple products at once (admin only)
+ * Body: { productIds: string[], action: 'publish' | 'unpublish' }
+ */
+router.post('/bulk-publish', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { productIds, action } = req.body;
+
+    // Validate inputs
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'productIds must be a non-empty array' },
+      });
+    }
+
+    if (action !== 'publish' && action !== 'unpublish') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'action must be "publish" or "unpublish"' },
+      });
+    }
+
+    if (productIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'Cannot process more than 100 products at once' },
+      });
+    }
+
+    // Verify all products exist and are active
+    const products = await prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        isActive: true,
+        deletedAt: null,
+      },
+      select: { id: true, nusafSku: true, isPublished: true },
+    });
+
+    const foundIds = products.map(p => p.id);
+    const notFoundIds = productIds.filter(id => !foundIds.includes(id));
+
+    if (notFoundIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'PRODUCTS_NOT_FOUND',
+          message: `Some products were not found or are inactive`,
+          details: { notFoundIds },
+        },
+      });
+    }
+
+    // Perform bulk update
+    const updateData = action === 'publish'
+      ? { isPublished: true, publishedAt: new Date() }
+      : { isPublished: false };
+
+    const result = await prisma.product.updateMany({
+      where: {
+        id: { in: productIds },
+        isActive: true,
+        deletedAt: null,
+      },
+      data: updateData,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        action,
+        updated: result.count,
+        productIds,
+      },
+    });
+  } catch (error) {
+    console.error('Bulk publish error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'BULK_PUBLISH_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to bulk publish products',
+      },
+    });
+  }
+});
+
+/**
  * GET /api/v1/products/:id/price
  * Get calculated price for a product (requires authentication)
  */
