@@ -17,3 +17,5 @@ export { BomTable } from './BomTable';
 export { AddComponentModal } from './AddComponentModal';
 export { WhereUsedSection } from './WhereUsedSection';
 export { ProductBomTab } from './ProductBomTab';
+export { ProductEditor } from './ProductEditor';
+export type { ProductFormData } from './ProductEditor';
