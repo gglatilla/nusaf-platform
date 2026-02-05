@@ -735,6 +735,123 @@ router.delete('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
 });
 
 /**
+ * POST /api/v1/products/:id/publish
+ * Publish a product to the website (admin only)
+ * Sets isPublished=true and publishedAt=now
+ */
+router.post('/:id/publish', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check product exists
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, isActive: true, deletedAt: true, isPublished: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    if (product.isPublished) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_PUBLISHED', message: 'Product is already published' },
+      });
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: {
+        isPublished: true,
+        publishedAt: new Date(),
+      },
+      select: {
+        id: true,
+        nusafSku: true,
+        isPublished: true,
+        publishedAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Publish product error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PUBLISH_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to publish product',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/products/:id/unpublish
+ * Unpublish a product from the website (admin only)
+ * Sets isPublished=false
+ */
+router.post('/:id/unpublish', authenticate, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check product exists
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, isActive: true, deletedAt: true, isPublished: true },
+    });
+
+    if (!product || !product.isActive || product.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    if (!product.isPublished) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_UNPUBLISHED', message: 'Product is already unpublished' },
+      });
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: {
+        isPublished: false,
+      },
+      select: {
+        id: true,
+        nusafSku: true,
+        isPublished: true,
+        publishedAt: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Unpublish product error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'UNPUBLISH_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to unpublish product',
+      },
+    });
+  }
+});
+
+/**
  * GET /api/v1/products/:id/price
  * Get calculated price for a product (requires authentication)
  */
