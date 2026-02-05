@@ -38,17 +38,6 @@ const nextConfig = {
         destination: '/products/:cat/:sub',
         permanent: true,
       },
-      // Old /catalog routes → new /products routes
-      {
-        source: '/catalog',
-        destination: '/products',
-        permanent: true,
-      },
-      {
-        source: '/catalog/:sku',
-        destination: '/products/p/:sku',
-        permanent: true,
-      },
     ];
   },
 };
