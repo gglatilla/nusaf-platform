@@ -56,11 +56,19 @@ export const procurementNavigation: NavItem[] = [
 ];
 
 /**
+ * Inventory navigation items (internal users only)
+ * This is the Item Master section - operational data for all items
+ */
+export const inventoryNavigation: NavItem[] = [
+  { name: 'Items', href: '/inventory/items', icon: Package, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'] },
+  { name: 'Stock Levels', href: '/inventory', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
+];
+
+/**
  * Admin navigation items (only visible to ADMIN, MANAGER, SALES)
  */
 export const adminNavigation: NavItem[] = [
   { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
-  { name: 'Inventory', href: '/inventory', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Suppliers', href: '/admin/suppliers', icon: Factory, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Pricing', href: '/admin/settings', icon: Euro, roles: ['ADMIN', 'MANAGER'] },
 ];

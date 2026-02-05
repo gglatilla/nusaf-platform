@@ -365,10 +365,14 @@ router.get('/:id', authenticate, async (req, res) => {
       });
     }
 
+    // Support both UUID (id) and SKU (nusafSku) lookup
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const whereClause = isUUID ? { id } : { nusafSku: id };
+
     // Parallel fetch: product, company tier, global settings, and optional inventory/movements
     const [product, company, globalSettings, inventoryResult, movementsResult] = await Promise.all([
-      prisma.product.findUnique({
-        where: { id },
+      prisma.product.findFirst({
+        where: { ...whereClause, isActive: true, deletedAt: null },
         include: {
           supplier: {
             select: {
@@ -768,13 +772,17 @@ router.post('/:id/publish', authenticate, requireRole('ADMIN'), async (req, res)
   try {
     const { id } = req.params;
 
+    // Support both UUID (id) and SKU (nusafSku) lookup
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const whereClause = isUUID ? { id } : { nusafSku: id };
+
     // Check product exists
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const product = await prisma.product.findFirst({
+      where: { ...whereClause, isActive: true, deletedAt: null },
       select: { id: true, isActive: true, deletedAt: true, isPublished: true },
     });
 
-    if (!product || !product.isActive || product.deletedAt) {
+    if (!product) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Product not found' },
@@ -789,7 +797,7 @@ router.post('/:id/publish', authenticate, requireRole('ADMIN'), async (req, res)
     }
 
     const updated = await prisma.product.update({
-      where: { id },
+      where: { id: product.id },
       data: {
         isPublished: true,
         publishedAt: new Date(),
@@ -827,13 +835,17 @@ router.post('/:id/unpublish', authenticate, requireRole('ADMIN'), async (req, re
   try {
     const { id } = req.params;
 
+    // Support both UUID (id) and SKU (nusafSku) lookup
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const whereClause = isUUID ? { id } : { nusafSku: id };
+
     // Check product exists
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const product = await prisma.product.findFirst({
+      where: { ...whereClause, isActive: true, deletedAt: null },
       select: { id: true, isActive: true, deletedAt: true, isPublished: true },
     });
 
-    if (!product || !product.isActive || product.deletedAt) {
+    if (!product) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Product not found' },
@@ -848,7 +860,7 @@ router.post('/:id/unpublish', authenticate, requireRole('ADMIN'), async (req, re
     }
 
     const updated = await prisma.product.update({
-      where: { id },
+      where: { id: product.id },
       data: {
         isPublished: false,
       },

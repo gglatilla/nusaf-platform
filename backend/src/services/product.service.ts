@@ -207,23 +207,26 @@ export async function createProduct(
  * Update an existing product
  */
 export async function updateProduct(
-  productId: string,
+  productIdOrSku: string,
   input: UpdateProductInput,
   userId: string
 ): Promise<{ success: boolean; product?: ProductData; error?: string }> {
   try {
+    // Support both UUID (id) and SKU (nusafSku) lookup
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdOrSku);
+    const whereClause = isUUID ? { id: productIdOrSku } : { nusafSku: productIdOrSku };
+
     // Check if product exists
-    const existing = await prisma.product.findUnique({
-      where: { id: productId },
+    const existing = await prisma.product.findFirst({
+      where: { ...whereClause, isActive: true, deletedAt: null },
     });
 
     if (!existing) {
       return { success: false, error: 'Product not found' };
     }
 
-    if (existing.deletedAt) {
-      return { success: false, error: 'Product has been deleted' };
-    }
+    // Use the actual product ID for remaining operations
+    const productId = existing.id;
 
     // If changing supplier, verify it exists
     if (input.supplierId && input.supplierId !== existing.supplierId) {
