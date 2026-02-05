@@ -14,7 +14,6 @@ import {
   AdjustStockModal,
   InventorySettings,
 } from '@/components/inventory';
-import { ProductFormModal } from '@/components/products/ProductFormModal';
 import { ProductBomTab } from '@/components/products/ProductBomTab';
 import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
@@ -49,7 +48,6 @@ export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.slug as string;
   const [activeTab, setActiveTab] = useState<TabType>('details');
-  const [showEditModal, setShowEditModal] = useState(false);
   const { user } = useAuthStore();
 
   const { data: product, isLoading, error, refetch } = useProductWithInventory(productId, {
@@ -120,13 +118,13 @@ export default function ProductDetailPage() {
           </div>
         </div>
         {canEditProduct && (
-          <button
-            onClick={() => setShowEditModal(true)}
+          <Link
+            href={`/catalog/${productId}/edit`}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
           >
             <Edit className="h-4 w-4" />
             Edit Product
-          </button>
+          </Link>
         )}
       </div>
 
@@ -326,12 +324,12 @@ export default function ProductDetailPage() {
                 <Package className="h-12 w-12 text-slate-300 mx-auto mb-2" />
                 <p className="text-slate-500">No image available</p>
                 {canEditProduct && (
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="mt-2 text-sm text-primary-600 hover:text-primary-700"
+                  <Link
+                    href={`/catalog/${productId}/edit`}
+                    className="mt-2 text-sm text-primary-600 hover:text-primary-700 inline-block"
                   >
-                    Add image URL
-                  </button>
+                    Add images in editor
+                  </Link>
                 )}
               </div>
             </div>
@@ -354,18 +352,6 @@ export default function ProductDetailPage() {
           productId={product.id}
           productSku={product.nusafSku}
           canEdit={canEditProduct ?? false}
-        />
-      )}
-
-      {/* Edit Product Modal */}
-      {showEditModal && (
-        <ProductFormModal
-          isOpen={true}
-          product={product as import('@/lib/api').ProductWithInventory}
-          onClose={() => {
-            setShowEditModal(false);
-            refetch();
-          }}
         />
       )}
     </div>
