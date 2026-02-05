@@ -51,8 +51,10 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
 
     return res.json({
       success: true,
-      data: result.suppliers,
-      pagination: result.pagination,
+      data: {
+        suppliers: result.suppliers,
+        pagination: result.pagination,
+      },
     });
   } catch (error) {
     console.error('List suppliers error:', error);
