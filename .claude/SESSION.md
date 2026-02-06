@@ -1,90 +1,42 @@
 # Current Session
 
 ## Active Task
-[TASK-024] Architecture Restructure: Inventory vs Product Catalog
+[TASK-025] Fix Product & Inventory Navigation and Display Issues
 
 ## Status
-COMPLETE | All 4 Phases done (Phase 2 has 1 deferred task: WarehouseAvailability)
+COMPLETE | All 5 micro-tasks done
 
 ## Overview
-Separating the mixed Product/Catalog system into two distinct modules:
-1. **INVENTORY** (`/inventory`) - Item Master with operational data
-2. **CATALOG** (`/catalog`) - Marketing content for published finished goods
+After TASK-024's architecture restructure, several links and displays were broken. This task fixed all reported issues.
 
-## Plan File
-`.claude/plans/proud-finding-wren.md`
+## Completed Micro-tasks
+- [x] MT-1: Fix all broken `/products/` links (6 links across 6 files)
+- [x] MT-2: Fix "Stock info unavailable" in ProductDetailModal (use stockSummary fallback)
+- [x] MT-3: Fix "invalid query parameters" on stock levels (pageSize 500 > max 100)
+- [x] MT-4: Add per-warehouse stock breakdown to inventory item detail (WarehouseStockTable)
+- [x] MT-5: Fix specifications dropdown overflow (remove overflow-hidden from Section)
 
-## Micro-Task Progress
-
-### Phase 1: Restructure Navigation & Routes (7/7) ✓ COMPLETE
-- [x] TASK-024-1A: Update navigation.ts with new structure (Inventory section with Items) ✓
-- [x] TASK-024-1B: Create `/inventory/items` page (item list - all items) ✓
-- [x] TASK-024-1C: Create `/inventory/items/[sku]` page (item detail - operational data) ✓
-- [x] TASK-024-1D: Create `/inventory/items/new` page (create new item) ✓
-- [x] TASK-024-1E: Update `/catalog` page header for marketing focus ✓
-- [x] TASK-024-1F: Create ProductContentEditor for marketing-only editing ✓
-- [x] TASK-024-1G: Test navigation flows and verify routing ✓ (build successful)
-
-NOTE: Current `/inventory` page is stock dashboard (kept as-is under "Stock Levels")
-
-### Phase 2: Inventory Item Master Page (5/7)
-- [x] TASK-024-2A: Create InventoryItemForm component ✓
-- [x] TASK-024-2B: Create BasicInfoSection (SKU, description, UOM, type) ✓ (integrated in form)
-- [x] TASK-024-2C: Create SupplierSection (supplier, lead time, MOQ) ✓ (integrated in form)
-- [x] TASK-024-2D: Create CostsSection (prices, costs - role-based) ✓ (integrated in form)
-- [x] TASK-024-2E: Create StockSettingsSection (min/max, reorder) ✓ (integrated in form)
-- [ ] TASK-024-2F: Create WarehouseAvailability section
-- [x] TASK-024-2G: Create StockLevelsDisplay (read-only) ✓
-
-### Phase 3: Product Catalog Page (5/5) ✓ COMPLETE
-- [x] TASK-024-3A: Create ProductContentForm component ✓ (ProductContentEditor in Phase 1)
-- [x] TASK-024-3B: Create InheritedFieldsDisplay (read-only from inventory) ✓ (sidebar in ProductContentEditor)
-- [x] TASK-024-3C: Create MarketingSection (title, description) ✓ (in ProductContentEditor)
-- [x] TASK-024-3D: Create SEOSection (meta title, description) ✓ (with character counters)
-- [x] TASK-024-3E: Wire up existing media components ✓ (ProductImageGallery, ProductDocumentsList)
-
-### Phase 4: Customer Portal Adjustments (4/4) ✓ COMPLETE
-- [x] TASK-024-4A: Update product cards to show tier pricing ✓ (backend returns tier price for customers)
-- [x] TASK-024-4B: Remove list price from customer view ✓ (frontend never shows listPrice to customers)
-- [x] TASK-024-4C: Add "Your Price" label ✓ (backend returns priceLabel="Your Price" for customers)
-- [x] TASK-024-4D: Ensure stock badges (not numbers) for customers ✓ (showQuantity=false for customers)
-
-## Files To Modify
-
-### Phase 1 Files
-- `frontend/src/app/(portal)/catalog/` → rename to `inventory/`
-- `frontend/src/components/layout/Sidebar.tsx` - update navigation
-- `frontend/src/app/(portal)/catalog/` - create new for marketing
+## Files Modified
+- `frontend/src/components/products/ProductDetailModal.tsx` — Fixed links + stock fallback
+- `frontend/src/components/inventory/InventoryStockTable.tsx` — Fixed link
+- `frontend/src/components/products/ProductTable.tsx` — Fixed "View on Website" link
+- `frontend/src/components/products/WhereUsedSection.tsx` — Fixed link
+- `frontend/src/app/(portal)/inventory/items/[sku]/page.tsx` — Fixed link + added WarehouseStockTable
+- `frontend/src/app/(portal)/catalog/[slug]/page.tsx` — Fixed "Add to Quote" link
+- `frontend/src/components/products/ProductContentEditor.tsx` — Removed overflow-hidden
+- `backend/src/utils/validation/inventory.ts` — Increased pageSize max from 100 to 500
 
 ## Decisions Made
-- Inventory = ALL items (finished goods, raw materials, components)
-- Catalog = ONLY published finished goods (marketing focus)
-- Customers see tier price labeled "Your Price", never list price
-- Sales sees both list and tier prices
-- No database changes needed - just UI reorganization
+- "View Details" from product modal → `/catalog/{sku}` (existing detail page with tabs)
+- "View" from inventory stock table → `/inventory/items/{sku}` (item master detail)
+- "View on Website" → `/products/p/{sku}` (public website product page)
+- Stock levels pageSize max increased to 500 (needed for grouping JHB+CT per product)
+- Used `product.stockSummary` as fallback when detailed inventory is null in modal
 
-## Next Step
-TASK-024 COMPLETE - Ready for testing and user feedback
+## Previous Task
+[TASK-024] Architecture Restructure: Inventory vs Product Catalog — COMPLETE
 
-## Progress Summary
-Phase 1 is nearly complete. Created:
-- Inventory navigation section with Items and Stock Levels
-- Item Master pages: list, detail, and create
-- ProductContentEditor for marketing-focused editing
-- Updated catalog edit page to use marketing-only editor
-
-### TypeScript Fixes (Just Completed)
-- Fixed ProductContentEditor: Added `productId` and `canEdit` props to ProductImageGallery and ProductDocumentsList
-- Fixed inventory/items/new: Added supplier selector with validation (required field)
-- Updated productType options to use correct enum values (STOCK_ONLY, ASSEMBLY_REQUIRED, etc.)
-- All TypeScript errors resolved
-
-## Backend Changes (SKU Support)
-Updated backend to support both UUID and SKU lookup:
-- GET /products/:id - now accepts SKU
-- PATCH /products/:id - now accepts SKU
-- POST /products/:id/publish - now accepts SKU
-- POST /products/:id/unpublish - now accepts SKU
-
-## Context
-This restructure addresses the mixing of inventory management with marketing/SEO content. The goal is clean separation like proper ERP systems.
+## Next Steps
+- TASK-025 complete, ready for user testing
+- Remaining backlog: TASK-023 Phases 4-5 (completeness scoring, publishing safeguards)
+- Audit P0 issues still pending (RBAC, session invalidation, type mismatches)
