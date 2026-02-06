@@ -335,7 +335,7 @@ export function ProductTable({
                             )}
                             {product.isPublished && (
                               <a
-                                href={`/products/${product.nusafSku}`}
+                                href={`/products/p/${product.nusafSku}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"

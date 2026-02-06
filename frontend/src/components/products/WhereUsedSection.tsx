@@ -99,7 +99,7 @@ export function WhereUsedSection({ productId }: WhereUsedSectionProps) {
                       </td>
                       <td className="px-4 py-2 text-center">
                         <Link
-                          href={`/products/${item.id}`}
+                          href={`/catalog/${item.nusafSku}`}
                           className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 text-sm"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />

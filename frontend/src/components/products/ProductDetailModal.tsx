@@ -176,31 +176,35 @@ export function ProductDetailModal({
                     <div className="h-5 w-16 bg-slate-200 rounded animate-pulse" />
                     <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
                   </div>
-                ) : inventory ? (
+                ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <StockStatusBadge status={inventory.stockStatus} />
-                      {showStockQuantity && (
-                        <span className="text-sm text-slate-600">
-                          {inventory.available} available
+                      {inventory ? (
+                        <>
+                          <StockStatusBadge status={inventory.stockStatus} />
+                          {showStockQuantity && (
+                            <span className="text-sm text-slate-600">
+                              {inventory.available} available
+                            </span>
+                          )}
+                        </>
+                      ) : product.stockSummary ? (
+                        <>
+                          <StockStatusBadge status={product.stockSummary.status} />
+                          {showStockQuantity && (
+                            <span className="text-sm text-slate-600">
+                              {product.stockSummary.totalAvailable} available
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-sm text-slate-500 italic">
+                          Stock info unavailable
                         </span>
                       )}
                     </div>
                     <Link
-                      href={`/products/${product.id}`}
-                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                      onClick={() => onOpenChange(false)}
-                    >
-                      View Full Details
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500 italic">
-                      Stock info unavailable
-                    </span>
-                    <Link
-                      href={`/products/${product.id}`}
+                      href={`/catalog/${product.nusafSku}`}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                       onClick={() => onOpenChange(false)}
                     >

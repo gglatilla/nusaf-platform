@@ -8,6 +8,7 @@ import { useUpdateProduct, useCategories } from '@/hooks/useProducts';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { WarehouseStockTable } from '@/components/inventory';
 import type { UpdateProductData } from '@/lib/api';
 
 export default function InventoryItemDetailPage() {
@@ -396,6 +397,14 @@ export default function InventoryItemDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* Per-Warehouse Stock Breakdown */}
+            {product.inventory?.byLocation && (
+              <WarehouseStockTable
+                locations={product.inventory.byLocation}
+                userPrimaryWarehouse={user?.primaryWarehouse ?? null}
+              />
+            )}
           </div>
 
           {/* Sidebar */}
@@ -483,7 +492,7 @@ export default function InventoryItemDetailPage() {
                   </Link>
                   {product.isActive && (
                     <a
-                      href={`/products/${product.nusafSku}`}
+                      href={`/products/p/${product.nusafSku}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block text-sm text-primary-600 hover:text-primary-700"

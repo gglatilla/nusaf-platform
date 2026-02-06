@@ -48,7 +48,7 @@ export const stockLevelListQuerySchema = z.object({
   lowStockOnly: z.coerce.boolean().optional().default(false),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  pageSize: z.coerce.number().int().min(1).max(500).default(20),
 });
 
 /**

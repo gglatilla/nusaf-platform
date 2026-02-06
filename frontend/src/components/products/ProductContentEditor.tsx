@@ -33,7 +33,7 @@ function Section({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+    <div className="border border-slate-200 rounded-lg bg-white">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

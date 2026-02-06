@@ -303,7 +303,7 @@ export function InventoryStockTable() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/products/${row.productId}`}
+                        href={`/inventory/items/${row.sku}`}
                         className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
                       >
                         View

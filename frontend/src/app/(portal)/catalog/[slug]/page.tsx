@@ -234,7 +234,7 @@ export default function ProductDetailPage() {
 
               <div className="mt-6 pt-4 border-t border-slate-200">
                 <Link
-                  href={`/products?modal=${product.id}`}
+                  href={`/catalog?modal=${product.id}`}
                   className="block w-full px-4 py-2 text-center text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
                 >
                   Add to Quote
