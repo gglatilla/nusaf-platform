@@ -1,0 +1,10 @@
+export { ProductDetailHeader } from './ProductDetailHeader';
+export { QuickStatsBar } from './QuickStatsBar';
+export { OverviewTab } from './OverviewTab';
+export { InventoryTab } from './InventoryTab';
+export { PricingTab } from './PricingTab';
+export { PurchasingTab } from './PurchasingTab';
+export { BomTab } from './BomTab';
+export { SalesHistoryTab } from './SalesHistoryTab';
+export { DocumentsTab } from './DocumentsTab';
+export { AuditLogTab } from './AuditLogTab';

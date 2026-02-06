@@ -2,15 +2,44 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Save, ExternalLink, Loader2 } from 'lucide-react';
-import { useUpdateProduct, useCategories } from '@/hooks/useProducts';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { WarehouseStockTable } from '@/components/inventory';
-import type { UpdateProductData } from '@/lib/api';
-import { UOM_SELECT_OPTIONS, getUomLabel } from '@/lib/constants/unit-of-measure';
+import {
+  ProductDetailHeader,
+  QuickStatsBar,
+  OverviewTab,
+  InventoryTab,
+  PricingTab,
+  PurchasingTab,
+  BomTab,
+  SalesHistoryTab,
+  DocumentsTab,
+  AuditLogTab,
+} from '@/components/inventory/product-detail';
+import { cn } from '@/lib/utils';
+
+type TabId = 'overview' | 'inventory' | 'pricing' | 'purchasing' | 'bom' | 'sales' | 'documents' | 'audit';
+
+function LoadingSkeleton() {
+  return (
+    <div className="p-4 sm:p-6 xl:p-8">
+      <div className="animate-pulse space-y-6">
+        <div className="h-6 bg-slate-200 rounded w-32" />
+        <div className="flex items-center gap-3">
+          <div className="h-8 bg-slate-200 rounded w-48" />
+          <div className="h-6 bg-slate-200 rounded w-20" />
+        </div>
+        <div className="grid grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-20 bg-slate-200 rounded-lg" />
+          ))}
+        </div>
+        <div className="h-10 bg-slate-200 rounded w-full" />
+        <div className="h-96 bg-slate-200 rounded" />
+      </div>
+    </div>
+  );
+}
 
 export default function InventoryItemDetailPage() {
   const router = useRouter();
@@ -19,38 +48,15 @@ export default function InventoryItemDetailPage() {
 
   const { user, isLoading: authLoading } = useAuthStore();
   const { data: product, isLoading: productLoading, error: productError } = useProductWithInventory(sku);
-  const { data: categories = [] } = useCategories();
-  const updateProduct = useUpdateProduct();
+
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   // Check access
   const isInternal = user && ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'].includes(user.role);
   const canEdit = user && ['ADMIN', 'MANAGER'].includes(user.role);
   const canViewCosts = user && ['ADMIN', 'MANAGER'].includes(user.role);
-
-  // Form state
-  const [formData, setFormData] = useState<Partial<UpdateProductData>>({});
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Initialize form when product loads
-  useEffect(() => {
-    if (product) {
-      setFormData({
-        description: product.description || '',
-        supplierSku: product.supplierSku || '',
-        unitOfMeasure: product.unitOfMeasure || 'EA',
-        productType: product.productType || 'STOCK_ONLY',
-        categoryId: product.categoryId || undefined,
-        subCategoryId: product.subCategoryId || undefined,
-        weight: product.weight || undefined,
-        leadTimeDays: product.leadTimeDays || undefined,
-        defaultReorderPoint: product.defaultReorderPoint || undefined,
-        defaultReorderQty: product.defaultReorderQty || undefined,
-        defaultMinStock: product.defaultMinStock || undefined,
-        defaultMaxStock: product.defaultMaxStock || undefined,
-      });
-    }
-  }, [product]);
+  const canViewPurchasing = user && ['ADMIN', 'MANAGER', 'PURCHASER'].includes(user.role);
+  const canViewSales = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
 
   // Redirect non-internal users
   useEffect(() => {
@@ -59,38 +65,8 @@ export default function InventoryItemDetailPage() {
     }
   }, [user, authLoading, isInternal, router]);
 
-  const handleFieldChange = (field: keyof UpdateProductData, value: unknown) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setIsDirty(true);
-  };
-
-  const handleSave = async () => {
-    if (!product || !canEdit) return;
-
-    setIsSaving(true);
-    try {
-      await updateProduct.mutateAsync({
-        id: product.id,
-        data: formData as UpdateProductData,
-      });
-      setIsDirty(false);
-    } catch (error) {
-      console.error('Failed to save item:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Loading states
   if (authLoading || productLoading) {
-    return (
-      <div className="p-4 sm:p-6 xl:p-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-slate-200 rounded w-48" />
-          <div className="h-96 bg-slate-200 rounded" />
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (!isInternal) {
@@ -107,447 +83,88 @@ export default function InventoryItemDetailPage() {
     );
   }
 
-  // Get category and subcategory (use formData for editable state, fallback to product)
-  const currentCategoryId = formData.categoryId || product.categoryId;
-  const category = categories.find(c => c.id === currentCategoryId);
-  const subCategories = category?.subCategories || [];
-  const currentSubCategoryId = formData.subCategoryId || product.subCategoryId;
-  const subCategory = subCategories.find(s => s.id === currentSubCategoryId);
-
-  // Format price
-  const formatPrice = (price: number | null | undefined) => {
-    if (!price) return '—';
-    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(price);
-  };
-
-  // Item type label
-  const typeLabel = product.productType === 'ASSEMBLY_REQUIRED' ? 'Assembly Required'
-    : product.productType === 'MADE_TO_ORDER' ? 'Made to Order'
-    : product.productType === 'KIT' ? 'Kit'
-    : 'Stock Only';
+  const tabs: { id: TabId; label: string; show: boolean }[] = [
+    { id: 'overview', label: 'Overview', show: true },
+    { id: 'inventory', label: 'Inventory', show: !!isInternal },
+    { id: 'pricing', label: 'Pricing', show: !!canViewCosts },
+    { id: 'purchasing', label: 'Purchasing', show: !!canViewPurchasing },
+    { id: 'bom', label: 'BOM', show: !!isInternal },
+    { id: 'sales', label: 'Sales History', show: !!canViewSales },
+    { id: 'documents', label: 'Documents', show: true },
+    { id: 'audit', label: 'Audit Log', show: !!canViewCosts },
+  ];
 
   return (
-    <>
-      <PageHeader
-        title={product.nusafSku}
-        description={product.description}
-        actions={
-          <div className="flex items-center gap-3">
-            {/* Link to marketing edit if stock item */}
-            {product.productType === 'STOCK_ONLY' && (
-              <Link
-                href={`/catalog/${product.nusafSku}/edit`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Edit Marketing
-              </Link>
-            )}
-            {canEdit && (
-              <button
-                onClick={handleSave}
-                disabled={!isDirty || isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save Changes
-              </button>
-            )}
-          </div>
-        }
-      />
+    <div className="p-4 sm:p-6 xl:p-8 space-y-6">
+      {/* Header */}
+      <ProductDetailHeader product={product} canEdit={!!canEdit} />
 
-      <div className="p-4 sm:p-6 xl:p-8">
-        {/* Back link */}
-        <div className="mb-6">
-          <Link
-            href="/inventory/items"
-            className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Items
-          </Link>
-        </div>
+      {/* Quick Stats */}
+      <QuickStatsBar product={product} canViewCosts={!!canViewCosts} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Basic Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Code</label>
-                  <input
-                    type="text"
-                    value={product.nusafSku}
-                    disabled
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-500 font-mono"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">SKU cannot be changed after creation</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Item Type</label>
-                  {canEdit ? (
-                    <select
-                      value={formData.productType || 'STOCK_ONLY'}
-                      onChange={(e) => handleFieldChange('productType', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="STOCK_ONLY">Stock Only</option>
-                      <option value="ASSEMBLY_REQUIRED">Assembly Required</option>
-                      <option value="MADE_TO_ORDER">Made to Order</option>
-                      <option value="KIT">Kit</option>
-                    </select>
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {typeLabel}
-                    </div>
-                  )}
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                  {canEdit ? (
-                    <input
-                      type="text"
-                      value={formData.description || ''}
-                      onChange={(e) => handleFieldChange('description', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.description || '—'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Unit of Measure</label>
-                  {canEdit ? (
-                    <select
-                      value={formData.unitOfMeasure || 'EA'}
-                      onChange={(e) => handleFieldChange('unitOfMeasure', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      {UOM_SELECT_OPTIONS.map(({ value, label }) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {getUomLabel(product.unitOfMeasure)}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={formData.weight || ''}
-                      onChange={(e) => handleFieldChange('weight', e.target.value ? parseFloat(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="0.00"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.weight ? `${product.weight} kg` : '—'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Supplier & Lead Time */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Supplier & Lead Time</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
-                  <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                    {product.supplier?.name || '—'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Supplier SKU</label>
-                  {canEdit ? (
-                    <input
-                      type="text"
-                      value={formData.supplierSku ?? product.supplierSku ?? ''}
-                      onChange={(e) => handleFieldChange('supplierSku', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono"
-                      placeholder="Supplier's product code"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg font-mono">
-                      {product.supplierSku || '—'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Lead Time (days)</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={formData.leadTimeDays || ''}
-                      onChange={(e) => handleFieldChange('leadTimeDays', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="14"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.leadTimeDays ? `${product.leadTimeDays} days` : '—'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Costs & Pricing - Only for Admin/Manager */}
-            {canViewCosts && (
-              <section className="bg-white rounded-lg border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Costs & Pricing</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Cost Price</label>
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {formatPrice(product.costPrice)}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">List Price</label>
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {formatPrice(product.listPrice)}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Margin</label>
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.costPrice && product.listPrice
-                        ? `${(((product.listPrice - product.costPrice) / product.listPrice) * 100).toFixed(1)}%`
-                        : '—'}
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-xs text-slate-500">
-                  Pricing is managed through supplier imports. Edit in Pricing settings.
-                </p>
-              </section>
-            )}
-
-            {/* Stock Settings */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Stock Settings</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Reorder Point</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={formData.defaultReorderPoint || ''}
-                      onChange={(e) => handleFieldChange('defaultReorderPoint', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="0"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.defaultReorderPoint ?? '—'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Reorder Qty</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={formData.defaultReorderQty || ''}
-                      onChange={(e) => handleFieldChange('defaultReorderQty', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="0"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.defaultReorderQty ?? '—'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Min Stock</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={formData.defaultMinStock || ''}
-                      onChange={(e) => handleFieldChange('defaultMinStock', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="0"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.defaultMinStock ?? '—'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Max Stock</label>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={formData.defaultMaxStock || ''}
-                      onChange={(e) => handleFieldChange('defaultMaxStock', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="0"
-                    />
-                  ) : (
-                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.defaultMaxStock ?? '—'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Per-Warehouse Stock Breakdown */}
-            {product.inventory?.byLocation && (
-              <WarehouseStockTable
-                locations={product.inventory.byLocation}
-                userPrimaryWarehouse={user?.primaryWarehouse ?? null}
-              />
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Item Type Badge */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <div className="text-center">
-                <span className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-full ${
-                  product.productType === 'STOCK_ONLY' ? 'bg-green-100 text-green-800' :
-                  product.productType === 'ASSEMBLY_REQUIRED' ? 'bg-amber-100 text-amber-800' :
-                  product.productType === 'MADE_TO_ORDER' ? 'bg-blue-100 text-blue-800' :
-                  'bg-purple-100 text-purple-800'
-                }`}>
-                  {typeLabel}
-                </span>
-              </div>
-            </section>
-
-            {/* Category */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Category</h3>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-xs text-slate-500">Category</span>
-                  {canEdit ? (
-                    <select
-                      value={formData.categoryId || ''}
-                      onChange={(e) => {
-                        handleFieldChange('categoryId', e.target.value);
-                        handleFieldChange('subCategoryId', undefined);
-                      }}
-                      className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="">Select category...</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-slate-900">{category?.name || '—'}</p>
-                  )}
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500">Subcategory</span>
-                  {canEdit ? (
-                    <select
-                      value={formData.subCategoryId || ''}
-                      onChange={(e) => handleFieldChange('subCategoryId', e.target.value || undefined)}
-                      disabled={!formData.categoryId || subCategories.length === 0}
-                      className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-slate-50 disabled:text-slate-500"
-                    >
-                      <option value="">Select subcategory...</option>
-                      {subCategories.map((sub) => (
-                        <option key={sub.id} value={sub.id}>{sub.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-slate-900">{subCategory?.name || '—'}</p>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Current Stock */}
-            <section className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Current Stock</h3>
-              {(product.inventory || product.stockSummary) ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Available</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      {product.inventory?.available ?? product.stockSummary?.totalAvailable ?? 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Reserved</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      {product.inventory?.reserved ?? 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">On Order</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      {product.inventory?.onOrder ?? 0}
-                    </span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 flex justify-between">
-                    <span className="text-sm font-medium text-slate-700">Total On Hand</span>
-                    <span className="text-sm font-bold text-slate-900">
-                      {product.inventory?.onHand ?? product.stockSummary?.totalOnHand ?? 0}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500">No stock data available</p>
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200">
+        <nav className="flex gap-0" aria-label="Product detail tabs">
+          {tabs.filter(t => t.show).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                activeTab === tab.id
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               )}
-              <Link
-                href="/inventory"
-                className="mt-4 block text-sm text-primary-600 hover:text-primary-700"
-              >
-                View Stock Details →
-              </Link>
-            </section>
-
-            {/* Quick Links */}
-            {product.productType === 'STOCK_ONLY' && (
-              <section className="bg-white rounded-lg border border-slate-200 p-6">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">Quick Links</h3>
-                <div className="space-y-2">
-                  <Link
-                    href={`/catalog/${product.nusafSku}/edit`}
-                    className="block text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    Edit Marketing Content →
-                  </Link>
-                  {product.isActive && (
-                    <a
-                      href={`/products/p/${product.nusafSku}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      View on Website →
-                    </a>
-                  )}
-                </div>
-              </section>
-            )}
-          </div>
-        </div>
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
-    </>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'overview' && (
+          <OverviewTab product={product} canEdit={!!canEdit} />
+        )}
+
+        {activeTab === 'inventory' && (
+          <InventoryTab
+            product={product}
+            userRole={user?.role || 'SALES'}
+            userPrimaryWarehouse={user?.primaryWarehouse ?? null}
+            canAdjustStock={!!canEdit}
+          />
+        )}
+
+        {activeTab === 'pricing' && (
+          <PricingTab product={product} />
+        )}
+
+        {activeTab === 'purchasing' && (
+          <PurchasingTab product={product} />
+        )}
+
+        {activeTab === 'bom' && (
+          <BomTab
+            productId={product.id}
+            productSku={product.nusafSku}
+            canEdit={user?.role === 'ADMIN'}
+          />
+        )}
+
+        {activeTab === 'sales' && (
+          <SalesHistoryTab productId={product.id} />
+        )}
+
+        {activeTab === 'documents' && (
+          <DocumentsTab productId={product.id} canEdit={!!canEdit} />
+        )}
+
+        {activeTab === 'audit' && (
+          <AuditLogTab movements={product.movements || []} />
+        )}
+      </div>
+    </div>
   );
 }

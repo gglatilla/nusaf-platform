@@ -2389,4 +2389,142 @@ router.delete('/:productId/cross-references/:refId', authenticate, requireRole('
   }
 });
 
+/**
+ * GET /api/v1/products/:productId/purchase-history
+ * Get purchase order lines containing this product
+ */
+router.get('/:productId/purchase-history', authenticate, requireRole('ADMIN', 'MANAGER', 'PURCHASER'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+
+    const [lines, total] = await Promise.all([
+      prisma.purchaseOrderLine.findMany({
+        where: { productId },
+        include: {
+          purchaseOrder: {
+            select: {
+              id: true,
+              poNumber: true,
+              status: true,
+              supplierId: true,
+              supplier: { select: { id: true, name: true, code: true } },
+              expectedDate: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { purchaseOrder: { createdAt: 'desc' } },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.purchaseOrderLine.count({ where: { productId } }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: lines.map((line) => ({
+        id: line.id,
+        poId: line.purchaseOrder.id,
+        poNumber: line.purchaseOrder.poNumber,
+        status: line.purchaseOrder.status,
+        supplierName: line.purchaseOrder.supplier.name,
+        supplierCode: line.purchaseOrder.supplier.code,
+        quantityOrdered: line.quantityOrdered,
+        quantityReceived: line.quantityReceived,
+        unitCost: Number(line.unitCost),
+        lineTotal: Number(line.lineTotal),
+        expectedDate: line.purchaseOrder.expectedDate,
+        createdAt: line.purchaseOrder.createdAt,
+      })),
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
+  } catch (error) {
+    console.error('Get purchase history error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'PURCHASE_HISTORY_ERROR', message: 'Failed to fetch purchase history' },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/products/:productId/sales-history
+ * Get sales order lines containing this product
+ */
+router.get('/:productId/sales-history', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+
+    const [lines, total, summary] = await Promise.all([
+      prisma.salesOrderLine.findMany({
+        where: { productId },
+        include: {
+          order: {
+            select: {
+              id: true,
+              orderNumber: true,
+              status: true,
+              companyId: true,
+              company: { select: { id: true, name: true } },
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { order: { createdAt: 'desc' } },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.salesOrderLine.count({ where: { productId } }),
+      prisma.salesOrderLine.aggregate({
+        where: { productId },
+        _sum: { quantityOrdered: true, lineTotal: true },
+        _count: true,
+      }),
+    ]);
+
+    // Count unique customers
+    const uniqueCustomers = await prisma.salesOrderLine.findMany({
+      where: { productId },
+      select: { order: { select: { companyId: true } } },
+      distinct: ['orderId'],
+    });
+    const uniqueCompanyIds = new Set(uniqueCustomers.map((l) => l.order.companyId));
+
+    return res.json({
+      success: true,
+      data: lines.map((line) => ({
+        id: line.id,
+        orderId: line.order.id,
+        orderNumber: line.order.orderNumber,
+        status: line.order.status,
+        companyName: line.order.company.name,
+        companyId: line.order.companyId,
+        quantityOrdered: line.quantityOrdered,
+        quantityPicked: line.quantityPicked,
+        quantityShipped: line.quantityShipped,
+        unitPrice: Number(line.unitPrice),
+        lineTotal: Number(line.lineTotal),
+        createdAt: line.order.createdAt,
+      })),
+      summary: {
+        totalOrders: summary._count,
+        totalUnitsOrdered: summary._sum.quantityOrdered ?? 0,
+        totalRevenue: Number(summary._sum.lineTotal ?? 0),
+        uniqueCustomers: uniqueCompanyIds.size,
+      },
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
+  } catch (error) {
+    console.error('Get sales history error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SALES_HISTORY_ERROR', message: 'Failed to fetch sales history' },
+    });
+  }
+});
+
 export default router;

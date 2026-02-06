@@ -3424,6 +3424,70 @@ class ApiClient {
       `/public/categories/${encodeURIComponent(categorySlug)}/${encodeURIComponent(subCategorySlug)}`
     );
   }
+
+  // ============================================
+  // PRODUCT HISTORY API METHODS
+  // ============================================
+
+  async getProductPurchaseHistory(
+    productId: string,
+    params: { page?: number; pageSize?: number } = {}
+  ): Promise<ApiResponse<{
+    data: Array<{
+      id: string;
+      poId: string;
+      poNumber: string;
+      status: string;
+      supplierName: string;
+      supplierCode: string;
+      quantityOrdered: number;
+      quantityReceived: number;
+      unitCost: number;
+      lineTotal: number;
+      expectedDate: string | null;
+      createdAt: string;
+    }>;
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+    const query = searchParams.toString();
+    return this.request(`/products/${productId}/purchase-history${query ? `?${query}` : ''}`);
+  }
+
+  async getProductSalesHistory(
+    productId: string,
+    params: { page?: number; pageSize?: number } = {}
+  ): Promise<ApiResponse<{
+    data: Array<{
+      id: string;
+      orderId: string;
+      orderNumber: string;
+      status: string;
+      companyName: string;
+      companyId: string;
+      quantityOrdered: number;
+      quantityPicked: number;
+      quantityShipped: number;
+      unitPrice: number;
+      lineTotal: number;
+      createdAt: string;
+    }>;
+    summary: {
+      totalOrders: number;
+      totalUnitsOrdered: number;
+      totalRevenue: number;
+      uniqueCustomers: number;
+    };
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+    const query = searchParams.toString();
+    return this.request(`/products/${productId}/sales-history${query ? `?${query}` : ''}`);
+  }
 }
 
 export class ApiError extends Error {

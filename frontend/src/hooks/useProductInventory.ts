@@ -32,6 +32,48 @@ export function useProductWithInventory(
 }
 
 /**
+ * Hook for fetching product purchase history
+ */
+export function useProductPurchaseHistory(
+  productId: string | null,
+  options: { page?: number; pageSize?: number; enabled?: boolean } = {}
+) {
+  const { page = 1, pageSize = 20, enabled = true } = options;
+
+  return useQuery({
+    queryKey: ['product', productId, 'purchase-history', { page, pageSize }],
+    queryFn: async () => {
+      if (!productId) throw new Error('Product ID is required');
+      const response = await api.getProductPurchaseHistory(productId, { page, pageSize });
+      return response.data;
+    },
+    enabled: !!productId && enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * Hook for fetching product sales history
+ */
+export function useProductSalesHistory(
+  productId: string | null,
+  options: { page?: number; pageSize?: number; enabled?: boolean } = {}
+) {
+  const { page = 1, pageSize = 20, enabled = true } = options;
+
+  return useQuery({
+    queryKey: ['product', productId, 'sales-history', { page, pageSize }],
+    queryFn: async () => {
+      if (!productId) throw new Error('Product ID is required');
+      const response = await api.getProductSalesHistory(productId, { page, pageSize });
+      return response.data;
+    },
+    enabled: !!productId && enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
  * Hook for creating stock adjustments
  */
 export function useCreateStockAdjustment(productId: string) {

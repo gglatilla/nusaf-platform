@@ -1,8 +1,8 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 1A — Fix Product Edit Form ✅ COMPLETE
-## Current Micro-Task: Phase 1A DONE — Next: Phase 1B
-## Status: PHASE 1A COMPLETE
+## Current Phase: Phase 1B — Rebuild Product Detail Page ✅ COMPLETE
+## Current Micro-Task: Phase 1B DONE — Next: Phase 3
+## Status: PHASE 1B COMPLETE
 
 ---
 
@@ -221,17 +221,52 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - Supplier stays read-only on edit page (business rule: changing supplier has cascading pricing effects)
 - `InventoryItemForm.tsx` skipped (orphaned component — exported but never imported by any page)
 
-## Phase 1B: Rebuild Product Detail Page (Item Master)
-- [ ] 1B.1 — Build product detail header + quick stats bar (read-only)
-- [ ] 1B.2 — Build Overview tab (description, specs, attributes, images)
-- [ ] 1B.3 — Build Inventory tab (stock per warehouse, recent movements)
-- [ ] 1B.4 — Build Pricing tab (staff only — rules, tier prices, margins)
-- [ ] 1B.5 — Build Purchasing tab (staff only — suppliers, open POs, history)
-- [ ] 1B.6 — Build BOM tab (staff only — component tree, availability)
-- [ ] 1B.7 — Build Sales History tab (staff only — orders, customers, trends)
-- [ ] 1B.8 — Build Documents tab (datasheets, images, cross-references)
-- [ ] 1B.9 — Build Audit Log tab (staff only — change history, movements)
-- [ ] 1B.10 — Separate Edit page from View page (different routes)
+## Phase 1B: Rebuild Product Detail Page (Item Master) ✅ COMPLETE
+- [x] 1B.10 — Separate Edit page from View page (different routes) ✅
+- [x] 1B.1 — Build product detail header + quick stats bar + tab shell ✅
+- [x] 1B.2 — Build Overview tab (description, specs, attributes, images) ✅
+- [x] 1B.3 — Build Inventory tab (stock per warehouse, recent movements) ✅
+- [x] 1B.4 — Build Pricing tab (staff only — waterfall, tier prices, margins) ✅
+- [x] 1B.5 — Build Purchasing tab (staff only — suppliers, open POs, history) ✅ + backend endpoint
+- [x] 1B.6 — Build BOM tab (staff only — component tree, reuses ProductBomTab) ✅
+- [x] 1B.7 — Build Sales History tab (staff only — orders, customers, summary stats) ✅ + backend endpoint
+- [x] 1B.8 — Build Documents tab (images, documents, with upload/delete) ✅
+- [x] 1B.9 — Build Audit Log tab (staff only — timeline from stock movements) ✅
+
+### Phase 1B Session Notes (2026-02-06)
+
+**Architecture:**
+- View page: `/inventory/items/[sku]` — read-only, 8 tabs, role-based visibility
+- Edit page: `/inventory/items/[sku]/edit` — form for ADMIN/MANAGER only
+- Components: `frontend/src/components/inventory/product-detail/` (10 component files + barrel index)
+
+**New backend endpoints:**
+- `GET /api/v1/products/:productId/purchase-history` — PO lines for product
+- `GET /api/v1/products/:productId/sales-history` — SO lines for product with summary stats
+
+**Tab visibility by role:**
+| Tab | ADMIN/MANAGER | SALES | WAREHOUSE | PURCHASER | CUSTOMER |
+|-----|:---:|:---:|:---:|:---:|:---:|
+| Overview | ✓ | ✓ | ✓ | ✓ | redirected |
+| Inventory | ✓ | ✓ | ✓ | ✓ | redirected |
+| Pricing | ✓ | | | | |
+| Purchasing | ✓ | | | ✓ | |
+| BOM | ✓ | ✓ | ✓ | ✓ | |
+| Sales History | ✓ | ✓ | | | |
+| Documents | ✓ | ✓ | ✓ | ✓ | |
+| Audit Log | ✓ | | | | |
+
+**Key reuse:** WarehouseStockTable, StockOverviewCards, StockMovementsTable, AdjustStockModal, ProductBomTab, ProductImageGallery, ProductDocumentsList — all existing components composed into tabs.
+
+**Files created:**
+- `frontend/src/app/(portal)/inventory/items/[sku]/edit/page.tsx`
+- `frontend/src/components/inventory/product-detail/` (10 files)
+
+**Files modified:**
+- `frontend/src/app/(portal)/inventory/items/[sku]/page.tsx` — complete rewrite
+- `frontend/src/lib/api.ts` — added getProductPurchaseHistory, getProductSalesHistory
+- `frontend/src/hooks/useProductInventory.ts` — added useProductPurchaseHistory, useProductSalesHistory
+- `backend/src/api/v1/products/route.ts` — added 2 new endpoints
 
 ## Phase 3: Document Chain + Status Propagation
 - [ ] 3.1 — Build Sales Order detail page with fulfillment status panel
