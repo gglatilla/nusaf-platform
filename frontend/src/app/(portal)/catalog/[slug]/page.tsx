@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Package, Tag, Building, Ruler, Edit } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
+import { getUomLabel } from '@/lib/constants/unit-of-measure';
 import {
   StockStatusBadge,
   StockOverviewCards,
@@ -210,7 +211,7 @@ export default function ProductDetailPage() {
                     <dt className="text-xs text-slate-500 uppercase">Unit of Measure</dt>
                     <dd>
                       <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-700">
-                        {product.unitOfMeasure}
+                        {getUomLabel(product.unitOfMeasure)}
                       </span>
                     </dd>
                   </div>

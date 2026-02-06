@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { WarehouseStockTable } from '@/components/inventory';
 import type { UpdateProductData } from '@/lib/api';
+import { UOM_SELECT_OPTIONS, getUomLabel } from '@/lib/constants/unit-of-measure';
 
 export default function InventoryItemDetailPage() {
   const router = useRouter();
@@ -36,7 +37,8 @@ export default function InventoryItemDetailPage() {
     if (product) {
       setFormData({
         description: product.description || '',
-        unitOfMeasure: product.unitOfMeasure || 'EACH',
+        supplierSku: product.supplierSku || '',
+        unitOfMeasure: product.unitOfMeasure || 'EA',
         productType: product.productType || 'STOCK_ONLY',
         categoryId: product.categoryId || undefined,
         subCategoryId: product.subCategoryId || undefined,
@@ -105,9 +107,12 @@ export default function InventoryItemDetailPage() {
     );
   }
 
-  // Get category and subcategory names
-  const category = categories.find(c => c.id === product.categoryId);
-  const subCategory = category?.subCategories?.find(s => s.id === product.subCategoryId);
+  // Get category and subcategory (use formData for editable state, fallback to product)
+  const currentCategoryId = formData.categoryId || product.categoryId;
+  const category = categories.find(c => c.id === currentCategoryId);
+  const subCategories = category?.subCategories || [];
+  const currentSubCategoryId = formData.subCategoryId || product.subCategoryId;
+  const subCategory = subCategories.find(s => s.id === currentSubCategoryId);
 
   // Format price
   const formatPrice = (price: number | null | undefined) => {
@@ -223,20 +228,17 @@ export default function InventoryItemDetailPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Unit of Measure</label>
                   {canEdit ? (
                     <select
-                      value={formData.unitOfMeasure || 'EACH'}
+                      value={formData.unitOfMeasure || 'EA'}
                       onChange={(e) => handleFieldChange('unitOfMeasure', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     >
-                      <option value="EACH">Each</option>
-                      <option value="METER">Meter</option>
-                      <option value="KG">Kilogram</option>
-                      <option value="SET">Set</option>
-                      <option value="PAIR">Pair</option>
-                      <option value="BOX">Box</option>
+                      {UOM_SELECT_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
                     </select>
                   ) : (
                     <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg">
-                      {product.unitOfMeasure || 'Each'}
+                      {getUomLabel(product.unitOfMeasure)}
                     </div>
                   )}
                 </div>
@@ -272,9 +274,19 @@ export default function InventoryItemDetailPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Supplier SKU</label>
-                  <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg font-mono">
-                    {product.supplierSku || '—'}
-                  </div>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      value={formData.supplierSku ?? product.supplierSku ?? ''}
+                      onChange={(e) => handleFieldChange('supplierSku', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono"
+                      placeholder="Supplier's product code"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg font-mono">
+                      {product.supplierSku || '—'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Lead Time (days)</label>
@@ -426,14 +438,44 @@ export default function InventoryItemDetailPage() {
             {/* Category */}
             <section className="bg-white rounded-lg border border-slate-200 p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-3">Category</h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div>
                   <span className="text-xs text-slate-500">Category</span>
-                  <p className="text-sm text-slate-900">{category?.name || '—'}</p>
+                  {canEdit ? (
+                    <select
+                      value={formData.categoryId || ''}
+                      onChange={(e) => {
+                        handleFieldChange('categoryId', e.target.value);
+                        handleFieldChange('subCategoryId', undefined);
+                      }}
+                      className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="">Select category...</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-slate-900">{category?.name || '—'}</p>
+                  )}
                 </div>
                 <div>
                   <span className="text-xs text-slate-500">Subcategory</span>
-                  <p className="text-sm text-slate-900">{subCategory?.name || '—'}</p>
+                  {canEdit ? (
+                    <select
+                      value={formData.subCategoryId || ''}
+                      onChange={(e) => handleFieldChange('subCategoryId', e.target.value || undefined)}
+                      disabled={!formData.categoryId || subCategories.length === 0}
+                      className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-slate-50 disabled:text-slate-500"
+                    >
+                      <option value="">Select subcategory...</option>
+                      {subCategories.map((sub) => (
+                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-slate-900">{subCategory?.name || '—'}</p>
+                  )}
                 </div>
               </div>
             </section>

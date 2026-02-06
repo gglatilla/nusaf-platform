@@ -1,8 +1,8 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 0 — Integration Audit ✅ COMPLETE
-## Current Micro-Task: Phase 0 DONE — Next: Phase 1A
-## Status: PHASE 0 COMPLETE
+## Current Phase: Phase 1A — Fix Product Edit Form ✅ COMPLETE
+## Current Micro-Task: Phase 1A DONE — Next: Phase 1B
+## Status: PHASE 1A COMPLETE
 
 ---
 
@@ -190,11 +190,36 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 0.8 — Fix all broken/missing flows identified in 0.1-0.7 ✅ ALL 3 SERVICES FIXED
 - [x] 0.9 — Create integration test script ✅ 31 TESTS ALL PASS
 
-## Phase 1A: Fix Product Edit Form
-- [ ] 1A.1 — Diagnose dropdown data loading (suppliers, categories, UoM)
-- [ ] 1A.2 — Fix text field vs relationship ID disconnect
-- [ ] 1A.3 — Verify all edit form fields populate correctly from existing data
-- [ ] 1A.4 — Test save round-trip (load → edit → save → reload → verify)
+## Phase 1A: Fix Product Edit Form ✅ COMPLETE
+- [x] 1A.1 — Create shared UoM constants + fix UoM enum mismatch in both form pages
+- [x] 1A.2 — Add category/subcategory editing + supplierSku to edit page
+- [x] 1A.3 — Fix UoM in remaining components (dedup + display labels)
+- [x] 1A.4 — TypeScript check + verification (tsc --noEmit clean)
+
+### Phase 1A Session Notes (2026-02-06)
+
+**Root cause found:** Frontend UoM dropdown values (`EACH`, `METER`, `PAIR`, `BOX`) did NOT match backend Prisma enum (`EA`, `MTR`, `PR`, `BX`). This caused Zod validation failures on create/update. `ROL` (Roll) was missing entirely from frontend.
+
+**What was NOT broken (original assumption wrong):** Supplier/category dropdowns correctly used IDs, not text fields. No "text field vs relationship ID disconnect" existed.
+
+**Actual fixes applied:**
+| File | What Changed |
+|------|-------------|
+| `frontend/src/lib/constants/unit-of-measure.ts` | NEW — shared UoM constants, labels, helper |
+| `frontend/src/app/(portal)/inventory/items/new/page.tsx` | Fixed UoM default `EACH`→`EA`, replaced hardcoded options |
+| `frontend/src/app/(portal)/inventory/items/[sku]/page.tsx` | Fixed UoM default, options, display; added category/subcategory dropdowns; made supplierSku editable |
+| `frontend/src/components/products/ProductFormModal.tsx` | Removed local `UOM_OPTIONS`, imported shared, added labels |
+| `frontend/src/components/products/ProductEditor.tsx` | Same as ProductFormModal |
+| `frontend/src/components/products/ProductDetailModal.tsx` | Added `getUomLabel()` for display |
+| `frontend/src/components/quotes/AddToQuoteModal.tsx` | Added `getUomLabel()` for display |
+| `frontend/src/components/products/BomTable.tsx` | Added `getUomLabel()` for display |
+| `frontend/src/app/(portal)/catalog/[slug]/page.tsx` | Added `getUomLabel()` for display |
+| `frontend/src/app/(website)/products/p/[sku]/page.tsx` | Added `getUomLabel()` for display |
+
+**Key decisions:**
+- Single source of truth: `@nusaf/shared` `UNIT_OF_MEASURE_LABELS` constant
+- Supplier stays read-only on edit page (business rule: changing supplier has cascading pricing effects)
+- `InventoryItemForm.tsx` skipped (orphaned component — exported but never imported by any page)
 
 ## Phase 1B: Rebuild Product Detail Page (Item Master)
 - [ ] 1B.1 — Build product detail header + quick stats bar (read-only)

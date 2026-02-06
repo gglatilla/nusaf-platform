@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Trash2, Edit2, Check, X, Layers } from 'lucide-react';
 import { useGetBom, useUpdateBomComponent, useRemoveBomComponent } from '@/hooks/useBom';
 import type { BomItemData } from '@/lib/api';
+import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
 interface BomTableProps {
   productId: string;
@@ -189,7 +190,7 @@ export function BomTable({ productId, canEdit }: BomTableProps) {
 
               {/* Unit */}
               <td className="px-4 py-3 text-center text-sm text-slate-600">
-                {item.unitOverride ?? item.componentProduct.unitOfMeasure}
+                {getUomLabel(item.unitOverride ?? item.componentProduct.unitOfMeasure)}
               </td>
 
               {/* Optional */}

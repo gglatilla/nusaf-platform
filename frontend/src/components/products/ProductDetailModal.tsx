@@ -16,6 +16,7 @@ import { AddToQuoteModal } from '@/components/quotes/AddToQuoteModal';
 import { StockStatusBadge } from '@/components/inventory';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import type { CatalogProduct } from '@/lib/api';
+import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
 interface ProductDetailModalProps {
   product: CatalogProduct | null;
@@ -137,7 +138,7 @@ export function ProductDetailModal({
               </dt>
               <dd>
                 <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-700">
-                  {product.unitOfMeasure}
+                  {getUomLabel(product.unitOfMeasure)}
                 </span>
               </dd>
             </div>

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCreateQuote, useAddQuoteItem } from '@/hooks/useQuotes';
 import type { CatalogProduct } from '@/lib/api';
+import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
 interface AddToQuoteModalProps {
   product: CatalogProduct;
@@ -92,7 +93,7 @@ export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalPro
             <p className="text-sm text-slate-600 mt-1">{product.description}</p>
             {product.price && (
               <p className="text-sm font-semibold text-primary-600 mt-2">
-                {formatCurrency(product.price)} / {product.unitOfMeasure}
+                {formatCurrency(product.price)} / {getUomLabel(product.unitOfMeasure)}
               </p>
             )}
           </div>

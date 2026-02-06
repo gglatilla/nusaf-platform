@@ -18,6 +18,7 @@ import { SpecificationsEditor } from './SpecificationsEditor';
 import { ProductImageGallery } from './ProductImageGallery';
 import { ProductDocumentsList, type ProductDocumentType } from './ProductDocumentsList';
 import { cn } from '@/lib/utils';
+import { UOM_SELECT_OPTIONS } from '@/lib/constants/unit-of-measure';
 
 // Collapsible section component
 function Section({
@@ -96,8 +97,6 @@ const PRODUCT_TYPE_OPTIONS: { value: ProductType; label: string; description: st
   { value: 'MADE_TO_ORDER', label: 'Made to Order', description: 'Manufactured on demand' },
   { value: 'KIT', label: 'Kit', description: 'Collection of items sold together' },
 ];
-
-const UOM_OPTIONS = ['EA', 'MTR', 'KG', 'SET', 'PR', 'ROL', 'BX'];
 
 export interface ProductFormData {
   // Basic
@@ -482,9 +481,9 @@ export function ProductEditor({ product, onSave, isLoading, isCreating }: Produc
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  {UOM_OPTIONS.map((uom) => (
-                    <option key={uom} value={uom}>
-                      {uom}
+                  {UOM_SELECT_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
                     </option>
                   ))}
                 </select>

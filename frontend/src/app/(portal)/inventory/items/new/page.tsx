@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useCreateProduct, useCategories } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAuthStore } from '@/stores/auth-store';
+import { UOM_SELECT_OPTIONS } from '@/lib/constants/unit-of-measure';
 
 interface FormData {
   nusafSku: string;
@@ -31,7 +32,7 @@ const initialFormData: FormData = {
   supplierId: '',
   description: '',
   productType: 'STOCK_ONLY',
-  unitOfMeasure: 'EACH',
+  unitOfMeasure: 'EA',
   categoryId: '',
   subCategoryId: '',
   weight: '',
@@ -237,12 +238,9 @@ export default function NewInventoryItemPage() {
                 onChange={(e) => handleChange('unitOfMeasure', e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="EACH">Each</option>
-                <option value="METER">Meter</option>
-                <option value="KG">Kilogram</option>
-                <option value="SET">Set</option>
-                <option value="PAIR">Pair</option>
-                <option value="BOX">Box</option>
+                {UOM_SELECT_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </div>
             <div>

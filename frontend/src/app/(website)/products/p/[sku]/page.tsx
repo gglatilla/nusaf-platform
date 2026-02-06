@@ -11,6 +11,7 @@ import { ProductMediaViewer, ProductTabs, RelatedProducts } from '@/components/w
 import { ProductJsonLd, BreadcrumbJsonLd, buildProductSchema } from '@/components/seo';
 import { api, PublicProductDetail, PublicProduct } from '@/lib/api';
 import { productUrls } from '@/lib/urls';
+import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
 
@@ -155,7 +156,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               {/* Unit of measure */}
               <div className="flex items-center gap-2 mb-6">
                 <span className="text-sm text-slate-500">Unit:</span>
-                <span className="text-sm font-medium text-slate-700">{product.unitOfMeasure}</span>
+                <span className="text-sm font-medium text-slate-700">{getUomLabel(product.unitOfMeasure)}</span>
               </div>
 
               {/* Pricing message */}
