@@ -1,12 +1,36 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 3 — Document Chain + Status Propagation
-## Current Micro-Task: 3.1 DONE — Next: 3.6 (PO detail page)
-## Status: IN PROGRESS (3.1 complete, 3.2-3.5 already done in Phase 0.8)
+## Current Micro-Task: 3.6 DONE — Next: 3.7 (Fulfillment Dashboard)
+## Status: IN PROGRESS (3.1-3.6 complete, 3.2-3.5 already done in Phase 0.8)
 
 ---
 
 ## Last Session Notes
+### Micro-Task 3.6 — Enhance PO Detail Page with GRV History + Linked Orders (2026-02-06)
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Created 4 new components in `components/purchase-orders/po-detail/`
+- Added PO status pipeline steps (Draft → Approval → Sent → Acknowledged → Receiving → Received)
+- Added receiving progress bar with stats (ordered/received/outstanding + rejected warning)
+- Enhanced GRV section with per-GRV quantities received/rejected, better layout
+- Added sidebar Timeline with full audit trail (created, approved, rejected, sent, received events)
+- Enhanced POLineTable: product SKUs are clickable links to `/inventory/items/[sku]`, per-line receiving progress bars, SO linkage indicator
+- Integrated `usePurchaseOrderReceivingSummary` hook (existed but was unused)
+- Added cancelled status banner
+
+**Files created:**
+- `frontend/src/components/purchase-orders/po-detail/POPipelineSteps.tsx`
+- `frontend/src/components/purchase-orders/po-detail/POReceivingProgress.tsx`
+- `frontend/src/components/purchase-orders/po-detail/GoodsReceiptsSection.tsx`
+- `frontend/src/components/purchase-orders/po-detail/PONotesSection.tsx`
+- `frontend/src/components/purchase-orders/po-detail/index.ts`
+
+**Files modified:**
+- `frontend/src/components/purchase-orders/POLineTable.tsx` — clickable SKU links, per-line progress bars
+- `frontend/src/app/(portal)/purchase-orders/[id]/page.tsx` — integrated all new components
+
 ### Micro-Task 3.1 — Enhance Sales Order Detail Page with Fulfillment Status Panel (2026-02-06)
 **Result: COMPLETE — All changes compile cleanly**
 
@@ -312,7 +336,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 3.3 — Implement job card completion → stock + order status update ✅ (done in Phase 0.8)
 - [x] 3.4 — Implement transfer completion → stock + order status update ✅ (done in Phase 0.8)
 - [x] 3.5 — Implement GRV → PO status + stock update propagation ✅ (done in Phase 0.1)
-- [ ] 3.6 — Build PO detail page with GRV history + linked orders
+- [x] 3.6 — Build PO detail page with GRV history + linked orders ✅
 - [ ] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts)
 - [ ] 3.8 — Add timeline/activity log to Sales Order page
 - [ ] 3.9 — Multi-warehouse fulfillment orchestration (auto picking slip splitting + transfer requests)

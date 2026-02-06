@@ -14,6 +14,7 @@ import {
   MapPin,
   Package,
   Send,
+  ShoppingCart,
   ThumbsDown,
   ThumbsUp,
   X,
@@ -21,6 +22,7 @@ import {
 import {
   usePurchaseOrder,
   usePurchaseOrderGrvs,
+  usePurchaseOrderReceivingSummary,
   useSubmitPurchaseOrder,
   useApprovePurchaseOrder,
   useRejectPurchaseOrder,
@@ -31,6 +33,12 @@ import {
 } from '@/hooks/usePurchaseOrders';
 import { POStatusBadge } from '@/components/purchase-orders/POStatusBadge';
 import { POLineTable } from '@/components/purchase-orders/POLineTable';
+import {
+  POPipelineSteps,
+  POReceivingProgress,
+  GoodsReceiptsSection,
+  PONotesSection,
+} from '@/components/purchase-orders/po-detail';
 import { ReceiveGoodsModal } from '@/components/goods-receipts/ReceiveGoodsModal';
 import type { SupplierCurrency } from '@/lib/api';
 
@@ -61,6 +69,7 @@ function LoadingSkeleton() {
         <div className="h-6 w-6 bg-slate-200 rounded" />
         <div className="h-8 bg-slate-200 rounded w-48" />
       </div>
+      <div className="h-16 bg-slate-200 rounded-lg" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-4">
           <div className="h-48 bg-slate-200 rounded-lg" />
@@ -78,6 +87,7 @@ export default function PurchaseOrderDetailPage() {
 
   const { data: po, isLoading, error } = usePurchaseOrder(poId);
   const { data: grvs } = usePurchaseOrderGrvs(poId);
+  const { data: receivingSummary } = usePurchaseOrderReceivingSummary(poId);
 
   const submit = useSubmitPurchaseOrder();
   const approve = useApprovePurchaseOrder();
@@ -112,25 +122,16 @@ export default function PurchaseOrderDetailPage() {
   const isDraft = po.status === 'DRAFT';
   const isPendingApproval = po.status === 'PENDING_APPROVAL';
   const isSent = po.status === 'SENT';
-  const isAcknowledged = po.status === 'ACKNOWLEDGED';
   const canReceive = ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED'].includes(po.status);
-
-  // Actions visibility
-  // PURCHASER can submit for approval (DRAFT -> PENDING_APPROVAL)
   const canSubmit = isDraft;
-  // ADMIN/MANAGER can approve (PENDING_APPROVAL -> approve or DRAFT -> send directly)
   const canApprove = isPendingApproval;
   const canReject = isPendingApproval;
-  // ADMIN/MANAGER can send directly from DRAFT, or after approval
   const canSend = isDraft || isPendingApproval;
-  // Can acknowledge after sent
   const canAcknowledge = isSent;
-  // Can cancel in early stages
   const canCancel = ['DRAFT', 'PENDING_APPROVAL'].includes(po.status);
-  // Can download PDF anytime
-  const canDownloadPdf = true;
 
-  const hasGrvs = grvs && grvs.length > 0;
+  // Show receiving progress for POs that have been sent or beyond
+  const showReceivingProgress = ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED'].includes(po.status);
 
   const handleSubmit = async () => {
     if (window.confirm('Submit this purchase order for approval?')) {
@@ -189,22 +190,25 @@ export default function PurchaseOrderDetailPage() {
             </div>
             <p className="text-sm text-slate-600">
               Created on {formatDate(po.createdAt)}
+              {po.supplier && (
+                <span className="ml-2">
+                  · Supplier: <span className="font-medium">{po.supplier.name}</span>
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {canDownloadPdf && (
-            <button
-              onClick={handleDownloadPdf}
-              disabled={downloadPdf.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-50 disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" />
-              {downloadPdf.isPending ? 'Downloading...' : 'Download PDF'}
-            </button>
-          )}
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloadPdf.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-50 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {downloadPdf.isPending ? 'Downloading...' : 'PDF'}
+          </button>
 
           {canReceive && (
             <button
@@ -265,7 +269,7 @@ export default function PurchaseOrderDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 disabled:opacity-50"
             >
               <Check className="h-4 w-4" />
-              {acknowledge.isPending ? 'Acknowledging...' : 'Mark Acknowledged'}
+              {acknowledge.isPending ? 'Acknowledging...' : 'Acknowledged'}
             </button>
           )}
 
@@ -293,65 +297,44 @@ export default function PurchaseOrderDetailPage() {
         </div>
       )}
 
+      {/* Cancelled Banner */}
+      {po.status === 'CANCELLED' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-red-50 border-red-200 text-red-700">
+          <X className="h-5 w-5 flex-shrink-0" />
+          <p className="text-sm font-medium">This purchase order has been cancelled</p>
+        </div>
+      )}
+
+      {/* Status Pipeline */}
+      <POPipelineSteps status={po.status} />
+
+      {/* Receiving Progress */}
+      {showReceivingProgress && receivingSummary && (
+        <POReceivingProgress summary={receivingSummary} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Line Items */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Order Lines</h2>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              Order Lines
+              <span className="text-sm font-normal text-slate-500 ml-2">
+                {po.lines.length} item{po.lines.length !== 1 ? 's' : ''}
+              </span>
+            </h2>
             <POLineTable lines={po.lines} currency={po.currency} />
           </div>
 
-          {/* Goods Receipts Section */}
-          {hasGrvs && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Goods Receipts</h2>
-              <div className="space-y-3">
-                {grvs.map((grv) => (
-                  <div
-                    key={grv.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/goods-receipts/${grv.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        {grv.grvNumber}
-                      </Link>
-                      <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                        <MapPin className="h-4 w-4 text-slate-400" />
-                        {getLocationLabel(grv.location)}
-                      </span>
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      <span>{formatDate(grv.receivedAt)}</span>
-                      <span className="ml-2">by {grv.receivedByName}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Goods Receipts */}
+          <GoodsReceiptsSection grvs={grvs || []} />
 
           {/* Notes */}
-          {(po.supplierNotes || po.internalNotes) && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Notes</h2>
-              {po.supplierNotes && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-slate-700 mb-1">Supplier Notes</h3>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{po.supplierNotes}</p>
-                </div>
-              )}
-              {po.internalNotes && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-1">Internal Notes</h3>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{po.internalNotes}</p>
-                </div>
-              )}
-            </div>
-          )}
+          <PONotesSection
+            supplierNotes={po.supplierNotes}
+            internalNotes={po.internalNotes}
+          />
         </div>
 
         {/* Sidebar */}
@@ -360,6 +343,10 @@ export default function PurchaseOrderDetailPage() {
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Summary</h2>
             <dl className="space-y-3">
+              <div className="flex justify-between">
+                <dt className="text-sm text-slate-600">Lines</dt>
+                <dd className="text-sm font-medium text-slate-900">{po.lines.length}</dd>
+              </div>
               <div className="flex justify-between">
                 <dt className="text-sm text-slate-600">Subtotal</dt>
                 <dd className="text-sm font-medium text-slate-900">
@@ -428,16 +415,74 @@ export default function PurchaseOrderDetailPage() {
 
               {po.sourceOrderId && (
                 <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                  <ShoppingCart className="h-5 w-5 text-slate-400 flex-shrink-0" />
                   <div>
                     <dt className="text-xs text-slate-500 uppercase">Source Order</dt>
-                    <dd className="text-sm text-primary-600">
-                      <Link href={`/orders/${po.sourceOrderId}`}>View Order</Link>
+                    <dd>
+                      <Link
+                        href={`/orders/${po.sourceOrderId}`}
+                        className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                      >
+                        View Sales Order
+                      </Link>
                     </dd>
                   </div>
                 </div>
               )}
             </dl>
+          </div>
+
+          {/* Audit Trail */}
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Timeline</h2>
+            <div className="space-y-3">
+              <TimelineEntry
+                label="Created"
+                date={po.createdAt}
+              />
+              {po.approvedAt && (
+                <TimelineEntry
+                  label="Approved"
+                  date={po.approvedAt}
+                />
+              )}
+              {po.rejectedAt && (
+                <TimelineEntry
+                  label="Rejected"
+                  date={po.rejectedAt}
+                  detail={po.rejectionReason || undefined}
+                  variant="red"
+                />
+              )}
+              {po.sentAt && (
+                <TimelineEntry
+                  label="Sent to Supplier"
+                  date={po.sentAt}
+                />
+              )}
+              {grvs && grvs.length > 0 && grvs.map((grv) => (
+                <TimelineEntry
+                  key={grv.id}
+                  label={`Received: ${grv.grvNumber}`}
+                  date={grv.receivedAt}
+                  detail={`${grv.lines.reduce((s, l) => s + l.quantityReceived, 0)} units at ${getLocationLabel(grv.location)}`}
+                  variant="green"
+                />
+              ))}
+              {po.status === 'RECEIVED' && (
+                <TimelineEntry
+                  label="Fully Received"
+                  date={po.updatedAt}
+                  variant="green"
+                />
+              )}
+              {po.status === 'CLOSED' && (
+                <TimelineEntry
+                  label="Closed"
+                  date={po.updatedAt}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -536,6 +581,37 @@ export default function PurchaseOrderDetailPage() {
         poNumber={po.poNumber}
         deliveryLocation={po.deliveryLocation}
       />
+    </div>
+  );
+}
+
+// --- Timeline Entry sub-component ---
+
+function TimelineEntry({
+  label,
+  date,
+  detail,
+  variant = 'default',
+}: {
+  label: string;
+  date: string;
+  detail?: string;
+  variant?: 'default' | 'green' | 'red';
+}) {
+  const dotColor = {
+    default: 'bg-slate-400',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+  }[variant];
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`} />
+      <div className="min-w-0">
+        <p className="text-sm text-slate-700">{label}</p>
+        <p className="text-xs text-slate-500">{formatDate(date)}</p>
+        {detail && <p className="text-xs text-slate-500 mt-0.5">{detail}</p>}
+      </div>
     </div>
   );
 }
