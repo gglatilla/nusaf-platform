@@ -1,8 +1,8 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 0 — Integration Audit
-## Current Micro-Task: 0.7
-## Status: IN PROGRESS
+## Current Micro-Task: 0.8
+## Status: NOT STARTED
 
 ---
 
@@ -106,6 +106,35 @@
 
 **Files examined:** `backend/src/services/quote.service.ts`, `backend/src/services/inventory.service.ts`
 
+### Micro-Task 0.7 — Audit Sales Order → Reservation Flow (2026-02-06)
+**Result: ALL 3 CHECKS PASS — No fixes needed**
+
+| Check | Result | Location |
+|-------|--------|----------|
+| (a) Convert SOFT→HARD on order creation | PASS | order.service.ts:342 (release soft) + 345-357 (create hard) |
+| (b) Create HARD reservations with referenceType='SalesOrder' | PASS | order.service.ts:351 (referenceType: 'SalesOrder') |
+| (c) StockLevel.hardReserved updated | PASS | inventory.service.ts:1319-1325 (updateStockLevel with hardReserved delta) |
+
+**Additional:** createHardReservation() validates available stock, full Prisma $transaction, cancelOrder() releases reservations via releaseReservationsByReference(). Reservation conversion is outside order creation transaction (minor concern, same as 0.6).
+
+**Files examined:** `backend/src/services/order.service.ts`, `backend/src/services/inventory.service.ts`
+
+---
+
+## Phase 0 Audit Summary
+
+| Flow | Result | Fix in 0.8? |
+|------|--------|-------------|
+| 0.1 GRV → Stock | ✅ ALL PASS | No |
+| 0.2 Picking Slip → Stock | ❌ ALL 5 FAIL | YES — rewrite completePicking() |
+| 0.3 Job Card → Stock | ❌ ALL 5 FAIL | YES — rewrite completeJobCard() |
+| 0.4 Transfer Request → Stock | ❌ 4/5 FAIL | YES — rewrite shipTransfer() + receiveTransfer() |
+| 0.5 Stock Adjustment → Stock | ✅ ALL PASS | No |
+| 0.6 Quote → Reservation | ✅ ALL PASS | No |
+| 0.7 Sales Order → Reservation | ✅ ALL PASS | No |
+
+**3 services need fixes in 0.8:** picking-slip, job-card, transfer-request
+
 ---
 
 ## Phase 0: Integration Audit (Foundation)
@@ -115,7 +144,7 @@
 - [x] 0.4 — Audit Transfer Request → Stock flow ❌ 4 of 5 FAIL
 - [x] 0.5 — Audit Stock Adjustment → Stock flow ✅ ALL PASS
 - [x] 0.6 — Audit Quote → Reservation flow ✅ ALL PASS
-- [ ] 0.7 — Audit Sales Order → Reservation flow
+- [x] 0.7 — Audit Sales Order → Reservation flow ✅ ALL PASS
 - [ ] 0.8 — Fix all broken/missing flows identified in 0.1-0.7
 - [ ] 0.9 — Create integration test script that verifies all 7 flows
 
