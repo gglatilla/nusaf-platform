@@ -1,5 +1,74 @@
 # Nusaf Platform
 
+⚠️ MANDATORY STARTUP SEQUENCE — READ BEFORE ANY WORK
+
+When starting a new session or when user says "lets begin", "continue", "next task", or "go":
+
+1. Read `.claude/plans/erp-progress.md` — find the current micro-task
+2. Read `.claude/plans/erp-execution-framework.md` — find that micro-task's full specification
+3. Read the GOLDEN RULES section below (every single time, no exceptions)
+4. Tell the user: current phase, current micro-task, what will be done, estimated scope
+5. Recite all 8 golden rules to prove you read them
+6. WAIT for user confirmation before writing any code
+
+## ⚠️ GOLDEN RULES — READ BEFORE EVERY MICRO-TASK (NON-NEGOTIABLE)
+
+These rules apply to ALL code written during ERP remediation. Violating any rule means the micro-task FAILS verification.
+
+1. EVERY stock change MUST create a StockMovement record with a reference to the source document. No exceptions.
+
+2. EVERY document must link to its parent document(s). A picking slip must reference its sales order. A GRV must reference its PO. A PO must reference its triggering demand.
+
+3. View pages and Edit pages are SEPARATE. View is read-only, rich, and information-dense. Edit is a form. They are different pages with different URLs.
+
+4. Customer-facing pages must NEVER show: cost prices, supplier information, BOMs, stock quantities (only availability badges), other customers' data, internal operational documents.
+
+5. Staff-facing pages must show rich context: when viewing a product, show stock levels, pricing, suppliers, BOM, recent movements. When viewing an order, show all related documents and their statuses.
+
+6. Status changes must propagate. When a child document is completed, the parent document must be updated accordingly. Build this as event-driven logic, not manual updates.
+
+7. No feature is complete without:
+   - Proper data loading (edit forms must populate from existing data)
+   - Role-based visibility (different users see different things)
+   - Linked navigation (every reference to another document is a clickable link)
+   - Audit trail (who did what, when, with document reference)
+
+8. Test every feature from the perspective of:
+   - A warehouse worker processing incoming goods
+   - A purchaser creating and managing POs
+   - A sales person managing quotes and orders
+   - A customer browsing products and tracking orders
+   - A manager reviewing operations and approving actions
+
+## ⚠️ AFTER EVERY MICRO-TASK — MANDATORY VERIFICATION
+
+Before marking any micro-task complete, run this checklist:
+
+```
+□ Rule 1: Any stock changes create StockMovement records? (N/A if no stock changes)
+□ Rule 2: Any documents link to parent documents? (N/A if no documents)
+□ Rule 3: Separate view/edit pages? (N/A if no UI)
+□ Rule 4: No internal data visible to customers? (Must be NO)
+□ Rule 5: Staff sees rich context?
+□ Rule 6: Status changes propagate? (N/A if no status changes)
+□ Rule 7: Forms load existing data? References are clickable? Audit trail exists?
+□ Rule 8: Works for warehouse/purchaser/sales/customer/manager?
+□ Code compiles without errors
+□ No TypeScript type errors
+□ erp-progress.md updated
+```
+
+## ⚠️ WHEN USER SAYS "SAVE"
+
+1. Update `.claude/plans/erp-progress.md`:
+   - Mark micro-task complete (or note stopping point)
+   - Set next micro-task
+   - Write "Last Session Notes" with: what was done, decisions made, issues found, files modified
+2. `git add . && git commit -m "ERP-[phase]-[task]: [description]. Next: [next task]"`
+3. `git push`
+4. Confirm to user: "Saved. Next session starts at micro-task [X.X]."
+
+
 ## Project Overview
 
 B2B web application for Nusaf Dynamic Technologies — conveyor components, power transmission, and industrial supplies. South Africa based (Johannesburg HQ, Cape Town, Mbombela).
