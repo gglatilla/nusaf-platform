@@ -1,7 +1,7 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 0 — Integration Audit
-## Current Micro-Task: 0.6
+## Current Micro-Task: 0.7
 ## Status: IN PROGRESS
 
 ---
@@ -91,6 +91,21 @@
 
 **Files examined:** `backend/src/services/inventory.service.ts`
 
+### Micro-Task 0.6 — Audit Quote → Reservation Flow (2026-02-06)
+**Result: ALL 3 CHECKS PASS — No fixes needed**
+
+| Check | Result | Location |
+|-------|--------|----------|
+| (a) StockReservation type=SOFT | PASS | inventory.service.ts:1232 (reservationType: 'SOFT') |
+| (b) StockLevel.softReserved increased | PASS | inventory.service.ts:1243-1249 (updateStockLevel with softReserved delta) |
+| (c) Linked to quote (referenceType='Quote') | PASS | quote.service.ts:456-458 (referenceType, referenceId, referenceNumber) |
+
+**Additional:** createSoftReservation() within Prisma $transaction, expiresAt set from 30-day validity, rejectQuote() releases reservations via releaseReservationsByReference().
+
+**Minor concern:** Quote status update and reservation creation are separate transactions — potential for orphaned state on partial failure. Not critical.
+
+**Files examined:** `backend/src/services/quote.service.ts`, `backend/src/services/inventory.service.ts`
+
 ---
 
 ## Phase 0: Integration Audit (Foundation)
@@ -99,7 +114,7 @@
 - [x] 0.3 — Audit Job Card → Stock flow ❌ ALL 5 FAIL
 - [x] 0.4 — Audit Transfer Request → Stock flow ❌ 4 of 5 FAIL
 - [x] 0.5 — Audit Stock Adjustment → Stock flow ✅ ALL PASS
-- [ ] 0.6 — Audit Quote → Reservation flow
+- [x] 0.6 — Audit Quote → Reservation flow ✅ ALL PASS
 - [ ] 0.7 — Audit Sales Order → Reservation flow
 - [ ] 0.8 — Fix all broken/missing flows identified in 0.1-0.7
 - [ ] 0.9 — Create integration test script that verifies all 7 flows
