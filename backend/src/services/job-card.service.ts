@@ -1,5 +1,6 @@
 import { Prisma, JobCardStatus, JobType } from '@prisma/client';
 import { prisma } from '../config/database';
+import { updateStockLevel, createStockMovement } from './inventory.service';
 
 /**
  * Valid status transitions for job cards
@@ -449,10 +450,15 @@ export async function resumeJobCard(
 
 /**
  * Complete job - change status from IN_PROGRESS to COMPLETE
+ * Within a single transaction:
+ * - Creates MANUFACTURE_IN movement for the finished product (+onHand)
+ * - Creates MANUFACTURE_OUT movements for each BOM component (-onHand)
+ * - Propagates status to the parent SalesOrder
+ * Manufacturing always happens at JHB (only manufacturing location).
  */
 export async function completeJobCard(
   id: string,
-  _userId: string,
+  userId: string,
   companyId: string
 ): Promise<{ success: boolean; error?: string }> {
   const jobCard = await prisma.jobCard.findFirst({
@@ -470,15 +476,120 @@ export async function completeJobCard(
     return { success: false, error: `Cannot complete a job card with status ${jobCard.status}` };
   }
 
-  await prisma.jobCard.update({
-    where: { id },
-    data: {
-      status: 'COMPLETE',
-      completedAt: new Date(),
-    },
-  });
+  // Manufacturing always happens at JHB
+  const manufacturingLocation = 'JHB' as const;
 
-  return { success: true };
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark job card as COMPLETE
+      await tx.jobCard.update({
+        where: { id },
+        data: {
+          status: 'COMPLETE',
+          completedAt: new Date(),
+        },
+      });
+
+      // 2. Finished product: increase onHand + create MANUFACTURE_IN movement
+      const finishedLevel = await updateStockLevel(
+        tx,
+        jobCard.productId,
+        manufacturingLocation,
+        { onHand: jobCard.quantity },
+        userId
+      );
+
+      await createStockMovement(tx, {
+        productId: jobCard.productId,
+        location: manufacturingLocation,
+        movementType: 'MANUFACTURE_IN',
+        quantity: jobCard.quantity,
+        balanceAfter: finishedLevel.onHand,
+        referenceType: 'JobCard',
+        referenceId: jobCard.id,
+        referenceNumber: jobCard.jobCardNumber,
+        notes: `Manufactured for order ${jobCard.orderNumber}`,
+        createdBy: userId,
+      });
+
+      // 3. BOM components: decrease onHand + create MANUFACTURE_OUT movements
+      const bomItems = await tx.bomItem.findMany({
+        where: {
+          parentProductId: jobCard.productId,
+          isOptional: false,
+        },
+      });
+
+      for (const bom of bomItems) {
+        const consumedQty = Math.ceil(bom.quantity.toNumber() * jobCard.quantity);
+        if (consumedQty <= 0) continue;
+
+        const componentLevel = await updateStockLevel(
+          tx,
+          bom.componentProductId,
+          manufacturingLocation,
+          { onHand: -consumedQty },
+          userId
+        );
+
+        await createStockMovement(tx, {
+          productId: bom.componentProductId,
+          location: manufacturingLocation,
+          movementType: 'MANUFACTURE_OUT',
+          quantity: consumedQty,
+          balanceAfter: componentLevel.onHand,
+          referenceType: 'JobCard',
+          referenceId: jobCard.id,
+          referenceNumber: jobCard.jobCardNumber,
+          notes: `Component consumed for ${jobCard.productSku} (order ${jobCard.orderNumber})`,
+          createdBy: userId,
+        });
+      }
+
+      // 4. Propagate status to SalesOrder
+      const allJobCards = await tx.jobCard.findMany({
+        where: { orderId: jobCard.orderId },
+        select: { status: true },
+      });
+
+      const allPickingSlips = await tx.pickingSlip.findMany({
+        where: { orderId: jobCard.orderId },
+        select: { status: true },
+      });
+
+      const allJobsComplete = allJobCards.every((jc) => jc.status === 'COMPLETE');
+      const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE');
+
+      const order = await tx.salesOrder.findUnique({
+        where: { id: jobCard.orderId },
+        select: { status: true },
+      });
+
+      if (order) {
+        if (allJobsComplete && allPickingComplete) {
+          if (order.status === 'CONFIRMED' || order.status === 'PROCESSING') {
+            await tx.salesOrder.update({
+              where: { id: jobCard.orderId },
+              data: { status: 'READY_TO_SHIP' },
+            });
+          }
+        } else if (order.status === 'CONFIRMED') {
+          await tx.salesOrder.update({
+            where: { id: jobCard.orderId },
+            data: { status: 'PROCESSING' },
+          });
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Complete job card error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to complete job card',
+    };
+  }
 }
 
 /**

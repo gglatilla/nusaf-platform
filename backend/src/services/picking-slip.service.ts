@@ -1,5 +1,6 @@
 import { Prisma, PickingSlipStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
+import { updateStockLevel, createStockMovement } from './inventory.service';
 
 /**
  * Valid status transitions for picking slips
@@ -404,11 +405,15 @@ export async function updateLinePicked(
 
 /**
  * Complete picking - change status from IN_PROGRESS to COMPLETE
- * Validates that all lines have been picked
+ * Validates that all lines have been picked, then within a single transaction:
+ * - Creates ISSUE stock movements for each picked line
+ * - Decreases onHand at the picking location
+ * - Releases hard reservations for the parent SalesOrder
+ * - Propagates status to the parent SalesOrder
  */
 export async function completePicking(
   id: string,
-  _userId: string,
+  userId: string,
   companyId: string
 ): Promise<{ success: boolean; error?: string }> {
   const pickingSlip = await prisma.pickingSlip.findFirst({
@@ -438,15 +443,122 @@ export async function completePicking(
     };
   }
 
-  await prisma.pickingSlip.update({
-    where: { id },
-    data: {
-      status: 'COMPLETE',
-      completedAt: new Date(),
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark picking slip as COMPLETE
+      await tx.pickingSlip.update({
+        where: { id },
+        data: {
+          status: 'COMPLETE',
+          completedAt: new Date(),
+        },
+      });
 
-  return { success: true };
+      // 2. For each line: decrease onHand + create ISSUE movement
+      for (const line of pickingSlip.lines) {
+        if (line.quantityPicked <= 0) continue;
+
+        const newLevel = await updateStockLevel(
+          tx,
+          line.productId,
+          pickingSlip.location,
+          { onHand: -line.quantityPicked },
+          userId
+        );
+
+        await createStockMovement(tx, {
+          productId: line.productId,
+          location: pickingSlip.location,
+          movementType: 'ISSUE',
+          quantity: line.quantityPicked,
+          balanceAfter: newLevel.onHand,
+          referenceType: 'PickingSlip',
+          referenceId: pickingSlip.id,
+          referenceNumber: pickingSlip.pickingSlipNumber,
+          notes: `Picked for order ${pickingSlip.orderNumber}`,
+          createdBy: userId,
+        });
+      }
+
+      // 3. Release hard reservations for the picked products on this order
+      for (const line of pickingSlip.lines) {
+        if (line.quantityPicked <= 0) continue;
+
+        const reservations = await tx.stockReservation.findMany({
+          where: {
+            referenceType: 'SalesOrder',
+            referenceId: pickingSlip.orderId,
+            productId: line.productId,
+            location: pickingSlip.location,
+            reservationType: 'HARD',
+            releasedAt: null,
+          },
+        });
+
+        for (const reservation of reservations) {
+          await tx.stockReservation.update({
+            where: { id: reservation.id },
+            data: {
+              releasedAt: new Date(),
+              releasedBy: userId,
+              releaseReason: `Fulfilled by picking slip ${pickingSlip.pickingSlipNumber}`,
+            },
+          });
+
+          await updateStockLevel(
+            tx,
+            reservation.productId,
+            reservation.location,
+            { hardReserved: -reservation.quantity },
+            userId
+          );
+        }
+      }
+
+      // 4. Propagate status to SalesOrder
+      const allPickingSlips = await tx.pickingSlip.findMany({
+        where: { orderId: pickingSlip.orderId },
+        select: { status: true },
+      });
+
+      const allJobCards = await tx.jobCard.findMany({
+        where: { orderId: pickingSlip.orderId },
+        select: { status: true },
+      });
+
+      const allPickingComplete = allPickingSlips.every((ps) => ps.status === 'COMPLETE');
+      const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE');
+
+      const order = await tx.salesOrder.findUnique({
+        where: { id: pickingSlip.orderId },
+        select: { status: true },
+      });
+
+      if (order) {
+        if (allPickingComplete && allJobsComplete) {
+          if (order.status === 'CONFIRMED' || order.status === 'PROCESSING') {
+            await tx.salesOrder.update({
+              where: { id: pickingSlip.orderId },
+              data: { status: 'READY_TO_SHIP' },
+            });
+          }
+        } else if (order.status === 'CONFIRMED') {
+          await tx.salesOrder.update({
+            where: { id: pickingSlip.orderId },
+            data: { status: 'PROCESSING' },
+          });
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Complete picking error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to complete picking',
+    };
+  }
 }
 
 /**

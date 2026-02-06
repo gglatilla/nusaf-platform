@@ -595,7 +595,7 @@ export async function getLowStockProducts(location?: Warehouse) {
 /**
  * Internal: Update stock level (creates if doesn't exist)
  */
-async function updateStockLevel(
+export async function updateStockLevel(
   tx: Prisma.TransactionClient,
   productId: string,
   location: Warehouse,
@@ -672,7 +672,7 @@ async function updateStockLevel(
 /**
  * Internal: Create a stock movement record
  */
-async function createStockMovement(
+export async function createStockMovement(
   tx: Prisma.TransactionClient,
   data: {
     productId: string;

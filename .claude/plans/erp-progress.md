@@ -1,7 +1,7 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 0 — Integration Audit
-## Current Micro-Task: 0.8
+## Current Micro-Task: 0.9
 ## Status: NOT STARTED
 
 ---
@@ -135,6 +135,30 @@
 
 **3 services need fixes in 0.8:** picking-slip, job-card, transfer-request
 
+### Micro-Task 0.8 — Fix All Broken/Missing Flows (2026-02-06)
+**Result: ALL 3 SERVICES FIXED — TypeScript compiles cleanly**
+
+**Approach:** Exported `updateStockLevel` and `createStockMovement` helpers from `inventory.service.ts` and reused them in all 3 services to ensure consistent stock operations within Prisma transactions.
+
+| Service | Function | What was added |
+|---------|----------|----------------|
+| picking-slip.service.ts | `completePicking()` | ISSUE movements, onHand decrease, hard reservation release, SalesOrder status propagation |
+| job-card.service.ts | `completeJobCard()` | MANUFACTURE_IN for finished product (+onHand), MANUFACTURE_OUT per BOM component (-onHand), SalesOrder status propagation. Manufacturing location hardcoded to JHB. |
+| transfer-request.service.ts | `shipTransfer()` | TRANSFER_OUT movements, onHand decrease at source |
+| transfer-request.service.ts | `receiveTransfer()` | TRANSFER_IN movements, onHand increase at destination (using receivedQuantity) |
+
+**Key decisions:**
+- Manufacturing always at JHB (only manufacturing location per business rules)
+- BOM component consumption uses `Math.ceil(bomItem.quantity * jobQty)` for fractional BOM quantities
+- SalesOrder propagation: CONFIRMED→PROCESSING (partial fulfillment), PROCESSING→READY_TO_SHIP (all picking+jobs complete)
+- Reservation release happens per-product per-location, matching HARD reservations linked to the SalesOrder
+
+**Files modified:**
+- `backend/src/services/inventory.service.ts` — exported `updateStockLevel` and `createStockMovement`
+- `backend/src/services/picking-slip.service.ts` — rewrote `completePicking()` (~90 lines added)
+- `backend/src/services/job-card.service.ts` — rewrote `completeJobCard()` (~100 lines added)
+- `backend/src/services/transfer-request.service.ts` — rewrote `shipTransfer()` and `receiveTransfer()` (~70 lines each)
+
 ---
 
 ## Phase 0: Integration Audit (Foundation)
@@ -145,7 +169,7 @@
 - [x] 0.5 — Audit Stock Adjustment → Stock flow ✅ ALL PASS
 - [x] 0.6 — Audit Quote → Reservation flow ✅ ALL PASS
 - [x] 0.7 — Audit Sales Order → Reservation flow ✅ ALL PASS
-- [ ] 0.8 — Fix all broken/missing flows identified in 0.1-0.7
+- [x] 0.8 — Fix all broken/missing flows identified in 0.1-0.7 ✅ ALL 3 SERVICES FIXED
 - [ ] 0.9 — Create integration test script that verifies all 7 flows
 
 ## Phase 1A: Fix Product Edit Form

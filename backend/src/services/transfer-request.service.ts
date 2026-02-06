@@ -1,5 +1,6 @@
 import { Prisma, TransferRequestStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
+import { updateStockLevel, createStockMovement } from './inventory.service';
 
 /**
  * Valid status transitions for transfer requests
@@ -375,6 +376,9 @@ export async function getTransferRequestsForOrder(
 
 /**
  * Ship transfer - change status from PENDING to IN_TRANSIT
+ * Within a single transaction:
+ * - Creates TRANSFER_OUT movements for each line at the source warehouse
+ * - Decreases onHand at the source warehouse
  */
 export async function shipTransfer(
   id: string,
@@ -387,6 +391,9 @@ export async function shipTransfer(
       id,
       companyId,
     },
+    include: {
+      lines: true,
+    },
   });
 
   if (!transferRequest) {
@@ -397,17 +404,54 @@ export async function shipTransfer(
     return { success: false, error: `Cannot ship a transfer request with status ${transferRequest.status}` };
   }
 
-  await prisma.transferRequest.update({
-    where: { id },
-    data: {
-      status: 'IN_TRANSIT',
-      shippedAt: new Date(),
-      shippedBy: userId,
-      shippedByName: userName,
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark transfer as IN_TRANSIT
+      await tx.transferRequest.update({
+        where: { id },
+        data: {
+          status: 'IN_TRANSIT',
+          shippedAt: new Date(),
+          shippedBy: userId,
+          shippedByName: userName,
+        },
+      });
 
-  return { success: true };
+      // 2. For each line: decrease onHand at source + create TRANSFER_OUT movement
+      for (const line of transferRequest.lines) {
+        if (line.quantity <= 0) continue;
+
+        const newLevel = await updateStockLevel(
+          tx,
+          line.productId,
+          transferRequest.fromLocation,
+          { onHand: -line.quantity },
+          userId
+        );
+
+        await createStockMovement(tx, {
+          productId: line.productId,
+          location: transferRequest.fromLocation,
+          movementType: 'TRANSFER_OUT',
+          quantity: line.quantity,
+          balanceAfter: newLevel.onHand,
+          referenceType: 'TransferRequest',
+          referenceId: transferRequest.id,
+          referenceNumber: transferRequest.transferNumber,
+          notes: `Transfer to ${transferRequest.toLocation}${transferRequest.orderNumber ? ` for order ${transferRequest.orderNumber}` : ''}`,
+          createdBy: userId,
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Ship transfer error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to ship transfer',
+    };
+  }
 }
 
 /**
@@ -466,6 +510,9 @@ export async function updateLineReceived(
 
 /**
  * Receive transfer - change status from IN_TRANSIT to RECEIVED
+ * Within a single transaction:
+ * - Creates TRANSFER_IN movements for each line at the destination warehouse
+ * - Increases onHand at the destination warehouse (using receivedQuantity)
  */
 export async function receiveTransfer(
   id: string,
@@ -491,7 +538,7 @@ export async function receiveTransfer(
     return { success: false, error: `Cannot receive a transfer request with status ${transferRequest.status}` };
   }
 
-  // Check if all lines have been received (allow partial for now, just require some input)
+  // Check if all lines have been received (require some input for each line)
   const unreceived = transferRequest.lines.find((line) => line.receivedQuantity === 0);
   if (unreceived) {
     return {
@@ -500,17 +547,54 @@ export async function receiveTransfer(
     };
   }
 
-  await prisma.transferRequest.update({
-    where: { id },
-    data: {
-      status: 'RECEIVED',
-      receivedAt: new Date(),
-      receivedBy: userId,
-      receivedByName: userName,
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark transfer as RECEIVED
+      await tx.transferRequest.update({
+        where: { id },
+        data: {
+          status: 'RECEIVED',
+          receivedAt: new Date(),
+          receivedBy: userId,
+          receivedByName: userName,
+        },
+      });
 
-  return { success: true };
+      // 2. For each line: increase onHand at destination + create TRANSFER_IN movement
+      for (const line of transferRequest.lines) {
+        if (line.receivedQuantity <= 0) continue;
+
+        const newLevel = await updateStockLevel(
+          tx,
+          line.productId,
+          transferRequest.toLocation,
+          { onHand: line.receivedQuantity },
+          userId
+        );
+
+        await createStockMovement(tx, {
+          productId: line.productId,
+          location: transferRequest.toLocation,
+          movementType: 'TRANSFER_IN',
+          quantity: line.receivedQuantity,
+          balanceAfter: newLevel.onHand,
+          referenceType: 'TransferRequest',
+          referenceId: transferRequest.id,
+          referenceNumber: transferRequest.transferNumber,
+          notes: `Received from ${transferRequest.fromLocation}${transferRequest.orderNumber ? ` for order ${transferRequest.orderNumber}` : ''}`,
+          createdBy: userId,
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Receive transfer error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to receive transfer',
+    };
+  }
 }
 
 /**
