@@ -354,6 +354,11 @@ export async function getTransferRequestsForOrder(
   transferNumber: string;
   status: TransferRequestStatus;
   lineCount: number;
+  fromLocation: Warehouse;
+  toLocation: Warehouse;
+  createdAt: Date;
+  shippedAt: Date | null;
+  receivedAt: Date | null;
 }>> {
   const transferRequests = await prisma.transferRequest.findMany({
     where: {
@@ -371,6 +376,11 @@ export async function getTransferRequestsForOrder(
     transferNumber: tr.transferNumber,
     status: tr.status,
     lineCount: tr._count.lines,
+    fromLocation: tr.fromLocation,
+    toLocation: tr.toLocation,
+    createdAt: tr.createdAt,
+    shippedAt: tr.shippedAt,
+    receivedAt: tr.receivedAt,
   }));
 }
 

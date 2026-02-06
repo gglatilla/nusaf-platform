@@ -573,6 +573,10 @@ export async function getPickingSlipsForOrder(
   location: Warehouse;
   status: PickingSlipStatus;
   lineCount: number;
+  assignedToName: string | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
 }>> {
   const pickingSlips = await prisma.pickingSlip.findMany({
     where: {
@@ -591,6 +595,10 @@ export async function getPickingSlipsForOrder(
     location: ps.location,
     status: ps.status,
     lineCount: ps._count.lines,
+    assignedToName: ps.assignedToName,
+    createdAt: ps.createdAt,
+    startedAt: ps.startedAt,
+    completedAt: ps.completedAt,
   }));
 }
 

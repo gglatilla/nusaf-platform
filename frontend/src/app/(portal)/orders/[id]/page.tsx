@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, MapPin, Wrench, Truck, Boxes } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes } from 'lucide-react';
 import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
@@ -11,13 +11,18 @@ import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
+import {
+  FulfillmentPipelineSteps,
+  FulfillmentStatsBar,
+  FulfillmentProgressBar,
+  PickingSlipsSection,
+  JobCardsSection,
+  TransferRequestsSection,
+  OrderNotesSection,
+} from '@/components/orders/order-detail';
 import { GeneratePickingSlipModal } from '@/components/picking-slips/GeneratePickingSlipModal';
-import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipStatusBadge';
 import { CreateJobCardModal } from '@/components/job-cards/CreateJobCardModal';
-import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
-import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
 import { CreateTransferRequestModal } from '@/components/transfer-requests/CreateTransferRequestModal';
-import { TransferRequestStatusBadge } from '@/components/transfer-requests/TransferRequestStatusBadge';
 import { OrderDocumentsSection } from '@/components/documents';
 import { FulfillmentPlanModal } from '@/components/fulfillment/FulfillmentPlanModal';
 
@@ -30,10 +35,6 @@ function formatDate(dateString: string | null): string {
   }).format(new Date(dateString));
 }
 
-function getLocationLabel(location: string): string {
-  return location === 'JHB' ? 'Johannesburg' : 'Cape Town';
-}
-
 function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -41,8 +42,14 @@ function LoadingSkeleton() {
         <div className="h-6 w-6 bg-slate-200 rounded" />
         <div className="h-8 bg-slate-200 rounded w-48" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-4">
+      <div className="h-16 bg-slate-200 rounded-lg" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-20 bg-slate-200 rounded-lg" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
           <div className="h-48 bg-slate-200 rounded-lg" />
           <div className="h-32 bg-slate-200 rounded-lg" />
         </div>
@@ -54,7 +61,6 @@ function LoadingSkeleton() {
 
 export default function OrderDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const orderId = params.id as string;
 
   const { data: order, isLoading, error } = useOrder(orderId);
@@ -97,20 +103,9 @@ export default function OrderDetailPage() {
   const canHold = ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status);
   const canRelease = order.status === 'ON_HOLD';
   const canCancel = ['DRAFT', 'CONFIRMED', 'PROCESSING', 'ON_HOLD'].includes(order.status);
-
-  // Can generate picking slips if order is CONFIRMED and no picking slips exist yet
-  const hasPickingSlips = pickingSlips && pickingSlips.length > 0;
-  const canGeneratePickingSlips = order.status === 'CONFIRMED' && !hasPickingSlips;
-
-  // Can create job cards if order is CONFIRMED or PROCESSING
-  const hasJobCards = jobCards && jobCards.length > 0;
+  const canGeneratePickingSlips = order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
   const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
-
-  // Can create transfer requests if order is CONFIRMED or PROCESSING
-  const hasTransferRequests = transferRequests && transferRequests.length > 0;
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
-
-  // Can generate fulfillment plan if order is CONFIRMED
   const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
 
   const handleConfirm = async () => {
@@ -148,10 +143,7 @@ export default function OrderDetailPage() {
     quantityToPick: number;
     location: 'JHB' | 'CT';
   }>) => {
-    await generatePickingSlips.mutateAsync({
-      orderId,
-      data: { lines },
-    });
+    await generatePickingSlips.mutateAsync({ orderId, data: { lines } });
     setShowGeneratePickingSlipModal(false);
   };
 
@@ -177,17 +169,14 @@ export default function OrderDetailPage() {
     productDescription: string;
     quantity: number;
   }>) => {
-    await generateTransferRequest.mutateAsync({
-      orderId,
-      data: { lines },
-    });
+    await generateTransferRequest.mutateAsync({ orderId, data: { lines } });
     setShowCreateTransferRequestModal(false);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <Link href="/orders" className="text-slate-400 hover:text-slate-600">
             <ArrowLeft className="h-5 w-5" />
@@ -199,52 +188,53 @@ export default function OrderDetailPage() {
             </div>
             <p className="text-sm text-slate-600">
               Created on {formatDate(order.createdAt)}
+              {order.fulfillmentType !== 'STOCK_ONLY' && (
+                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+                  {order.fulfillmentType === 'ASSEMBLY_REQUIRED' ? 'Assembly Required' : 'Mixed'}
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {canGenerateFulfillmentPlan && (
             <button
               onClick={() => setShowFulfillmentPlanModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
             >
               <Boxes className="h-4 w-4" />
-              Generate Fulfillment Plan
+              Fulfillment Plan
             </button>
           )}
-
           {canGeneratePickingSlips && (
             <button
               onClick={() => setShowGeneratePickingSlipModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
             >
               <ClipboardList className="h-4 w-4" />
-              Generate Picking Slips
+              Picking Slips
             </button>
           )}
-
           {canCreateJobCard && (
             <button
               onClick={() => setShowCreateJobCardModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700"
             >
               <Wrench className="h-4 w-4" />
-              Create Job Card
+              Job Card
             </button>
           )}
-
           {canCreateTransferRequest && (
             <button
               onClick={() => setShowCreateTransferRequestModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
             >
               <Truck className="h-4 w-4" />
-              Create Transfer
+              Transfer
             </button>
           )}
-
           {canConfirm && (
             <button
               onClick={handleConfirm}
@@ -252,20 +242,18 @@ export default function OrderDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50"
             >
               <Check className="h-4 w-4" />
-              {confirm.isPending ? 'Confirming...' : 'Confirm Order'}
+              {confirm.isPending ? 'Confirming...' : 'Confirm'}
             </button>
           )}
-
           {canHold && (
             <button
               onClick={() => setShowHoldModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-600 text-sm font-medium rounded-md hover:bg-amber-50"
             >
               <Pause className="h-4 w-4" />
-              Put on Hold
+              Hold
             </button>
           )}
-
           {canRelease && (
             <button
               onClick={handleRelease}
@@ -273,23 +261,22 @@ export default function OrderDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
-              {release.isPending ? 'Releasing...' : 'Release Hold'}
+              {release.isPending ? 'Releasing...' : 'Release'}
             </button>
           )}
-
           {canCancel && (
             <button
               onClick={() => setShowCancelModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-md hover:bg-red-50"
             >
               <X className="h-4 w-4" />
-              Cancel Order
+              Cancel
             </button>
           )}
         </div>
       </div>
 
-      {/* Hold Reason Banner */}
+      {/* Hold / Cancel Banners */}
       {order.status === 'ON_HOLD' && order.holdReason && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-amber-50 border-amber-200 text-amber-700">
           <Pause className="h-5 w-5 flex-shrink-0" />
@@ -299,8 +286,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Cancel Reason Banner */}
       {order.status === 'CANCELLED' && order.cancelReason && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-red-50 border-red-200 text-red-700">
           <X className="h-5 w-5 flex-shrink-0" />
@@ -311,124 +296,37 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {/* Fulfillment Pipeline Steps (full width) */}
+      <FulfillmentPipelineSteps orderStatus={order.status} />
+
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Line Items */}
+          {/* Fulfillment Stats + Progress */}
+          <FulfillmentStatsBar lines={order.lines} />
+          <FulfillmentProgressBar lines={order.lines} />
+
+          {/* Order Lines */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Order Lines</h2>
             <OrderLineTable lines={order.lines} />
           </div>
 
-          {/* Picking Slips Section */}
-          {hasPickingSlips && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Picking Slips</h2>
-              <div className="space-y-3">
-                {pickingSlips.map((slip) => (
-                  <div
-                    key={slip.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/picking-slips/${slip.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        {slip.pickingSlipNumber}
-                      </Link>
-                      <PickingSlipStatusBadge status={slip.status} />
-                      <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                        <MapPin className="h-4 w-4 text-slate-400" />
-                        {getLocationLabel(slip.location)}
-                      </span>
-                    </div>
-                    <span className="text-sm text-slate-500">{slip.lineCount} line{slip.lineCount !== 1 ? 's' : ''}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Job Cards Section */}
-          {hasJobCards && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Job Cards</h2>
-              <div className="space-y-3">
-                {jobCards.map((jc) => (
-                  <div
-                    key={jc.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/job-cards/${jc.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        {jc.jobCardNumber}
-                      </Link>
-                      <JobCardStatusBadge status={jc.status} />
-                      <JobTypeBadge jobType={jc.jobType} />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-slate-600">{jc.productSku}</span>
-                      <span className="text-sm text-slate-500">Qty: {jc.quantity}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Transfer Requests Section */}
-          {hasTransferRequests && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Transfer Requests</h2>
-              <div className="space-y-3">
-                {transferRequests.map((tr) => (
-                  <div
-                    key={tr.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/transfer-requests/${tr.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        {tr.transferNumber}
-                      </Link>
-                      <TransferRequestStatusBadge status={tr.status} />
-                    </div>
-                    <span className="text-sm text-slate-500">{tr.lineCount} line{tr.lineCount !== 1 ? 's' : ''}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Fulfillment Documents */}
+          <PickingSlipsSection pickingSlips={pickingSlips ?? []} />
+          <JobCardsSection jobCards={jobCards ?? []} />
+          <TransferRequestsSection transferRequests={transferRequests ?? []} />
 
           {/* Notes */}
-          {(order.customerNotes || order.internalNotes) && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Notes</h2>
-              {order.customerNotes && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-slate-700 mb-1">Customer Notes</h3>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{order.customerNotes}</p>
-                </div>
-              )}
-              {order.internalNotes && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-1">Internal Notes</h3>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{order.internalNotes}</p>
-                </div>
-              )}
-            </div>
-          )}
+          <OrderNotesSection
+            customerNotes={order.customerNotes}
+            internalNotes={order.internalNotes}
+          />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Totals */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Summary</h2>
             <OrderTotals
@@ -439,7 +337,6 @@ export default function OrderDetailPage() {
             />
           </div>
 
-          {/* Details */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Details</h2>
             <dl className="space-y-3">
@@ -531,11 +428,7 @@ export default function OrderDetailPage() {
             </dl>
           </div>
 
-          {/* Documents Section */}
-          <OrderDocumentsSection
-            orderId={orderId}
-            orderNumber={order.orderNumber}
-          />
+          <OrderDocumentsSection orderId={orderId} orderNumber={order.orderNumber} />
         </div>
       </div>
 
@@ -610,7 +503,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* Generate Picking Slip Modal */}
+      {/* Modals */}
       <GeneratePickingSlipModal
         isOpen={showGeneratePickingSlipModal}
         onClose={() => setShowGeneratePickingSlipModal(false)}
@@ -618,8 +511,6 @@ export default function OrderDetailPage() {
         onGenerate={handleGeneratePickingSlips}
         isGenerating={generatePickingSlips.isPending}
       />
-
-      {/* Create Job Card Modal */}
       <CreateJobCardModal
         isOpen={showCreateJobCardModal}
         onClose={() => setShowCreateJobCardModal(false)}
@@ -627,8 +518,6 @@ export default function OrderDetailPage() {
         onCreateJobCard={handleCreateJobCard}
         isCreating={createJobCard.isPending}
       />
-
-      {/* Create Transfer Request Modal */}
       <CreateTransferRequestModal
         isOpen={showCreateTransferRequestModal}
         onClose={() => setShowCreateTransferRequestModal(false)}
@@ -636,8 +525,6 @@ export default function OrderDetailPage() {
         onCreateTransfer={handleCreateTransferRequest}
         isCreating={generateTransferRequest.isPending}
       />
-
-      {/* Fulfillment Plan Modal */}
       <FulfillmentPlanModal
         isOpen={showFulfillmentPlanModal}
         onClose={() => setShowFulfillmentPlanModal(false)}

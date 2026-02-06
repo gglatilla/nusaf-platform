@@ -1,58 +1,54 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Phase 1B: Rebuild Product Detail Page (Item Master) ✅ COMPLETE
+ERP Remediation — Phase 3: Document Chain + Status Propagation
 
 ## Status
-COMPLETE | All 10 micro-tasks done
+IN_PROGRESS | 3.1 complete, 3.2-3.5 already done, next: 3.6
 
 ## Completed Micro-tasks
-- [x] 1B.10 — Extract Edit page to /inventory/items/[sku]/edit
-- [x] 1B.1 — Build product detail header + quick stats bar + tab shell
-- [x] 1B.2 — Build Overview tab
-- [x] 1B.3 — Build Inventory tab
-- [x] 1B.4 — Build Pricing tab
-- [x] 1B.5 — Build Purchasing tab + backend endpoint
-- [x] 1B.6 — Build BOM tab
-- [x] 1B.7 — Build Sales History tab + backend endpoint
-- [x] 1B.8 — Build Documents tab
-- [x] 1B.9 — Build Audit Log tab
+- [x] 3.1 — Enhance Sales Order detail page with fulfillment status panel
+- [x] 3.2 — Picking slip → order status (Phase 0.8)
+- [x] 3.3 — Job card → stock + order status (Phase 0.8)
+- [x] 3.4 — Transfer → stock + order status (Phase 0.8)
+- [x] 3.5 — GRV → PO status + stock (Phase 0.1)
+- [ ] 3.6 — Build PO detail page with GRV history + linked orders
+- [ ] 3.7 — Build Fulfillment Dashboard
+- [ ] 3.8 — Add timeline/activity log to Sales Order page
+- [ ] 3.9 — Multi-warehouse fulfillment orchestration
 
 ## Files Created
-- `frontend/src/app/(portal)/inventory/items/[sku]/edit/page.tsx`
-- `frontend/src/components/inventory/product-detail/index.ts`
-- `frontend/src/components/inventory/product-detail/ProductDetailHeader.tsx`
-- `frontend/src/components/inventory/product-detail/QuickStatsBar.tsx`
-- `frontend/src/components/inventory/product-detail/OverviewTab.tsx`
-- `frontend/src/components/inventory/product-detail/InventoryTab.tsx`
-- `frontend/src/components/inventory/product-detail/PricingTab.tsx`
-- `frontend/src/components/inventory/product-detail/PurchasingTab.tsx`
-- `frontend/src/components/inventory/product-detail/BomTab.tsx`
-- `frontend/src/components/inventory/product-detail/SalesHistoryTab.tsx`
-- `frontend/src/components/inventory/product-detail/DocumentsTab.tsx`
-- `frontend/src/components/inventory/product-detail/AuditLogTab.tsx`
+- `frontend/src/components/orders/order-detail/FulfillmentPipelineSteps.tsx`
+- `frontend/src/components/orders/order-detail/FulfillmentStatsBar.tsx`
+- `frontend/src/components/orders/order-detail/FulfillmentProgressBar.tsx`
+- `frontend/src/components/orders/order-detail/PickingSlipsSection.tsx`
+- `frontend/src/components/orders/order-detail/JobCardsSection.tsx`
+- `frontend/src/components/orders/order-detail/TransferRequestsSection.tsx`
+- `frontend/src/components/orders/order-detail/OrderNotesSection.tsx`
+- `frontend/src/components/orders/order-detail/index.ts`
 
 ## Files Modified
-- `frontend/src/app/(portal)/inventory/items/[sku]/page.tsx` — complete rewrite to view-only tabbed page
-- `frontend/src/lib/api.ts` — added getProductPurchaseHistory, getProductSalesHistory
-- `frontend/src/hooks/useProductInventory.ts` — added useProductPurchaseHistory, useProductSalesHistory
-- `backend/src/api/v1/products/route.ts` — added purchase-history and sales-history endpoints
+- `backend/src/services/picking-slip.service.ts` — enriched getPickingSlipsForOrder
+- `backend/src/services/job-card.service.ts` — enriched getJobCardsForOrder
+- `backend/src/services/transfer-request.service.ts` — enriched getTransferRequestsForOrder
+- `frontend/src/lib/api/types/orders.ts` — updated summary interfaces
+- `frontend/src/lib/api.ts` — updated duplicate summary interfaces
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — restructured with fulfillment panel
 
 ## Decisions Made
-- 1B.10 done first to avoid breaking edit during view page rebuild
-- 8 tabs with role-based visibility (ADMIN sees all, CUSTOMER redirected)
-- Audit log composed from existing stock movements (no new AuditLog model)
-- BOM tab reuses ProductBomTab directly (thin wrapper)
-- Documents tab uses existing ProductImageGallery + ProductDocumentsList with hooks
+- Kept flat layout (no tabs) — orders don't have 8+ distinct sections like products
+- Enriched existing endpoints instead of creating new composite endpoint
+- Client-side fulfillment stats computed from order.lines (no backend needed)
+- Pipeline steps derived from order.status (not document states) since Phase 0.8 ensures propagation
 
-## Next Steps
-Phase 1B COMPLETE. Next phase is Phase 3: Document Chain + Status Propagation
-- 3.1 — Build Sales Order detail page with fulfillment status panel
-- 3.2 — Implement picking slip completion → order status update
-- ... (9 micro-tasks total)
+## Next Steps (Exact)
+1. Micro-task 3.6 — Build PO detail page with GRV history + linked orders
+2. Micro-task 3.7 — Build Fulfillment Dashboard
+3. Micro-task 3.8 — Add timeline/activity log to Sales Order page
+4. Micro-task 3.9 — Multi-warehouse fulfillment orchestration
 
 ## Context for Next Session
-- Product detail page now has 8 tabs at /inventory/items/[sku]
-- Edit page separated to /inventory/items/[sku]/edit (ADMIN/MANAGER only)
-- 2 new backend endpoints: /products/:id/purchase-history, /products/:id/sales-history
+- Order detail page now has fulfillment pipeline steps, stats bar, progress bar
+- 8 new components in `components/orders/order-detail/`
+- Backend enriched to return assignee, dates, locations on fulfillment document summaries
 - Progress tracker: `.claude/plans/erp-progress.md`

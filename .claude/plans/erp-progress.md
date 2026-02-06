@@ -1,12 +1,50 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 1B — Rebuild Product Detail Page ✅ COMPLETE
-## Current Micro-Task: Phase 1B DONE — Next: Phase 3
-## Status: PHASE 1B COMPLETE
+## Current Phase: Phase 3 — Document Chain + Status Propagation
+## Current Micro-Task: 3.1 DONE — Next: 3.6 (PO detail page)
+## Status: IN PROGRESS (3.1 complete, 3.2-3.5 already done in Phase 0.8)
 
 ---
 
 ## Last Session Notes
+### Micro-Task 3.1 — Enhance Sales Order Detail Page with Fulfillment Status Panel (2026-02-06)
+**Result: COMPLETE — All changes compile cleanly**
+
+**What was done:**
+- Enriched 3 backend summary endpoints (picking slips, job cards, transfer requests) to return richer data: assignee names, dates, locations
+- Updated frontend types in both `api/types/orders.ts` and `api.ts`
+- Built 3 new fulfillment panel components: `FulfillmentPipelineSteps` (horizontal step indicator), `FulfillmentStatsBar` (picked/shipped/delivered stats), `FulfillmentProgressBar` (stacked line status bar)
+- Extracted 4 inline sections into reusable components: `PickingSlipsSection`, `JobCardsSection`, `TransferRequestsSection`, `OrderNotesSection`
+- Restructured the order detail page: reduced from 649 lines to ~375 lines, integrated all new components
+
+**Backend enrichments:**
+| Service | Added Fields |
+|---------|-------------|
+| picking-slip.service.ts | assignedToName, createdAt, startedAt, completedAt |
+| job-card.service.ts | assignedToName, createdAt, startedAt, completedAt |
+| transfer-request.service.ts | fromLocation, toLocation, createdAt, shippedAt, receivedAt |
+
+**Files created:**
+- `frontend/src/components/orders/order-detail/FulfillmentPipelineSteps.tsx`
+- `frontend/src/components/orders/order-detail/FulfillmentStatsBar.tsx`
+- `frontend/src/components/orders/order-detail/FulfillmentProgressBar.tsx`
+- `frontend/src/components/orders/order-detail/PickingSlipsSection.tsx`
+- `frontend/src/components/orders/order-detail/JobCardsSection.tsx`
+- `frontend/src/components/orders/order-detail/TransferRequestsSection.tsx`
+- `frontend/src/components/orders/order-detail/OrderNotesSection.tsx`
+- `frontend/src/components/orders/order-detail/index.ts`
+
+**Files modified:**
+- `backend/src/services/picking-slip.service.ts` — enriched getPickingSlipsForOrder()
+- `backend/src/services/job-card.service.ts` — enriched getJobCardsForOrder()
+- `backend/src/services/transfer-request.service.ts` — enriched getTransferRequestsForOrder()
+- `frontend/src/lib/api/types/orders.ts` — updated summary interfaces
+- `frontend/src/lib/api.ts` — updated duplicate summary interfaces
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — restructured with new components
+
+**Note:** Micro-tasks 3.2-3.5 were already completed in Phase 0.8 (backend status propagation logic). Next task is 3.6 (PO detail page).
+
+
 ### Micro-Task 0.1 — Audit GRV → Stock Flow (2026-02-06)
 **Result: ALL 6 CHECKS PASS — No fixes needed**
 
@@ -269,11 +307,11 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - `backend/src/api/v1/products/route.ts` — added 2 new endpoints
 
 ## Phase 3: Document Chain + Status Propagation
-- [ ] 3.1 — Build Sales Order detail page with fulfillment status panel
-- [ ] 3.2 — Implement picking slip completion → order status update
-- [ ] 3.3 — Implement job card completion → stock + order status update
-- [ ] 3.4 — Implement transfer completion → stock + order status update
-- [ ] 3.5 — Implement GRV → PO status + stock update propagation
+- [x] 3.1 — Build Sales Order detail page with fulfillment status panel ✅
+- [x] 3.2 — Implement picking slip completion → order status update ✅ (done in Phase 0.8)
+- [x] 3.3 — Implement job card completion → stock + order status update ✅ (done in Phase 0.8)
+- [x] 3.4 — Implement transfer completion → stock + order status update ✅ (done in Phase 0.8)
+- [x] 3.5 — Implement GRV → PO status + stock update propagation ✅ (done in Phase 0.1)
 - [ ] 3.6 — Build PO detail page with GRV history + linked orders
 - [ ] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts)
 - [ ] 3.8 — Add timeline/activity log to Sales Order page

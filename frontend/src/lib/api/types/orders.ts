@@ -282,6 +282,10 @@ export interface OrderPickingSlipSummary {
   location: Warehouse;
   status: PickingSlipStatus;
   lineCount: number;
+  assignedToName: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 // Job Card types
@@ -360,8 +364,14 @@ export interface OrderJobCardSummary {
   id: string;
   jobCardNumber: string;
   productSku: string;
+  productDescription: string;
+  quantity: number;
   jobType: JobType;
   status: JobCardStatus;
+  assignedToName: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 // Transfer Request types
@@ -441,6 +451,18 @@ export interface GenerateTransferRequestsData {
 export interface GenerateTransferRequestsResponse {
   transferRequests: Array<{ id: string; requestNumber: string }>;
   errors?: string[];
+}
+
+export interface OrderTransferRequestSummary {
+  id: string;
+  transferNumber: string;
+  status: TransferRequestStatus;
+  lineCount: number;
+  fromLocation: Warehouse;
+  toLocation: Warehouse;
+  createdAt: string;
+  shippedAt: string | null;
+  receivedAt: string | null;
 }
 
 // Issue Flag types

@@ -272,6 +272,10 @@ export async function getJobCardsForOrder(
   quantity: number;
   jobType: JobType;
   status: JobCardStatus;
+  assignedToName: string | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
 }>> {
   const jobCards = await prisma.jobCard.findMany({
     where: {
@@ -289,6 +293,10 @@ export async function getJobCardsForOrder(
     quantity: jc.quantity,
     jobType: jc.jobType,
     status: jc.status,
+    assignedToName: jc.assignedToName,
+    createdAt: jc.createdAt,
+    startedAt: jc.startedAt,
+    completedAt: jc.completedAt,
   }));
 }
 
