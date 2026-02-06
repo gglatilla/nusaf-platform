@@ -1,7 +1,7 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 0 — Integration Audit
-## Current Micro-Task: 0.3
+## Current Micro-Task: 0.4
 ## Status: IN PROGRESS
 
 ---
@@ -40,12 +40,31 @@
 
 **Files examined:** `backend/src/services/picking-slip.service.ts`, `backend/prisma/schema.prisma`
 
+### Micro-Task 0.3 — Audit Job Card → Stock Flow (2026-02-06)
+**Result: ALL 5 CHECKS FAIL — completeJobCard() is status-only, no stock integration**
+
+| Check | Result | Location |
+|-------|--------|----------|
+| (a) StockMovement type=MANUFACTURE_IN for finished product | FAIL | job-card.service.ts:453-482 — not implemented |
+| (b) StockMovement type=MANUFACTURE_OUT for BOM components | FAIL | not implemented — service has no BomItem awareness |
+| (c) StockLevel.onHand increase for finished product | FAIL | not implemented |
+| (d) StockLevel.onHand decrease for consumed components | FAIL | not implemented |
+| (e) referenceType='JOB_CARD' + referenceId on all movements | FAIL | not implemented |
+
+**Root cause:** `completeJobCard()` only sets `status: 'COMPLETE'` + `completedAt` (lines 473-479). No Prisma transaction, no stock operations, no BOM component lookup, no parent order update. Identical pattern to picking slip (0.2).
+
+**BOM model status:** `BomItem` model exists (schema.prisma:1463) with parentProductId, componentProductId, quantity — data structure is ready for the fix.
+
+**Fix needed in 0.8:** Rewrite `completeJobCard()` with full transaction: lookup BOM via BomItem, create MANUFACTURE_IN for finished product (+onHand), create MANUFACTURE_OUT per component (-onHand scaled by job quantity), propagate to SalesOrder.
+
+**Files examined:** `backend/src/services/job-card.service.ts`, `backend/src/api/v1/job-cards/route.ts`, `backend/src/utils/validation/job-cards.ts`, `backend/prisma/schema.prisma`
+
 ---
 
 ## Phase 0: Integration Audit (Foundation)
 - [x] 0.1 — Audit GRV → Stock flow ✅ ALL PASS
 - [x] 0.2 — Audit Picking Slip → Stock flow ❌ ALL 5 FAIL
-- [ ] 0.3 — Audit Job Card → Stock flow
+- [x] 0.3 — Audit Job Card → Stock flow ❌ ALL 5 FAIL
 - [ ] 0.4 — Audit Transfer Request → Stock flow
 - [ ] 0.5 — Audit Stock Adjustment → Stock flow
 - [ ] 0.6 — Audit Quote → Reservation flow
@@ -80,6 +99,7 @@
 - [ ] 3.6 — Build PO detail page with GRV history + linked orders
 - [ ] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts)
 - [ ] 3.8 — Add timeline/activity log to Sales Order page
+- [ ] 3.9 — Multi-warehouse fulfillment orchestration (auto picking slip splitting + transfer requests)
 
 ## Phase 2: Route Separation (ERP vs Portal)
 - [ ] 2.1 — Create (erp) and (portal) route groups in Next.js
