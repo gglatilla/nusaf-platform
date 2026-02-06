@@ -1,7 +1,7 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 0 — Integration Audit
-## Current Micro-Task: 0.4
+## Current Micro-Task: 0.5
 ## Status: IN PROGRESS
 
 ---
@@ -59,13 +59,32 @@
 
 **Files examined:** `backend/src/services/job-card.service.ts`, `backend/src/api/v1/job-cards/route.ts`, `backend/src/utils/validation/job-cards.ts`, `backend/prisma/schema.prisma`
 
+### Micro-Task 0.4 — Audit Transfer Request → Stock Flow (2026-02-06)
+**Result: 4 of 5 CHECKS FAIL — shipTransfer() and receiveTransfer() are status-only, no stock integration**
+
+| Check | Result | Location |
+|-------|--------|----------|
+| (a) StockMovement type=TRANSFER_OUT at source on ship | FAIL | transfer-request.service.ts:379-411 — not implemented |
+| (b) StockLevel.onHand decrease at source on ship | FAIL | not implemented |
+| (c) StockMovement type=TRANSFER_IN at destination on receive | FAIL | transfer-request.service.ts:470-514 — not implemented |
+| (d) StockLevel.onHand increase at destination on receive | FAIL | not implemented |
+| (e) TransferRequest status update | PASS | transfer-request.service.ts:504 (sets RECEIVED) |
+
+**Root cause:** Both `shipTransfer()` and `receiveTransfer()` only update status fields. Neither creates StockMovement records nor modifies StockLevel. No Prisma $transaction wrapping the updates.
+
+**Note:** `receiveTransfer()` validates receivedQuantity > 0 for all lines (line 495-501) but never uses these quantities for stock updates.
+
+**Fix needed in 0.8:** shipTransfer(): wrap in transaction, create TRANSFER_OUT per line, decrease source onHand. receiveTransfer(): wrap in transaction, create TRANSFER_IN per line (using receivedQuantity), increase destination onHand.
+
+**Files examined:** `backend/src/services/transfer-request.service.ts`
+
 ---
 
 ## Phase 0: Integration Audit (Foundation)
 - [x] 0.1 — Audit GRV → Stock flow ✅ ALL PASS
 - [x] 0.2 — Audit Picking Slip → Stock flow ❌ ALL 5 FAIL
 - [x] 0.3 — Audit Job Card → Stock flow ❌ ALL 5 FAIL
-- [ ] 0.4 — Audit Transfer Request → Stock flow
+- [x] 0.4 — Audit Transfer Request → Stock flow ❌ 4 of 5 FAIL
 - [ ] 0.5 — Audit Stock Adjustment → Stock flow
 - [ ] 0.6 — Audit Quote → Reservation flow
 - [ ] 0.7 — Audit Sales Order → Reservation flow
