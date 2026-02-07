@@ -7,6 +7,7 @@ import type {
   StockAdjustmentsQueryParams,
   StockMovementsQueryParams,
   UpdateReorderSettingsData,
+  CreateInventoryAdjustmentData,
 } from '@/lib/api';
 
 /**
@@ -119,6 +120,27 @@ export function useRejectStockAdjustment() {
     },
     onSuccess: () => {
       // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'] });
+    },
+  });
+}
+
+/**
+ * Hook for creating a multi-product inventory adjustment
+ */
+export function useCreateInventoryAdjustment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateInventoryAdjustmentData) => {
+      const response = await api.createInventoryAdjustment(data);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to create adjustment');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory', 'adjustments'] });
       queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'] });
     },

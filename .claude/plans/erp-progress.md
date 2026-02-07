@@ -1,12 +1,35 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 4 — Inventory Module
-## Current Micro-Task: 4.2 (Stock Adjustment Workflow)
-## Status: IN PROGRESS (4.1 complete, 4.2-4.4 remaining)
+## Current Micro-Task: 4.3 (Inventory Dashboard)
+## Status: IN PROGRESS (4.1-4.2 complete, 4.3-4.5 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 6 — Phase 4 Micro-Task 4.2 (2026-02-07)
+**Micro-task 4.2 — Stock Adjustment Workflow**
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Added `CreateInventoryAdjustmentData` type + `StockAdjustmentReason` type + `notes` field to `StockAdjustment` interface
+- Added `createInventoryAdjustment()` API method (POST /inventory/adjustments)
+- Added `useCreateInventoryAdjustment()` hook with invalidation
+- Built adjustments list page at `/inventory/adjustments` with status filter tabs (All/Pending/Approved/Rejected), warehouse filter, pagination, linked adjustment numbers
+- Built adjustment detail page at `/inventory/adjustments/[id]` with status banners, info grid, line items table with product links, net change summary, approve/reject actions for ADMIN/MANAGER
+- Built create adjustment page at `/inventory/adjustments/new` with product search, multi-line form, validation
+- Added "Adjustments" nav item to inventoryNavigation (ADMIN, MANAGER only)
+
+**Files created (3):**
+- `frontend/src/app/(portal)/inventory/adjustments/page.tsx`
+- `frontend/src/app/(portal)/inventory/adjustments/[id]/page.tsx`
+- `frontend/src/app/(portal)/inventory/adjustments/new/page.tsx`
+
+**Files modified (3):**
+- `frontend/src/lib/api.ts` — added types + createInventoryAdjustment method
+- `frontend/src/hooks/useInventory.ts` — added useCreateInventoryAdjustment hook
+- `frontend/src/lib/navigation.ts` — added Adjustments nav item
+
 ### Session 5 — Phase 4 Micro-Task 4.1 (2026-02-07)
 **Micro-task 4.1 — Stock Movements Page**
 **Result: COMPLETE — Both frontend and backend compile cleanly**
@@ -659,7 +682,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 
 ## Phase 4: Inventory Module
 - [x] 4.1 — Build Stock Movements page (filterable audit log) ✅
-- [ ] 4.2 — Build Stock Adjustment workflow (create → approve → apply)
+- [x] 4.2 — Build Stock Adjustment workflow (create → approve → apply) ✅
 - [ ] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts)
 - [ ] 4.4 — Build Reorder Report (below reorder point, suggested PO quantities)
 - [ ] 4.5 — Build Cycle Count workflow (create session → count → reconcile)

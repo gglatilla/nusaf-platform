@@ -711,6 +711,7 @@ export interface StockAdjustment {
   adjustmentNumber: string;
   location: 'JHB' | 'CT';
   reason: string;
+  notes: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   lines: StockAdjustmentLine[];
   createdBy: string;
@@ -720,6 +721,27 @@ export interface StockAdjustment {
   rejectedAt: string | null;
   rejectedBy: string | null;
   rejectionReason: string | null;
+}
+
+export type StockAdjustmentReason =
+  | 'INITIAL_COUNT'
+  | 'CYCLE_COUNT'
+  | 'DAMAGED'
+  | 'EXPIRED'
+  | 'FOUND'
+  | 'LOST'
+  | 'DATA_CORRECTION'
+  | 'OTHER';
+
+export interface CreateInventoryAdjustmentData {
+  location: 'JHB' | 'CT';
+  reason: StockAdjustmentReason;
+  notes?: string;
+  lines: Array<{
+    productId: string;
+    adjustedQuantity: number;
+    notes?: string;
+  }>;
 }
 
 export interface StockAdjustmentsResponse {
@@ -2384,6 +2406,21 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  }
+
+  /**
+   * Create a multi-product inventory adjustment (PENDING status, requires approval)
+   */
+  async createInventoryAdjustment(
+    data: CreateInventoryAdjustmentData
+  ): Promise<ApiResponse<{ id: string; adjustmentNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; adjustmentNumber: string }>>(
+      '/inventory/adjustments',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
   }
 
   /**
