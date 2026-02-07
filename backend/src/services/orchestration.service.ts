@@ -522,8 +522,10 @@ async function processOrderLine(
     await processAssemblyLine(
       line,
       product,
+      customerWarehouse,
       plan,
-      purchaseOrdersBySupplier
+      purchaseOrdersBySupplier,
+      transferLines
     );
   } else {
     await processStockLine(
@@ -560,8 +562,10 @@ async function processAssemblyLine(
     costPrice: unknown;
     supplier: { id: string; code: string; name: string; currency: string } | null;
   },
+  customerWarehouse: Warehouse,
   plan: OrchestrationPlan,
-  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>
+  purchaseOrdersBySupplier: Map<string, PurchaseOrderLinesBySupplier>,
+  transferLines: TransferLinePlan[]
 ): Promise<void> {
   // Assembly always happens in JHB
   const assemblyWarehouse: Warehouse = 'JHB';
@@ -623,6 +627,19 @@ async function processAssemblyLine(
 
   plan.jobCards.push(jobCardPlan);
   plan.summary.linesRequiringAssembly++;
+
+  // If customer is CT, finished assembled goods need transfer from JHB → CT
+  if (customerWarehouse === 'CT') {
+    transferLines.push({
+      orderLineId: line.id,
+      lineNumber: line.lineNumber,
+      productId: product.id,
+      productSku: product.nusafSku,
+      productDescription: product.description,
+      quantity: line.quantityOrdered,
+    });
+    plan.summary.linesRequiringTransfer++;
+  }
 
   // If components have shortfall, add to purchase orders
   if (!bomResult.canFulfill) {

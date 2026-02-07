@@ -1,12 +1,41 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 3 — Document Chain + Status Propagation
-## Current Micro-Task: 3.8 DONE — Next: 3.9 (Multi-warehouse Fulfillment Orchestration)
-## Status: IN PROGRESS (3.1-3.8 complete, 3.2-3.5 already done in Phase 0.8)
+## Current Phase: Phase 3 — COMPLETE ✅
+## Current Micro-Task: Phase 3 fully complete. Next phase TBD.
+## Status: COMPLETE (all 3.1-3.9 done)
 
 ---
 
 ## Last Session Notes
+### Micro-Task 3.9 — Multi-warehouse Fulfillment Orchestration Verification + Fix (2026-02-07)
+**Result: COMPLETE — Verified + one gap fixed, TypeScript compiles cleanly, 31 tests pass**
+
+**Verification findings:**
+- Multi-warehouse fulfillment orchestration was ALREADY implemented in TASK-022/022A
+- Allocation service correctly handles CT-first + JHB spillover for stock products
+- Orchestration engine creates per-warehouse picking slips + transfer requests
+- Execution creates all documents in a single Prisma transaction with stale-plan protection
+
+**Gap found and fixed:**
+- `processAssemblyLine()` did NOT create transfer lines for CT customers ordering assembly products
+- After a job card completes at JHB, finished goods would have no planned transfer to CT
+- **Fix:** Added `customerWarehouse` and `transferLines` params to `processAssemblyLine()`. When customerWarehouse is CT, assembly finished goods are now added to transfer lines, ensuring a JHB→CT transfer request appears in the plan.
+
+**Files modified:**
+- `backend/src/services/orchestration.service.ts` — 3 edits: pass params to processAssemblyLine, add params to signature, add CT transfer logic
+
+**Verification checklist:**
+| Check | Result |
+|-------|--------|
+| CT stock splitting (CT first, JHB spillover) | ✅ PASS |
+| JHB customer allocation (JHB only) | ✅ PASS |
+| CT assembly products → transfer planned | ✅ PASS (after fix) |
+| Backorder → PO generation | ✅ PASS |
+| SHIP_COMPLETE policy blocking | ✅ PASS |
+| Stale plan detection | ✅ PASS |
+| TypeScript compiles | ✅ PASS |
+| 31 integration tests pass | ✅ PASS |
+
 ### Micro-Task 3.8 — Add Timeline/Activity Log to Sales Order Page (2026-02-07)
 **Result: COMPLETE — Both backend and frontend compile cleanly**
 
@@ -422,7 +451,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 3.6 — Build PO detail page with GRV history + linked orders ✅
 - [x] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts) ✅
 - [x] 3.8 — Add timeline/activity log to Sales Order page ✅
-- [ ] 3.9 — Multi-warehouse fulfillment orchestration (auto picking slip splitting + transfer requests)
+- [x] 3.9 — Multi-warehouse fulfillment orchestration (verified + fixed assembly→CT transfer gap) ✅
 
 ## Phase 2: Route Separation (ERP vs Portal)
 - [ ] 2.1 — Create (erp) and (portal) route groups in Next.js
