@@ -4,24 +4,25 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 
-interface AuthGuardProps {
+interface CustomerAuthGuardProps {
   children: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+/**
+ * Auth guard for the customer portal (/my/*).
+ * - Redirects unauthenticated users to /login
+ * - Redirects non-CUSTOMER roles to /dashboard (ERP)
+ */
+export function CustomerAuthGuard({ children }: CustomerAuthGuardProps) {
   const router = useRouter();
   const { user, accessToken, isLoading } = useAuthStore();
-
-  // Track hydration state - starts false, becomes true after hydration
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
-    // Check if already hydrated (e.g., hot reload)
     if (useAuthStore.persist?.hasHydrated()) {
       setHasHydrated(true);
     }
 
-    // Subscribe to hydration completion
     const unsub = useAuthStore.persist?.onFinishHydration(() => {
       setHasHydrated(true);
     });
@@ -32,19 +33,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     if (!hasHydrated || isLoading) return;
 
-    // Not authenticated → login
     if (!accessToken) {
       router.push('/login');
       return;
     }
 
-    // CUSTOMER users should not be on the ERP portal — redirect to customer portal
-    if (user?.role === 'CUSTOMER') {
-      router.push('/my/dashboard');
+    // Staff users should not be on the customer portal
+    if (user && user.role !== 'CUSTOMER') {
+      router.push('/dashboard');
     }
   }, [hasHydrated, isLoading, accessToken, user, router]);
 
-  // Show loading while hydrating or loading
   if (!hasHydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -53,8 +52,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Not authenticated or wrong role — will redirect in useEffect
-  if (!user || !accessToken || user.role === 'CUSTOMER') {
+  if (!user || !accessToken || user.role !== 'CUSTOMER') {
     return null;
   }
 

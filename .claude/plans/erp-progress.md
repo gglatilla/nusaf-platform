@@ -1,12 +1,53 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 3 — COMPLETE ✅
-## Current Micro-Task: Phase 3 fully complete. Next phase TBD.
-## Status: COMPLETE (all 3.1-3.9 done)
+## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
+## Current Micro-Task: 2.4 (Customer Product Catalog)
+## Status: IN PROGRESS (2.1-2.3 done, 2.4-2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 1 — Phase 2 Micro-Tasks 2.1-2.3 (2026-02-07)
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- 2.1: Created `(customer)` route group with layout infrastructure
+  - `CustomerAuthGuard` — checks auth + enforces role=CUSTOMER
+  - `CustomerHeader` — horizontal top nav (logo, Products/Quotes/Orders/Account, QuoteCart, user menu, mobile hamburger)
+  - `CustomerLayout` — header-based layout (no sidebar), max-w-7xl centered content
+  - `customer-navigation.ts` — nav items config
+  - `(customer)/layout.tsx` — wraps children in CustomerAuthGuard + CustomerLayout
+
+- 2.2: Login redirect + middleware + cross-guards
+  - Login page: role-based redirect (CUSTOMER → `/my/dashboard`, staff → `/dashboard`)
+  - Middleware: added `/my` to portalRoutes for domain routing
+  - AuthGuard: blocks CUSTOMER from ERP routes → redirects to `/my/dashboard`
+  - QuoteCart: role-aware links ("Browse Products" → `/my/products` for CUSTOMER, `/catalog` for staff; "View Quote" → `/my/quotes/[id]` for CUSTOMER)
+
+- 2.3: Customer dashboard at `/my/dashboard`
+  - Welcome banner with company/tier
+  - Active quote banner with "Continue Shopping" and "View Quote" CTAs
+  - Stats cards (total quotes, total orders, company info)
+  - Recent quotes (5) with status badges and links to `/my/quotes/[id]`
+  - Recent orders (5) with status badges and links to `/my/orders/[id]`
+  - Empty states with CTAs
+
+**Files created (7):**
+- `frontend/src/lib/customer-navigation.ts`
+- `frontend/src/components/auth/CustomerAuthGuard.tsx`
+- `frontend/src/components/layout/CustomerHeader.tsx`
+- `frontend/src/components/layout/CustomerLayout.tsx`
+- `frontend/src/app/(customer)/layout.tsx`
+- `frontend/src/app/(customer)/my/dashboard/page.tsx`
+
+**Files modified (4):**
+- `frontend/src/app/(auth)/login/page.tsx` — role-based redirect
+- `frontend/src/middleware.ts` — added `/my` to portalRoutes
+- `frontend/src/components/auth/AuthGuard.tsx` — blocks CUSTOMER from ERP
+- `frontend/src/components/quotes/QuoteCart.tsx` — role-aware links
+
+**Next session:** Micro-tasks 2.4-2.8 (products, quotes, orders, account pages)
+
 ### Micro-Task 3.9 — Multi-warehouse Fulfillment Orchestration Verification + Fix (2026-02-07)
 **Result: COMPLETE — Verified + one gap fixed, TypeScript compiles cleanly, 31 tests pass**
 
@@ -453,15 +494,16 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 3.8 — Add timeline/activity log to Sales Order page ✅
 - [x] 3.9 — Multi-warehouse fulfillment orchestration (verified + fixed assembly→CT transfer gap) ✅
 
-## Phase 2: Route Separation (ERP vs Portal)
-- [ ] 2.1 — Create (erp) and (portal) route groups in Next.js
-- [ ] 2.2 — Build portal layout (header, sidebar, navigation)
-- [ ] 2.3 — Build customer product catalog page (their prices only, no internals)
-- [ ] 2.4 — Build customer dashboard (quotes, orders, account status)
-- [ ] 2.5 — Build customer quote flow (browse → cart → submit → track)
-- [ ] 2.6 — Build customer order tracking (simple status, no internal docs)
-- [ ] 2.7 — Implement role-based middleware redirect after auth
-- [ ] 2.8 — Verify no internal data leaks to customer views
+## Phase 2: Route Separation (ERP vs Customer Portal)
+- [x] 2.1 — Create (customer) route group + layout infrastructure (CustomerAuthGuard, CustomerHeader, CustomerLayout) ✅
+- [x] 2.2 — Login redirect + middleware + cross-guards (AuthGuard blocks CUSTOMER, QuoteCart role-aware) ✅
+- [x] 2.3 — Build customer dashboard at /my/dashboard ✅
+- [ ] 2.4 — Build customer product catalog page (tier pricing, no internals)
+- [ ] 2.5 — Build customer product detail page
+- [ ] 2.6 — Build customer quotes list + detail pages
+- [ ] 2.7 — Build customer orders list + detail pages
+- [ ] 2.8 — Build customer account page
+- [ ] 2.9 — Data leak audit + verification
 
 ## Phase 4: Inventory Module
 - [ ] 4.1 — Build Stock Movements page (filterable audit log)

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, ChevronDown, FileText, Trash2, X } from 'lucide-react';
 import { useActiveQuote, useRemoveQuoteItem } from '@/hooks/useQuotes';
+import { useAuthStore } from '@/stores/auth-store';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-ZA', {
@@ -17,6 +18,10 @@ export function QuoteCart() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: activeQuote, isLoading } = useActiveQuote();
   const removeItem = useRemoveQuoteItem();
+  const { user } = useAuthStore();
+  const isCustomer = user?.role === 'CUSTOMER';
+  const catalogHref = isCustomer ? '/my/products' : '/catalog';
+  const quoteHref = (id: string) => isCustomer ? `/my/quotes/${id}` : `/quotes/${id}`;
 
   const itemCount = activeQuote?.itemCount || 0;
 
@@ -65,7 +70,7 @@ export function QuoteCart() {
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-600 mb-4">Your quote is empty</p>
               <Link
-                href="/catalog"
+                href={catalogHref}
                 onClick={() => setIsOpen(false)}
                 className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
               >
@@ -144,7 +149,7 @@ export function QuoteCart() {
               {/* Footer */}
               <div className="px-4 py-3 border-t border-slate-200">
                 <Link
-                  href={`/quotes/${activeQuote.id}`}
+                  href={quoteHref(activeQuote.id)}
                   onClick={() => setIsOpen(false)}
                   className="block w-full text-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
                 >

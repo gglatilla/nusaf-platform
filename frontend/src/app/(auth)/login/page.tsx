@@ -31,7 +31,13 @@ export default function LoginPage() {
     clearError();
     try {
       await login(data);
-      router.push('/dashboard');
+      // Role-based redirect: CUSTOMER → customer portal, staff → ERP
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'CUSTOMER') {
+        router.push('/my/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } catch {
       // Error is handled by the store
     }

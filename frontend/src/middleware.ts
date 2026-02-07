@@ -27,6 +27,7 @@ const portalRoutes = [
   '/goods-receipts',
   '/inventory',
   '/admin',
+  '/my',
 ];
 
 // Public website routes (served on www.nusaf.net)
