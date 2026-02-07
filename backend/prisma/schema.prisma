@@ -1863,3 +1863,95 @@ model ProformaInvoiceCounter {
 
   @@map("proforma_invoice_counter")
 }
+
+// ============================================
+// PURCHASE REQUISITION
+// ============================================
+
+enum PurchaseRequisitionStatus {
+  PENDING
+  CONVERTED_TO_PO
+  REJECTED
+  CANCELLED
+}
+
+model PurchaseRequisition {
+  id                String                     @id @default(cuid())
+  requisitionNumber String                     @unique @map("requisition_number") // PR-2026-00001
+  companyId         String                     @map("company_id")
+  status            PurchaseRequisitionStatus   @default(PENDING)
+
+  // Requester info
+  requestedBy     String  @map("requested_by")
+  requestedByName String  @map("requested_by_name")
+  department      String? // Free-text: "Warehouse", "Sales", etc.
+
+  // Urgency + context
+  urgency        String    @default("NORMAL") // LOW, NORMAL, HIGH, CRITICAL
+  requiredByDate DateTime? @map("required_by_date")
+  reason         String // Why this purchase is needed
+  notes          String?
+
+  // Approval
+  approvedAt     DateTime? @map("approved_at")
+  approvedBy     String?   @map("approved_by")
+  approvedByName String?   @map("approved_by_name")
+
+  // Rejection
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectedBy      String?   @map("rejected_by")
+  rejectionReason String?   @map("rejection_reason")
+
+  // Cancellation
+  cancelledAt DateTime? @map("cancelled_at")
+
+  // Link to generated PO(s)
+  generatedPOIds String[] @map("generated_po_ids")
+
+  // Relations
+  lines PurchaseRequisitionLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([status])
+  @@map("purchase_requisitions")
+}
+
+model PurchaseRequisitionLine {
+  id            String              @id @default(cuid())
+  requisitionId String              @map("requisition_id")
+  requisition   PurchaseRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  lineNumber    Int                 @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+
+  // Supplier info (optional — auto-filled from product)
+  supplierId   String? @map("supplier_id")
+  supplierName String? @map("supplier_name")
+
+  // Quantity + cost
+  quantity          Int
+  estimatedUnitCost Decimal? @map("estimated_unit_cost") @db.Decimal(10, 4)
+  estimatedLineTotal Decimal? @map("estimated_line_total") @db.Decimal(12, 2)
+
+  // Delivery
+  deliveryLocation String @default("JHB") @map("delivery_location")
+  lineNotes        String? @map("line_notes")
+
+  @@index([requisitionId])
+  @@map("purchase_requisition_lines")
+}
+
+model PurchaseRequisitionCounter {
+  id    String @id @default("pr_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("purchase_requisition_counter")
+}

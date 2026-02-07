@@ -1527,6 +1527,107 @@ export interface CreateProformaInvoiceData {
   paymentTerms?: string;
 }
 
+// ============================================
+// PURCHASE REQUISITION TYPES
+// ============================================
+
+export type PurchaseRequisitionStatus = 'PENDING' | 'CONVERTED_TO_PO' | 'REJECTED' | 'CANCELLED';
+export type PurchaseRequisitionUrgency = 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+
+export interface PurchaseRequisitionLine {
+  id: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  supplierId: string | null;
+  supplierName: string | null;
+  quantity: number;
+  estimatedUnitCost: number | null;
+  estimatedLineTotal: number | null;
+  deliveryLocation: string;
+  lineNotes: string | null;
+}
+
+export interface PurchaseRequisition {
+  id: string;
+  requisitionNumber: string;
+  companyId: string;
+  status: PurchaseRequisitionStatus;
+  requestedBy: string;
+  requestedByName: string;
+  department: string | null;
+  urgency: string;
+  requiredByDate: string | null;
+  reason: string;
+  notes: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  approvedByName: string | null;
+  rejectedAt: string | null;
+  rejectedBy: string | null;
+  rejectionReason: string | null;
+  cancelledAt: string | null;
+  generatedPOIds: string[];
+  lines: PurchaseRequisitionLine[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PurchaseRequisitionListItem {
+  id: string;
+  requisitionNumber: string;
+  status: PurchaseRequisitionStatus;
+  requestedByName: string;
+  department: string | null;
+  urgency: string;
+  requiredByDate: string | null;
+  reason: string;
+  lineCount: number;
+  estimatedTotal: number | null;
+  generatedPOIds: string[];
+  createdAt: string;
+}
+
+export interface PurchaseRequisitionsListResponse {
+  items: PurchaseRequisitionListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PurchaseRequisitionsQueryParams {
+  status?: PurchaseRequisitionStatus;
+  urgency?: PurchaseRequisitionUrgency;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreatePurchaseRequisitionLineInput {
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  supplierId?: string;
+  supplierName?: string;
+  quantity: number;
+  estimatedUnitCost?: number;
+  deliveryLocation?: string;
+  lineNotes?: string;
+}
+
+export interface CreatePurchaseRequisitionData {
+  reason: string;
+  urgency?: PurchaseRequisitionUrgency;
+  department?: string;
+  requiredByDate?: string;
+  notes?: string;
+  lines: CreatePurchaseRequisitionLineInput[];
+}
+
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
@@ -3985,6 +4086,51 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/proforma-invoices/${id}/void`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    });
+  }
+
+  // ============================================
+  // PURCHASE REQUISITION METHODS
+  // ============================================
+
+  async getPurchaseRequisitions(params: PurchaseRequisitionsQueryParams = {}): Promise<ApiResponse<PurchaseRequisitionsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.urgency) searchParams.set('urgency', params.urgency);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+    const qs = searchParams.toString();
+    return this.request<ApiResponse<PurchaseRequisitionsListResponse>>(`/purchase-requisitions${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPurchaseRequisitionById(id: string): Promise<ApiResponse<PurchaseRequisition>> {
+    return this.request<ApiResponse<PurchaseRequisition>>(`/purchase-requisitions/${id}`);
+  }
+
+  async createPurchaseRequisition(data: CreatePurchaseRequisitionData): Promise<ApiResponse<PurchaseRequisition>> {
+    return this.request<ApiResponse<PurchaseRequisition>>('/purchase-requisitions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async approvePurchaseRequisition(id: string): Promise<ApiResponse<{ message: string; generatedPOIds: string[] }>> {
+    return this.request<ApiResponse<{ message: string; generatedPOIds: string[] }>>(`/purchase-requisitions/${id}/approve`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectPurchaseRequisition(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-requisitions/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async cancelPurchaseRequisition(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/purchase-requisitions/${id}/cancel`, {
+      method: 'POST',
     });
   }
 

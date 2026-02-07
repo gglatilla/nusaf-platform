@@ -19,6 +19,7 @@ import {
   PackageCheck,
   ArrowRightLeft,
   FileOutput,
+  FileInput,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -57,6 +58,7 @@ export const mainNavigation: NavItem[] = [
  * Procurement navigation items
  */
 export const procurementNavigation: NavItem[] = [
+  { name: 'Requisitions', href: '/purchase-requisitions', icon: FileInput, roles: ['ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'] },
   { name: 'Purchase Orders', href: '/purchase-orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER', 'PURCHASER'] },
   { name: 'Goods Receipts', href: '/goods-receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'] },
 ];

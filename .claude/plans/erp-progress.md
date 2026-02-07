@@ -1,13 +1,73 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 5 — Missing ERP Documents
-## Current Micro-Task: 5.2 — COMPLETE (Proforma Invoice)
-## Status: Phase 5.2 complete, next is 5.3 (Purchase Requisition)
-## Next Micro-Task: 5.3 — Purchase Requisition workflow
+## Current Micro-Task: 5.3 — COMPLETE (Purchase Requisition)
+## Status: Phase 5.3 complete, next is 5.4 (Return Authorization)
+## Next Micro-Task: 5.4 — Return Authorization process
 
 ---
 
 ## Last Session Notes
+### Session 12 — Phase 5 Micro-Task 5.3 (2026-02-07)
+**Micro-task 5.3 — Purchase Requisition Workflow (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**5.3.1 — Schema + Validation + Service (Backend)**
+- Added `PurchaseRequisitionStatus` enum, `PurchaseRequisition`, `PurchaseRequisitionLine`, `PurchaseRequisitionCounter` models to Prisma schema
+- Created `validation/purchase-requisitions.ts` with Zod schemas (create, reject, list query)
+- Created `purchase-requisition.service.ts` with: generate number, create, get/list, approve (auto-creates draft POs grouped by supplier), reject, cancel
+- Self-approval prevention: creator cannot approve their own PR
+- Cancel restriction: only the original requester can cancel
+
+**5.3.2 — API Routes + Backend Registration**
+- Created 6 endpoints in `purchase-requisitions/route.ts` (GET list, GET detail, POST create, POST approve, POST reject, POST cancel)
+- All staff roles can create PRs; ADMIN/MANAGER only for approve/reject
+- Registered route in `index.ts`
+
+**5.3.3 — Frontend Types + API Methods + Hooks**
+- Added 10 types to api.ts (PurchaseRequisition, PurchaseRequisitionLine, PurchaseRequisitionListItem, etc.)
+- Added 6 API methods to ApiClient class
+- Created `usePurchaseRequisitions.ts` with 6 hooks
+- Added `PurchaseRequisition: '/purchase-requisitions'` to reference-routes.ts
+
+**5.3.4 — Frontend Pages (List + Detail + Create)**
+- List page: status tabs, urgency filter, PR# links, status/urgency badges, pagination
+- Detail page: status banners (PENDING amber, CONVERTED green, REJECTED red, CANCELLED gray), info grid, line items table with clickable product links, estimated total, approval workflow (approve/reject buttons, reject form, self-approval warning), generated POs section with links
+- Create page: reason (required), urgency, department, required-by date, notes, product search with auto-fill supplier/cost, editable line items (qty, unit cost, location), estimated total, submit
+
+**5.3.5 — Status Badge + Navigation**
+- Created `PurchaseRequisitionStatusBadge` component
+- Added "Requisitions" to `procurementNavigation` (FileInput icon, all staff roles)
+
+**Golden Rules Verification:**
+- Rule 1: N/A (no stock changes)
+- Rule 2: PASS (PR links to PO(s) via generatedPOIds, PO.internalNotes references PR number)
+- Rule 3: PASS (detail is read-only view, create is separate form at /new)
+- Rule 4: N/A (internal document, customers never see)
+- Rule 5: PASS (staff sees requester, urgency, lines, approval, linked POs)
+- Rule 6: PASS (approval creates draft PO(s) grouped by supplier)
+- Rule 7: PASS (data loading, role-based visibility, clickable links, audit trail)
+- Rule 8: PASS (warehouse creates, purchaser creates, manager approves, PO auto-created)
+
+**Files created (8):**
+- `backend/src/utils/validation/purchase-requisitions.ts`
+- `backend/src/services/purchase-requisition.service.ts`
+- `backend/src/api/v1/purchase-requisitions/route.ts`
+- `frontend/src/hooks/usePurchaseRequisitions.ts`
+- `frontend/src/components/purchase-requisitions/PurchaseRequisitionStatusBadge.tsx`
+- `frontend/src/app/(portal)/purchase-requisitions/page.tsx`
+- `frontend/src/app/(portal)/purchase-requisitions/[id]/page.tsx`
+- `frontend/src/app/(portal)/purchase-requisitions/new/page.tsx`
+
+**Files modified (5):**
+- `backend/prisma/schema.prisma` — added PR models + enum + counter
+- `backend/src/index.ts` — registered purchase-requisitions route
+- `frontend/src/lib/api.ts` — added 10 PR types + 6 API methods
+- `frontend/src/lib/navigation.ts` — added Requisitions nav item (FileInput icon)
+- `frontend/src/lib/constants/reference-routes.ts` — added PurchaseRequisition entry
+
 ### Session 11 — Phase 5 Micro-Task 5.2 (2026-02-07)
 **Micro-task 5.2 — Proforma Invoice Generation from Sales Order (all 5 sub-tasks)**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -926,7 +986,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 ## Phase 5: Missing ERP Documents
 - [x] 5.1 — Build Delivery Note model + create from order ✅
 - [x] 5.2 — Build Proforma Invoice generation from Sales Order ✅
-- [ ] 5.3 — Build Purchase Requisition workflow
+- [x] 5.3 — Build Purchase Requisition workflow ✅
 - [ ] 5.4 — Build Return Authorization process
 - [ ] 5.5 — Build Packing List generation
 

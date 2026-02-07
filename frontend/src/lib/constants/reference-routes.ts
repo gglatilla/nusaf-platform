@@ -12,6 +12,7 @@ export const REFERENCE_TYPE_ROUTES: Record<string, string> = {
   StockAdjustment: '/inventory/adjustments',
   DeliveryNote: '/delivery-notes',
   ProformaInvoice: '/orders',
+  PurchaseRequisition: '/purchase-requisitions',
 };
 
 /**
