@@ -26,6 +26,7 @@ export type TimelineEventType =
   | 'DELIVERY_NOTE_CREATED'
   | 'DELIVERY_NOTE_DISPATCHED'
   | 'DELIVERY_NOTE_DELIVERED'
+  | 'PROFORMA_INVOICE_CREATED'
   | 'FULFILLMENT_PLAN_EXECUTED';
 
 export interface TimelineEvent {
@@ -74,7 +75,7 @@ export async function getOrderTimeline(
   }
 
   // Phase 1: Fetch all related documents in parallel
-  const [pickingSlips, jobCards, transferRequests, deliveryNotes] = await Promise.all([
+  const [pickingSlips, jobCards, transferRequests, deliveryNotes, proformaInvoices] = await Promise.all([
     prisma.pickingSlip.findMany({
       where: { orderId, companyId },
       select: {
@@ -142,6 +143,17 @@ export async function getOrderTimeline(
       },
       orderBy: { createdAt: 'asc' },
     }),
+    prisma.proformaInvoice.findMany({
+      where: { orderId, companyId },
+      select: {
+        id: true,
+        proformaNumber: true,
+        status: true,
+        createdAt: true,
+        createdBy: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
   ]);
 
   // Phase 2: Resolve user names from all createdBy IDs
@@ -153,6 +165,7 @@ export async function getOrderTimeline(
     ...jobCards.map((jc) => jc.createdBy),
     ...transferRequests.map((tr) => tr.createdBy),
     ...deliveryNotes.map((dn) => dn.createdBy),
+    ...proformaInvoices.map((pi) => pi.createdBy),
   ].filter((id): id is string => id !== null && id !== undefined);
 
   const uniqueUserIds = [...new Set(allUserIds)];
@@ -455,6 +468,23 @@ export async function getOrderTimeline(
         documentNumber: dn.deliveryNoteNumber,
       });
     }
+  }
+
+  // --- Proforma invoice events ---
+  for (const pi of proformaInvoices) {
+    const statusLabel = pi.status === 'ACTIVE' ? '' : ' (voided)';
+
+    events.push({
+      id: `pi-created-${pi.id}`,
+      timestamp: pi.createdAt.toISOString(),
+      type: 'PROFORMA_INVOICE_CREATED',
+      title: `Proforma invoice created${statusLabel}`,
+      description: pi.proformaNumber,
+      actor: getUserName(pi.createdBy),
+      documentType: 'ProformaInvoice',
+      documentId: pi.id,
+      documentNumber: pi.proformaNumber,
+    });
   }
 
   // Sort all events chronologically (newest first for display)

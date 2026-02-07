@@ -7,3 +7,4 @@ export { TransferRequestsSection } from './TransferRequestsSection';
 export { OrderNotesSection } from './OrderNotesSection';
 export { OrderTimelineSection } from './OrderTimelineSection';
 export { DeliveryNotesSection } from './DeliveryNotesSection';
+export { ProformaInvoicesSection } from './ProformaInvoicesSection';

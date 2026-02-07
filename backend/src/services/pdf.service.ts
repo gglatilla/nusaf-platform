@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import type { PurchaseOrderData } from './purchase-order.service';
+import type { ProformaInvoiceData } from './proforma-invoice.service';
 
 // ============================================
 // CONSTANTS
@@ -352,4 +353,354 @@ function formatStatus(status: string): string {
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';
+}
+
+// ============================================
+// PROFORMA INVOICE PDF
+// ============================================
+
+/**
+ * Generate a professional PDF for a proforma invoice
+ */
+export async function generateProformaInvoicePDF(pi: ProformaInvoiceData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        info: {
+          Title: `Proforma Invoice ${pi.proformaNumber}`,
+          Author: 'Nusaf Dynamic Technologies',
+          Subject: `Proforma Invoice for Order ${pi.orderNumber}`,
+          Creator: 'Nusaf Platform',
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      drawPIHeader(doc, pi);
+      drawPICustomerInfo(doc, pi);
+      drawPIOrderDetails(doc, pi);
+      const lastLineY = drawPILineItems(doc, pi);
+      const totalsEndY = drawPITotals(doc, pi, lastLineY);
+      drawPIPaymentTerms(doc, pi, totalsEndY);
+      drawPIFooter(doc);
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function drawPIHeader(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData): void {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Company header bar
+  doc.rect(50, 50, pageWidth, 60).fill(COLORS.primary);
+
+  // Company name
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(20)
+    .text('NUSAF DYNAMIC TECHNOLOGIES', 60, 65);
+
+  // Tagline
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text('Conveyor Components | Power Transmission | Industrial Supplies', 60, 90);
+
+  // PROFORMA INVOICE title
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(28)
+    .text('PROFORMA INVOICE', 50, 130, { align: 'center', width: pageWidth });
+
+  // PI Number and Date
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(14)
+    .text(pi.proformaNumber, 50, 170, { align: 'center', width: pageWidth });
+
+  const dateStr = pi.issueDate.toLocaleDateString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text(`Date: ${dateStr}`, 50, 190, { align: 'center', width: pageWidth });
+}
+
+function drawPICustomerInfo(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData): void {
+  const startY = 220;
+  const leftCol = 50;
+  const rightCol = 320;
+
+  // Bill To section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('BILL TO', leftCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(pi.customerName, leftCol, startY + 18);
+
+  let addressY = startY + 32;
+  if (pi.billingAddress) {
+    doc.font(FONTS.regular)
+      .fontSize(9)
+      .text(pi.billingAddress, leftCol, addressY, { width: 250 });
+    addressY += 24;
+  }
+
+  // Order Info section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('ORDER REFERENCE', rightCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(9);
+
+  let infoY = startY + 18;
+  doc.font(FONTS.bold).text(`Order: ${pi.orderNumber}`, rightCol, infoY);
+  infoY += 14;
+
+  if (pi.customerPoNumber) {
+    doc.font(FONTS.regular).text(`Customer PO: ${pi.customerPoNumber}`, rightCol, infoY);
+    infoY += 14;
+  }
+
+  const validStr = pi.validUntil.toLocaleDateString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  doc.font(FONTS.regular).text(`Valid Until: ${validStr}`, rightCol, infoY);
+}
+
+function drawPIOrderDetails(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData): void {
+  const startY = 310;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Details box
+  doc.rect(50, startY, pageWidth, 40)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  const col1 = 60;
+  const col2 = 200;
+  const col3 = 340;
+  const textY = startY + 8;
+
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text('Proforma Number', col1, textY)
+    .text('Order Number', col2, textY)
+    .text('Currency', col3, textY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(pi.proformaNumber, col1, textY + 14)
+    .text(pi.orderNumber, col2, textY + 14)
+    .text('ZAR', col3, textY + 14);
+}
+
+function drawPILineItems(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData): number {
+  const startY = 370;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Table header
+  doc.rect(50, startY, pageWidth, 22).fill(COLORS.primary);
+
+  const cols = {
+    line: 55,
+    sku: 80,
+    description: 160,
+    qty: 370,
+    unit: 400,
+    unitPrice: 440,
+    total: 500,
+  };
+
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(9)
+    .text('#', cols.line, startY + 6)
+    .text('SKU', cols.sku, startY + 6)
+    .text('Description', cols.description, startY + 6)
+    .text('Qty', cols.qty, startY + 6)
+    .text('UoM', cols.unit, startY + 6)
+    .text('Unit Price', cols.unitPrice, startY + 6)
+    .text('Total', cols.total, startY + 6);
+
+  // Table rows
+  let rowY = startY + 22;
+  const rowHeight = 24;
+
+  pi.lines.forEach((line, index) => {
+    if (rowY > doc.page.height - 180) {
+      doc.addPage();
+      rowY = 50;
+    }
+
+    // Alternating row background
+    if (index % 2 === 0) {
+      doc.rect(50, rowY, pageWidth, rowHeight).fill(COLORS.lightGray);
+    }
+
+    doc.rect(50, rowY, pageWidth, rowHeight).stroke(COLORS.mediumGray);
+
+    doc.fillColor(COLORS.text)
+      .font(FONTS.regular)
+      .fontSize(9)
+      .text(line.lineNumber.toString(), cols.line, rowY + 7)
+      .text(truncateText(line.productSku, 12), cols.sku, rowY + 7)
+      .text(truncateText(line.productDescription, 32), cols.description, rowY + 7)
+      .text(line.quantity.toString(), cols.qty, rowY + 7)
+      .text(line.unitOfMeasure, cols.unit, rowY + 7)
+      .text(`R${Number(line.unitPrice).toFixed(2)}`, cols.unitPrice, rowY + 7)
+      .text(`R${Number(line.lineTotal).toFixed(2)}`, cols.total, rowY + 7);
+
+    rowY += rowHeight;
+  });
+
+  return rowY;
+}
+
+function drawPITotals(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData, lastLineY: number): number {
+  const startY = lastLineY + 20;
+  const rightAlign = 545;
+
+  // Totals box
+  doc.rect(380, startY, 165, 75)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(10)
+    .text('Subtotal:', 390, startY + 10)
+    .text(`R${Number(pi.subtotal).toFixed(2)}`, rightAlign, startY + 10, { align: 'right', width: 90 });
+
+  doc.text(`VAT (${Number(pi.vatRate)}%):`, 390, startY + 28)
+    .text(`R${Number(pi.vatAmount).toFixed(2)}`, rightAlign, startY + 28, { align: 'right', width: 90 });
+
+  doc.font(FONTS.bold)
+    .fontSize(13)
+    .text('TOTAL:', 390, startY + 50)
+    .fillColor(COLORS.primary)
+    .text(`R${Number(pi.total).toFixed(2)}`, rightAlign, startY + 50, { align: 'right', width: 90 });
+
+  return startY + 85;
+}
+
+function drawPIPaymentTerms(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData, totalsEndY: number): void {
+  let startY = totalsEndY;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Check if we need a new page
+  if (startY > doc.page.height - 200) {
+    doc.addPage();
+    startY = 50;
+  }
+
+  // Payment Terms
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text('PAYMENT TERMS', 50, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(9)
+    .text(pi.paymentTerms, 50, startY + 15, { width: pageWidth, lineGap: 3 });
+
+  // Banking Details (placeholder)
+  const bankY = startY + 45;
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text('BANKING DETAILS', 50, bankY);
+
+  doc.rect(50, bankY + 15, pageWidth, 60)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(9)
+    .text('Bank: [Bank Name]', 60, bankY + 25)
+    .text('Account Name: Nusaf Dynamic Technologies (Pty) Ltd', 60, bankY + 38)
+    .text('Account Number: [Account Number]', 60, bankY + 51)
+    .text('Branch Code: [Branch Code]', 300, bankY + 25)
+    .text('Swift: [Swift Code]', 300, bankY + 38)
+    .text(`Reference: ${pi.orderNumber}`, 300, bankY + 51);
+
+  // Notes
+  if (pi.notes) {
+    const notesY = bankY + 85;
+    doc.fillColor(COLORS.primary)
+      .font(FONTS.bold)
+      .fontSize(10)
+      .text('NOTES', 50, notesY);
+
+    doc.fillColor(COLORS.text)
+      .font(FONTS.regular)
+      .fontSize(9)
+      .text(pi.notes, 50, notesY + 15, { width: pageWidth, lineGap: 3 });
+  }
+
+  // Disclaimer
+  const disclaimerY = pi.notes ? bankY + 130 : bankY + 95;
+
+  if (disclaimerY > doc.page.height - 100) {
+    doc.addPage();
+  }
+
+  doc.rect(50, disclaimerY, pageWidth, 30)
+    .fillAndStroke('#fff8e1', '#e6c200');
+
+  doc.fillColor('#856404')
+    .font(FONTS.bold)
+    .fontSize(9)
+    .text('THIS IS NOT A TAX INVOICE', 60, disclaimerY + 5);
+
+  doc.font(FONTS.regular)
+    .fontSize(8)
+    .text('A tax invoice will be issued upon delivery of goods. This proforma invoice is valid for 30 days from the date of issue.', 60, disclaimerY + 17, { width: pageWidth - 20 });
+}
+
+function drawPIFooter(doc: PDFKit.PDFDocument): void {
+  const pageHeight = doc.page.height;
+  const footerY = pageHeight - 60;
+
+  doc.strokeColor(COLORS.mediumGray)
+    .lineWidth(0.5)
+    .moveTo(50, footerY)
+    .lineTo(doc.page.width - 50, footerY)
+    .stroke();
+
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text(
+      'Nusaf Dynamic Technologies (Pty) Ltd | Johannesburg, South Africa | www.nusaf.co.za',
+      50,
+      footerY + 10,
+      { align: 'center', width: doc.page.width - 100 }
+    );
+
+  doc.text(
+    'This is a computer-generated document. No signature required.',
+    50,
+    footerY + 22,
+    { align: 'center', width: doc.page.width - 100 }
+  );
 }

@@ -11,6 +11,7 @@ export const REFERENCE_TYPE_ROUTES: Record<string, string> = {
   JobCard: '/job-cards',
   StockAdjustment: '/inventory/adjustments',
   DeliveryNote: '/delivery-notes',
+  ProformaInvoice: '/orders',
 };
 
 /**

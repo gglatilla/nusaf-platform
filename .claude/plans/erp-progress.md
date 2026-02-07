@@ -1,13 +1,80 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 5 — Missing ERP Documents
-## Current Micro-Task: 5.1 — COMPLETE (Delivery Notes)
-## Status: Phase 5.1 complete, next is 5.2 (Proforma Invoice)
-## Next Micro-Task: 5.2 — Proforma Invoice generation from Sales Order
+## Current Micro-Task: 5.2 — COMPLETE (Proforma Invoice)
+## Status: Phase 5.2 complete, next is 5.3 (Purchase Requisition)
+## Next Micro-Task: 5.3 — Purchase Requisition workflow
 
 ---
 
 ## Last Session Notes
+### Session 11 — Phase 5 Micro-Task 5.2 (2026-02-07)
+**Micro-task 5.2 — Proforma Invoice Generation from Sales Order (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**5.2.1 — Schema + Validation + Service (Backend)**
+- Added `ProformaInvoiceStatus` enum, `ProformaInvoice`, `ProformaInvoiceLine`, `ProformaInvoiceCounter` models to Prisma schema
+- Created `validation/proforma-invoices.ts` with Zod schemas (create, void)
+- Created `proforma-invoice.service.ts` with generate number, create from order, get/list-for-order, void
+- Auto-voids previous ACTIVE proforma when creating new one for same order
+- Snapshots order data, lines with pricing, billing address, customer PO
+
+**5.2.2 — PDF Generation**
+- Added `generateProformaInvoicePDF()` to `pdf.service.ts`
+- Professional A4 PDF: header bar, "PROFORMA INVOICE" title, customer/order info, line items table, totals (subtotal + VAT + total), payment terms, banking details (placeholder), "THIS IS NOT A TAX INVOICE" disclaimer, footer
+- Follows existing PO PDF brand styling (Nusaf teal, Helvetica fonts)
+
+**5.2.3 — API Routes + Backend Registration + Timeline**
+- Created 5 endpoints in `proforma-invoices/route.ts` (GET for-order, GET detail, GET pdf, POST create, POST void)
+- PDF endpoint streams binary PDF with Content-Disposition header
+- Customer role gets internal fields stripped (notes, createdBy, voidedBy, voidReason) + only sees ACTIVE proformas
+- Registered route in `index.ts`
+- Added `PROFORMA_INVOICE_CREATED` timeline event type + proforma invoice query to order-timeline.service.ts
+
+**5.2.4 — Frontend Types + API Methods + Hooks**
+- Added 5 types to api.ts (ProformaInvoice, ProformaInvoiceLine, ProformaInvoiceSummary, etc.)
+- Added 5 API methods to ApiClient class (including blob download for PDF)
+- Created `useProformaInvoices.ts` with 4 hooks (useProformaInvoicesForOrder, useCreateProformaInvoice, useVoidProformaInvoice, useDownloadProformaInvoicePDF)
+- Added `ProformaInvoice: '/orders'` to reference-routes.ts
+
+**5.2.5 — Staff + Customer UI Integration**
+- Created `ProformaInvoicesSection` component with:
+  - List of proformas with status badges (Active green / Voided gray strikethrough)
+  - Download PDF button per proforma
+  - Void button with confirmation modal (ADMIN/MANAGER only)
+- Staff order detail: "Proforma Invoice" button (amber, Receipt icon) when order is CONFIRMED, warns if active PI exists
+- Customer order detail: shows only ACTIVE proformas with download button, no void capability
+
+**Golden Rules Verification:**
+- Rule 1: N/A (no stock changes)
+- Rule 2: PASS (PI links to order via orderId + orderNumber)
+- Rule 3: PASS (view only, no edit page)
+- Rule 4: PASS (customer sees no internal data, voided PIs hidden)
+- Rule 5: PASS (staff sees all proformas, void reasons, audit info)
+- Rule 6: N/A (PI doesn't change order status)
+- Rule 7: PASS (data loading, role-based visibility, timeline events, audit trail)
+- Rule 8: PASS (sales creates, customer downloads, manager voids)
+
+**Files created (4):**
+- `backend/src/utils/validation/proforma-invoices.ts`
+- `backend/src/services/proforma-invoice.service.ts`
+- `backend/src/api/v1/proforma-invoices/route.ts`
+- `frontend/src/hooks/useProformaInvoices.ts`
+- `frontend/src/components/orders/order-detail/ProformaInvoicesSection.tsx`
+
+**Files modified (8):**
+- `backend/prisma/schema.prisma` — added PI models + enum
+- `backend/src/index.ts` — registered proforma-invoices route
+- `backend/src/services/pdf.service.ts` — added generateProformaInvoicePDF()
+- `backend/src/services/order-timeline.service.ts` — added PI event type + query
+- `frontend/src/lib/api.ts` — added PI types + 5 API methods
+- `frontend/src/lib/constants/reference-routes.ts` — added ProformaInvoice entry
+- `frontend/src/components/orders/order-detail/index.ts` — exported ProformaInvoicesSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — added PI button + section
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — added PI section
+
 ### Session 10 — Phase 5 Micro-Task 5.1 (2026-02-07)
 **Micro-task 5.1 — Delivery Notes (all 5 sub-tasks)**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -858,7 +925,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 
 ## Phase 5: Missing ERP Documents
 - [x] 5.1 — Build Delivery Note model + create from order ✅
-- [ ] 5.2 — Build Proforma Invoice generation from Sales Order
+- [x] 5.2 — Build Proforma Invoice generation from Sales Order ✅
 - [ ] 5.3 — Build Purchase Requisition workflow
 - [ ] 5.4 — Build Return Authorization process
 - [ ] 5.5 — Build Packing List generation

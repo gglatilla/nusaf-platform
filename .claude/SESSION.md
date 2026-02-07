@@ -1,58 +1,52 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Phase 5: Missing ERP Documents — **5.1 COMPLETE**
+ERP Remediation — Phase 5: Missing ERP Documents — **5.2 COMPLETE**
 
 ## Status
-Phase 5.1 (Delivery Notes) COMPLETE | Next: 5.2 (Proforma Invoice)
+Phase 5.2 (Proforma Invoice) COMPLETE | Next: 5.3 (Purchase Requisition)
 
-## Completed Micro-tasks (Session 10)
-- [x] 5.1.1 — Schema + Validation + Service (Backend)
-- [x] 5.1.2 — API Routes + Backend Registration + Timeline
-- [x] 5.1.3 — Frontend Types + API Methods + Hooks
-- [x] 5.1.4 — Staff Frontend Pages (List + Detail + Order Integration)
-- [x] 5.1.5 — Customer Portal Integration + Verification
+## Completed Micro-tasks (Session 11)
+- [x] 5.2.1 — Schema + Validation + Service (Backend)
+- [x] 5.2.2 — PDF Generation
+- [x] 5.2.3 — API Routes + Backend Registration + Timeline
+- [x] 5.2.4 — Frontend Types + API Methods + Hooks
+- [x] 5.2.5 — Staff + Customer UI Integration
 
-## Files Created (Session 10)
-- `backend/src/utils/validation/delivery-notes.ts` — Zod schemas
-- `backend/src/services/delivery-note.service.ts` — full service layer
-- `backend/src/api/v1/delivery-notes/route.ts` — 7 endpoints
-- `frontend/src/hooks/useDeliveryNotes.ts` — 7 hooks
-- `frontend/src/components/delivery-notes/DeliveryNoteStatusBadge.tsx`
-- `frontend/src/components/delivery-notes/DeliveryNoteListTable.tsx`
-- `frontend/src/components/orders/order-detail/DeliveryNotesSection.tsx`
-- `frontend/src/app/(portal)/delivery-notes/page.tsx` — list page
-- `frontend/src/app/(portal)/delivery-notes/[id]/page.tsx` — detail page
-- `frontend/src/app/(customer)/my/delivery-notes/[id]/page.tsx` — customer detail
+## Files Created (Session 11)
+- `backend/src/utils/validation/proforma-invoices.ts` — Zod schemas
+- `backend/src/services/proforma-invoice.service.ts` — full service layer
+- `backend/src/api/v1/proforma-invoices/route.ts` — 5 endpoints
+- `frontend/src/hooks/useProformaInvoices.ts` — 4 hooks
+- `frontend/src/components/orders/order-detail/ProformaInvoicesSection.tsx` — reusable section
 
-## Files Modified (Session 10)
-- `backend/prisma/schema.prisma` — added DN models + enum
-- `backend/src/index.ts` — registered delivery-notes route
-- `backend/src/services/order-timeline.service.ts` — 3 DN event types
-- `frontend/src/lib/api.ts` — 12 types + 7 API methods
-- `frontend/src/lib/constants/reference-routes.ts` — DeliveryNote entry
-- `frontend/src/lib/navigation.ts` — Delivery Notes nav item (FileOutput icon)
-- `frontend/src/components/orders/order-detail/index.ts` — exported DeliveryNotesSection
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` — DN section + Create DN button
-- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — DN section for customer
+## Files Modified (Session 11)
+- `backend/prisma/schema.prisma` — added PI models + enum
+- `backend/src/index.ts` — registered proforma-invoices route
+- `backend/src/services/pdf.service.ts` — added generateProformaInvoicePDF()
+- `backend/src/services/order-timeline.service.ts` — added PI event type + query
+- `frontend/src/lib/api.ts` — 5 types + 5 API methods
+- `frontend/src/lib/constants/reference-routes.ts` — ProformaInvoice entry
+- `frontend/src/components/orders/order-detail/index.ts` — exported ProformaInvoicesSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — PI button + section
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — PI section for customer
 
 ## Key Decisions
-- Delivery Notes do NOT create stock movements (stock already issued during picking slip)
-- Status propagation: DISPATCHED → order SHIPPED, DELIVERED → order DELIVERED
-- Customer can confirm receipt with per-line damage tracking
-- Customer page shows "Preparing" instead of "Draft" for friendly language
-- Multiple DNs per order supported (partial deliveries)
-- Empty lines array passed to createDeliveryNote — service auto-populates from order
+- Simple static documents — no status lifecycle (just ACTIVE/VOIDED)
+- Order integration only — no dedicated list page or nav item
+- CONFIRMED orders only — can generate proforma
+- Auto-void previous ACTIVE proforma when creating new one for same order
+- Banking details as placeholder in PDF template
+- Customers only see ACTIVE proformas, no void capability
+- UoM resolved from Product table since SalesOrderLine doesn't store it
 
 ## Next Steps
-1. Phase 5.2 — Proforma Invoice generation from Sales Order
-2. Phase 5.3 — Purchase Requisition workflow
-3. Phase 5.4 — Return Authorization process
-4. Phase 5.5 — Packing List generation
+1. Phase 5.3 — Purchase Requisition workflow
+2. Phase 5.4 — Return Authorization process
+3. Phase 5.5 — Packing List generation
 
 ## Context for Next Session
 - Progress tracker: `.claude/plans/erp-progress.md`
-- Phase 5.1 plan: `.claude/plans/shimmering-hatching-pearl.md`
-- Phase 5.1 (Delivery Notes) fully complete, committed and pushed
-- Next: Phase 5.2 (Proforma Invoice) — needs plan mode for design
-- Git commit: `3827f87` — "ERP Phase 5.1 complete"
+- Phase 5.2 plan: `.claude/plans/reactive-crunching-firefly.md`
+- Phase 5.2 (Proforma Invoice) fully complete, ready for commit
+- Next: Phase 5.3 (Purchase Requisition) — needs plan mode for design

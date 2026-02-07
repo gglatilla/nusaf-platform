@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt } from 'lucide-react';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
 import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeliveryNotes';
+import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/useProformaInvoices';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -20,6 +21,7 @@ import {
   JobCardsSection,
   TransferRequestsSection,
   DeliveryNotesSection,
+  ProformaInvoicesSection,
   OrderNotesSection,
   OrderTimelineSection,
 } from '@/components/orders/order-detail';
@@ -72,6 +74,7 @@ export default function OrderDetailPage() {
   const { data: jobCards } = useJobCardsForOrder(orderId);
   const { data: transferRequests } = useTransferRequestsForOrder(orderId);
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
+  const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
@@ -80,6 +83,7 @@ export default function OrderDetailPage() {
   const createJobCard = useCreateJobCard();
   const generateTransferRequest = useGenerateTransferRequest();
   const createDeliveryNote = useCreateDeliveryNote();
+  const createProformaInvoice = useCreateProformaInvoice();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -114,6 +118,7 @@ export default function OrderDetailPage() {
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
+  const canCreateProformaInvoice = order.status === 'CONFIRMED';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -186,6 +191,16 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleCreateProformaInvoice = async () => {
+    const hasActive = proformaInvoices?.some((pi) => pi.status === 'ACTIVE');
+    const message = hasActive
+      ? 'An active proforma invoice already exists. Creating a new one will void the previous. Continue?'
+      : 'Generate a proforma invoice for this order?';
+    if (window.confirm(message)) {
+      await createProformaInvoice.mutateAsync({ orderId });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -212,6 +227,16 @@ export default function OrderDetailPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-wrap">
+          {canCreateProformaInvoice && (
+            <button
+              onClick={handleCreateProformaInvoice}
+              disabled={createProformaInvoice.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 disabled:opacity-50"
+            >
+              <Receipt className="h-4 w-4" />
+              {createProformaInvoice.isPending ? 'Generating...' : 'Proforma Invoice'}
+            </button>
+          )}
           {canGenerateFulfillmentPlan && (
             <button
               onClick={() => setShowFulfillmentPlanModal(true)}
@@ -341,6 +366,10 @@ export default function OrderDetailPage() {
           <JobCardsSection jobCards={jobCards ?? []} />
           <TransferRequestsSection transferRequests={transferRequests ?? []} />
           <DeliveryNotesSection deliveryNotes={deliveryNotes ?? []} />
+          <ProformaInvoicesSection
+            proformaInvoices={proformaInvoices ?? []}
+            canVoid={true}
+          />
 
           {/* Notes */}
           <OrderNotesSection

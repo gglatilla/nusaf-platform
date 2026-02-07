@@ -1780,3 +1780,86 @@ model DeliveryNoteCounter {
 
   @@map("delivery_note_counter")
 }
+
+// ============================================
+// PROFORMA INVOICE
+// ============================================
+
+enum ProformaInvoiceStatus {
+  ACTIVE
+  VOIDED
+}
+
+model ProformaInvoice {
+  id              String                @id @default(cuid())
+  proformaNumber  String                @unique @map("proforma_number") // PI-2026-00001
+  companyId       String                @map("company_id")
+  orderId         String                @map("order_id")
+  orderNumber     String                @map("order_number") // Snapshot
+  customerName    String                @map("customer_name") // Snapshot
+  customerPoNumber String?              @map("customer_po_number") // Snapshot
+  billingAddress  String?               @map("billing_address") // Snapshot from company address
+  status          ProformaInvoiceStatus @default(ACTIVE)
+
+  // Dates
+  issueDate   DateTime @map("issue_date")
+  validUntil  DateTime @map("valid_until") // issueDate + 30 days
+
+  // Payment
+  paymentTerms String @default("Payment required before shipment") @map("payment_terms")
+
+  // Totals (ZAR, snapshot from order)
+  subtotal  Decimal @default(0) @db.Decimal(12, 2)
+  vatRate   Decimal @default(15) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount Decimal @default(0) @map("vat_amount") @db.Decimal(12, 2)
+  total     Decimal @default(0) @db.Decimal(12, 2)
+
+  // Voiding
+  voidedAt    DateTime? @map("voided_at")
+  voidedBy    String?   @map("voided_by")
+  voidReason  String?   @map("void_reason")
+
+  notes String?
+
+  // Relations
+  lines ProformaInvoiceLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([status])
+  @@map("proforma_invoices")
+}
+
+model ProformaInvoiceLine {
+  id                 String          @id @default(cuid())
+  proformaInvoiceId  String          @map("proforma_invoice_id")
+  proformaInvoice    ProformaInvoice @relation(fields: [proformaInvoiceId], references: [id], onDelete: Cascade)
+  orderLineId        String          @map("order_line_id")
+  lineNumber         Int             @map("line_number")
+
+  // Product snapshot
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Pricing (ZAR, snapshot from order line)
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
+  lineTotal Decimal @map("line_total") @db.Decimal(12, 2)
+
+  @@index([proformaInvoiceId])
+  @@map("proforma_invoice_lines")
+}
+
+model ProformaInvoiceCounter {
+  id    String @id @default("pi_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("proforma_invoice_counter")
+}

@@ -1465,6 +1465,68 @@ export interface OrderDeliveryNoteSummary {
   createdAt: string;
 }
 
+// ============================================
+// PROFORMA INVOICE TYPES
+// ============================================
+
+export type ProformaInvoiceStatus = 'ACTIVE' | 'VOIDED';
+
+export interface ProformaInvoiceLine {
+  id: string;
+  orderLineId: string;
+  lineNumber: number;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface ProformaInvoice {
+  id: string;
+  proformaNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerPoNumber: string | null;
+  billingAddress: string | null;
+  status: ProformaInvoiceStatus;
+  issueDate: string;
+  validUntil: string;
+  paymentTerms: string;
+  subtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  total: number;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  notes: string | null;
+  lines: ProformaInvoiceLine[];
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface ProformaInvoiceSummary {
+  id: string;
+  proformaNumber: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  status: ProformaInvoiceStatus;
+  issueDate: string;
+  total: number;
+  createdAt: string;
+}
+
+export interface CreateProformaInvoiceData {
+  notes?: string;
+  paymentTerms?: string;
+}
+
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
@@ -3884,6 +3946,45 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/delivery-notes/${id}/cancel`, {
       method: 'POST',
       body: JSON.stringify({}),
+    });
+  }
+
+  // ============================================
+  // PROFORMA INVOICE METHODS
+  // ============================================
+
+  async getProformaInvoicesForOrder(orderId: string): Promise<ApiResponse<ProformaInvoiceSummary[]>> {
+    return this.request<ApiResponse<ProformaInvoiceSummary[]>>(`/proforma-invoices/order/${orderId}`);
+  }
+
+  async getProformaInvoiceById(id: string): Promise<ApiResponse<ProformaInvoice>> {
+    return this.request<ApiResponse<ProformaInvoice>>(`/proforma-invoices/${id}`);
+  }
+
+  async createProformaInvoice(orderId: string, data: CreateProformaInvoiceData = {}): Promise<ApiResponse<{ id: string; proformaNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; proformaNumber: string }>>(`/proforma-invoices/from-order/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async downloadProformaInvoicePDF(id: string): Promise<Blob> {
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/proforma-invoices/${id}/pdf`;
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new ApiError('Failed to download PDF', 'PDF_DOWNLOAD_ERROR', response.status);
+    }
+    return response.blob();
+  }
+
+  async voidProformaInvoice(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/proforma-invoices/${id}/void`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
   }
 

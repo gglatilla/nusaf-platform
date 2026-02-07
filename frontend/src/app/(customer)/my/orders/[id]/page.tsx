@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useOrder } from '@/hooks/useOrders';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
+import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
+import { ProformaInvoicesSection } from '@/components/orders/order-detail';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -53,6 +55,7 @@ export default function CustomerOrderDetailPage() {
 
   const { data: order, isLoading, error } = useOrder(orderId);
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
+  const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -177,6 +180,12 @@ export default function CustomerOrderDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Proforma Invoices */}
+          <ProformaInvoicesSection
+            proformaInvoices={proformaInvoices ?? []}
+            isCustomer={true}
+          />
 
           {/* Customer Notes */}
           {order.customerNotes && (
