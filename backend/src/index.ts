@@ -42,6 +42,9 @@ import { swaggerSpec } from './config/swagger';
 
 const app = express();
 
+// Trust first proxy (Railway reverse proxy) so req.ip resolves correctly
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(requestIdMiddleware); // Add request ID first for logging
 app.use(helmet());

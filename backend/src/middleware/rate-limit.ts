@@ -1,12 +1,18 @@
 import rateLimit from 'express-rate-limit';
 
 /**
+ * NOTE: All rate limiters rely on Express `trust proxy` being set in index.ts.
+ * Railway runs behind a reverse proxy, so `req.ip` is correct when trust proxy
+ * is enabled. No custom keyGenerator needed.
+ */
+
+/**
  * Rate limiter for quote requests
  * Limits: 3 requests per IP per 15 minutes
  */
 export const quoteRequestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // Limit each IP to 3 requests per window
+  max: 3,
   message: {
     success: false,
     error: {
@@ -14,17 +20,8 @@ export const quoteRequestLimiter = rateLimit({
       message: 'Too many quote requests. Please try again in 15 minutes.',
     },
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  keyGenerator: (req) => {
-    // Use X-Forwarded-For header if behind a proxy, otherwise use IP
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const forwardedFor = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      return forwardedFor.split(',')[0].trim();
-    }
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 /**
@@ -33,7 +30,7 @@ export const quoteRequestLimiter = rateLimit({
  */
 export const contactFormLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 requests per window
+  max: 5,
   message: {
     success: false,
     error: {
@@ -43,14 +40,6 @@ export const contactFormLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const forwardedFor = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      return forwardedFor.split(',')[0].trim();
-    }
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
 });
 
 /**
@@ -59,7 +48,7 @@ export const contactFormLimiter = rateLimit({
  */
 export const generalApiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 requests per window
+  max: 100,
   message: {
     success: false,
     error: {
@@ -74,11 +63,10 @@ export const generalApiLimiter = rateLimit({
 /**
  * Auth rate limiter for login attempts
  * Limits: 5 login attempts per IP per 15 minutes
- * This helps prevent brute-force password attacks
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per window
+  max: 5,
   message: {
     success: false,
     error: {
@@ -88,15 +76,5 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const forwardedFor = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      return forwardedFor.split(',')[0].trim();
-    }
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
-  // Skip successful requests to not count them against the limit
-  // Only failed login attempts should count
   skipSuccessfulRequests: true,
 });
