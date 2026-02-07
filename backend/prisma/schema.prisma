@@ -1700,3 +1700,83 @@ model CycleCountCounter {
 
   @@map("cycle_count_counter")
 }
+
+// ============================================
+// DELIVERY NOTE
+// ============================================
+
+enum DeliveryNoteStatus {
+  DRAFT
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model DeliveryNote {
+  id                 String             @id @default(cuid())
+  deliveryNoteNumber String             @unique @map("delivery_note_number") // DN-2026-00001
+  companyId          String             @map("company_id")
+  orderId            String             @map("order_id")
+  orderNumber        String             @map("order_number") // Snapshot
+  customerName       String             @map("customer_name") // Snapshot
+  deliveryAddress    String?            @map("delivery_address")
+  location           Warehouse
+  status             DeliveryNoteStatus @default(DRAFT)
+
+  // Dispatch
+  dispatchedAt     DateTime? @map("dispatched_at")
+  dispatchedBy     String?   @map("dispatched_by")
+  dispatchedByName String?   @map("dispatched_by_name")
+
+  // Delivery confirmation
+  deliveredAt     DateTime? @map("delivered_at")
+  deliveredByName String?   @map("delivered_by_name") // Person who received goods
+  signatureNotes  String?   @map("signature_notes")
+
+  notes String?
+
+  // Relations
+  lines DeliveryNoteLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([status])
+  @@map("delivery_notes")
+}
+
+model DeliveryNoteLine {
+  id             String       @id @default(cuid())
+  deliveryNoteId String       @map("delivery_note_id")
+  deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  orderLineId    String       @map("order_line_id")
+  lineNumber     Int          @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Quantities
+  quantityOrdered    Int @map("quantity_ordered")
+  quantityDispatched Int @map("quantity_dispatched")
+  quantityReceived   Int @default(0) @map("quantity_received")
+  quantityDamaged    Int @default(0) @map("quantity_damaged")
+  damageNotes        String? @map("damage_notes")
+
+  @@index([deliveryNoteId])
+  @@map("delivery_note_lines")
+}
+
+model DeliveryNoteCounter {
+  id    String @id @default("dn_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("delivery_note_counter")
+}

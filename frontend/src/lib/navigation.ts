@@ -18,6 +18,7 @@ import {
   Factory,
   PackageCheck,
   ArrowRightLeft,
+  FileOutput,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -45,6 +46,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Picking Slips', href: '/picking-slips', icon: ClipboardList },
   { name: 'Job Cards', href: '/job-cards', icon: Wrench },
+  { name: 'Delivery Notes', href: '/delivery-notes', icon: FileOutput },
   { name: 'Transfers', href: '/transfer-requests', icon: Truck },
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
   { name: 'Documents', href: '/documents', icon: Archive },

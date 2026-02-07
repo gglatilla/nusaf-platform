@@ -1,13 +1,87 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 4 — COMPLETE
-## Current Micro-Task: None — Phase 4 finished
-## Status: COMPLETE (all 5 micro-tasks done: 4.1, 4.2, 4.4, 4.5, 4.3)
-## Next Phase: Phase 5 — Missing ERP Documents (5.1: Delivery Note)
+## Current Phase: Phase 5 — Missing ERP Documents
+## Current Micro-Task: 5.1 — COMPLETE (Delivery Notes)
+## Status: Phase 5.1 complete, next is 5.2 (Proforma Invoice)
+## Next Micro-Task: 5.2 — Proforma Invoice generation from Sales Order
 
 ---
 
 ## Last Session Notes
+### Session 10 — Phase 5 Micro-Task 5.1 (2026-02-07)
+**Micro-task 5.1 — Delivery Notes (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**5.1.1 — Schema + Validation + Service (Backend)**
+- Added `DeliveryNoteStatus` enum, `DeliveryNote`, `DeliveryNoteLine`, `DeliveryNoteCounter` models to Prisma schema
+- Created `validation/delivery-notes.ts` with Zod schemas (create, confirm delivery, list query)
+- Created `delivery-note.service.ts` with generate number, create from order, get/list, dispatch, confirm delivery, cancel
+- Status propagation: DISPATCHED → order SHIPPED, DELIVERED → order DELIVERED, cancel reverts if needed
+
+**5.1.2 — API Routes + Backend Registration + Timeline**
+- Created 7 endpoints in `delivery-notes/route.ts` (GET list/detail/for-order, POST create/dispatch/confirm/cancel)
+- Customer role gets internal fields stripped (notes, createdBy, dispatchedBy)
+- Registered route in `index.ts`
+- Added 3 timeline event types (DELIVERY_NOTE_CREATED, DISPATCHED, DELIVERED) to order-timeline.service.ts
+
+**5.1.3 — Frontend Types + API Methods + Hooks**
+- Added 12 types to api.ts (DeliveryNote, DeliveryNoteLine, DeliveryNoteListItem, etc.)
+- Added 7 API methods to ApiClient class
+- Created `useDeliveryNotes.ts` with 7 hooks
+- Added `DeliveryNote: '/delivery-notes'` to reference-routes.ts
+
+**5.1.4 — Staff Frontend Pages**
+- Created DeliveryNoteStatusBadge (gray/blue/green/red)
+- Created DeliveryNoteListTable (columns: DN#, Order, Customer, Location, Status, Dispatched, Delivered, Lines)
+- Created list page with status tabs, location filter, pagination
+- Created detail page with pipeline steps, lines table (ordered/dispatched/received/damaged), damage notes, confirm delivery modal, cancel modal, sidebar details
+- Created DeliveryNotesSection for order detail page
+- Added "Delivery Notes" to navigation (FileOutput icon)
+- Integrated into order detail: delivery notes section + "Create Delivery Note" button (READY_TO_SHIP/PARTIALLY_SHIPPED/SHIPPED)
+
+**5.1.5 — Customer Portal Integration**
+- Created customer delivery note detail page at `/my/delivery-notes/[id]`
+  - Simplified view: no warehouse codes, no internal notes, no createdBy
+  - "Confirm Receipt" button when DISPATCHED with per-line received/damaged quantities
+  - Pipeline shows "Preparing" instead of "Draft" for customer-friendly language
+  - Back arrow links to order detail
+- Updated customer order detail to show linked delivery notes section with status badges, clickable links to `/my/delivery-notes/[id]`
+
+**Golden Rules Verification:**
+- Rule 1: N/A (no stock changes)
+- Rule 2: PASS (DN links to order, lines link to products)
+- Rule 3: PASS (detail is read-only, transitions via buttons)
+- Rule 4: PASS (customer sees no internal data)
+- Rule 5: PASS (staff sees warehouse, customer, dates, names, damage)
+- Rule 6: PASS (DISPATCHED→SHIPPED, DELIVERED→DELIVERED)
+- Rule 7: PASS (clickable refs, timeline events)
+- Rule 8: PASS (warehouse creates/dispatches, customer confirms receipt)
+
+**Files created (11):**
+- `backend/src/utils/validation/delivery-notes.ts`
+- `backend/src/services/delivery-note.service.ts`
+- `backend/src/api/v1/delivery-notes/route.ts`
+- `frontend/src/hooks/useDeliveryNotes.ts`
+- `frontend/src/components/delivery-notes/DeliveryNoteStatusBadge.tsx`
+- `frontend/src/components/delivery-notes/DeliveryNoteListTable.tsx`
+- `frontend/src/components/orders/order-detail/DeliveryNotesSection.tsx`
+- `frontend/src/app/(portal)/delivery-notes/page.tsx`
+- `frontend/src/app/(portal)/delivery-notes/[id]/page.tsx`
+- `frontend/src/app/(customer)/my/delivery-notes/[id]/page.tsx`
+
+**Files modified (8):**
+- `backend/prisma/schema.prisma` — added DN models + enum
+- `backend/src/index.ts` — registered delivery-notes route
+- `backend/src/services/order-timeline.service.ts` — added 3 DN event types
+- `frontend/src/lib/api.ts` — added DN types + 7 API methods
+- `frontend/src/lib/constants/reference-routes.ts` — added DeliveryNote entry
+- `frontend/src/lib/navigation.ts` — added Delivery Notes nav item
+- `frontend/src/components/orders/order-detail/index.ts` — exported DeliveryNotesSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — added DN section + button
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — added DN section
+
 ### Session 9 — Phase 4 Micro-Task 4.3 (2026-02-07)
 **Micro-task 4.3 — Inventory Dashboard**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -783,7 +857,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts) ✅
 
 ## Phase 5: Missing ERP Documents
-- [ ] 5.1 — Build Delivery Note model + create from picking slips
+- [x] 5.1 — Build Delivery Note model + create from order ✅
 - [ ] 5.2 — Build Proforma Invoice generation from Sales Order
 - [ ] 5.3 — Build Purchase Requisition workflow
 - [ ] 5.4 — Build Return Authorization process

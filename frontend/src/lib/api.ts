@@ -1347,6 +1347,124 @@ export interface OrderPickingSlipSummary {
   completedAt: string | null;
 }
 
+// ============================================
+// DELIVERY NOTE TYPES
+// ============================================
+
+export type DeliveryNoteStatus = 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+
+export interface DeliveryNoteLine {
+  id: string;
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantityOrdered: number;
+  quantityDispatched: number;
+  quantityReceived: number;
+  quantityDamaged: number;
+  damageNotes: string | null;
+}
+
+export interface DeliveryNote {
+  id: string;
+  deliveryNoteNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  deliveryAddress: string | null;
+  location: Warehouse;
+  status: DeliveryNoteStatus;
+  dispatchedAt: string | null;
+  dispatchedBy: string | null;
+  dispatchedByName: string | null;
+  deliveredAt: string | null;
+  deliveredByName: string | null;
+  signatureNotes: string | null;
+  notes: string | null;
+  lines: DeliveryNoteLine[];
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface DeliveryNoteListItem {
+  id: string;
+  deliveryNoteNumber: string;
+  orderNumber: string;
+  orderId: string;
+  customerName: string;
+  location: Warehouse;
+  status: DeliveryNoteStatus;
+  lineCount: number;
+  dispatchedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
+export interface DeliveryNotesListResponse {
+  deliveryNotes: DeliveryNoteListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface DeliveryNotesQueryParams {
+  orderId?: string;
+  status?: DeliveryNoteStatus;
+  location?: Warehouse;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateDeliveryNoteLineInput {
+  orderLineId: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantityOrdered: number;
+  quantityDispatched: number;
+}
+
+export interface CreateDeliveryNoteData {
+  location?: Warehouse;
+  deliveryAddress?: string;
+  notes?: string;
+  lines: CreateDeliveryNoteLineInput[];
+}
+
+export interface ConfirmDeliveryLineInput {
+  lineId: string;
+  quantityReceived: number;
+  quantityDamaged?: number;
+  damageNotes?: string;
+}
+
+export interface ConfirmDeliveryData {
+  deliveredByName: string;
+  signatureNotes?: string;
+  lines: ConfirmDeliveryLineInput[];
+}
+
+export interface OrderDeliveryNoteSummary {
+  id: string;
+  deliveryNoteNumber: string;
+  location: Warehouse;
+  status: DeliveryNoteStatus;
+  lineCount: number;
+  dispatchedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
@@ -3713,6 +3831,60 @@ class ApiClient {
 
   async getReceivingSummary(poId: string): Promise<ApiResponse<ReceivingSummary>> {
     return this.request<ApiResponse<ReceivingSummary>>(`/goods-receipts/po/${poId}/summary`);
+  }
+
+  // ============================================
+  // DELIVERY NOTE METHODS
+  // ============================================
+
+  async getDeliveryNotes(params: DeliveryNotesQueryParams = {}): Promise<ApiResponse<DeliveryNotesListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/delivery-notes?${queryString}` : '/delivery-notes';
+    return this.request<ApiResponse<DeliveryNotesListResponse>>(endpoint);
+  }
+
+  async getDeliveryNoteById(id: string): Promise<ApiResponse<DeliveryNote>> {
+    return this.request<ApiResponse<DeliveryNote>>(`/delivery-notes/${id}`);
+  }
+
+  async getDeliveryNotesForOrder(orderId: string): Promise<ApiResponse<OrderDeliveryNoteSummary[]>> {
+    return this.request<ApiResponse<OrderDeliveryNoteSummary[]>>(`/delivery-notes/order/${orderId}`);
+  }
+
+  async createDeliveryNoteFromOrder(orderId: string, data: CreateDeliveryNoteData): Promise<ApiResponse<{ id: string; deliveryNoteNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; deliveryNoteNumber: string }>>(`/delivery-notes/from-order/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async dispatchDeliveryNote(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/delivery-notes/${id}/dispatch`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async confirmDelivery(id: string, data: ConfirmDeliveryData): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/delivery-notes/${id}/confirm-delivery`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async cancelDeliveryNote(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/delivery-notes/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   }
 
   // ============================================

@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput } from 'lucide-react';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
+import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeliveryNotes';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -18,6 +19,7 @@ import {
   PickingSlipsSection,
   JobCardsSection,
   TransferRequestsSection,
+  DeliveryNotesSection,
   OrderNotesSection,
   OrderTimelineSection,
 } from '@/components/orders/order-detail';
@@ -69,6 +71,7 @@ export default function OrderDetailPage() {
   const { data: pickingSlips } = usePickingSlipsForOrder(orderId);
   const { data: jobCards } = useJobCardsForOrder(orderId);
   const { data: transferRequests } = useTransferRequestsForOrder(orderId);
+  const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
@@ -76,6 +79,7 @@ export default function OrderDetailPage() {
   const generatePickingSlips = useGeneratePickingSlips();
   const createJobCard = useCreateJobCard();
   const generateTransferRequest = useGenerateTransferRequest();
+  const createDeliveryNote = useCreateDeliveryNote();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -109,6 +113,7 @@ export default function OrderDetailPage() {
   const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
+  const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -175,6 +180,12 @@ export default function OrderDetailPage() {
     setShowCreateTransferRequestModal(false);
   };
 
+  const handleCreateDeliveryNote = async () => {
+    if (window.confirm('Create a delivery note for this order?')) {
+      await createDeliveryNote.mutateAsync({ orderId, data: { lines: [] } });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -235,6 +246,16 @@ export default function OrderDetailPage() {
             >
               <Truck className="h-4 w-4" />
               Transfer
+            </button>
+          )}
+          {canCreateDeliveryNote && (
+            <button
+              onClick={handleCreateDeliveryNote}
+              disabled={createDeliveryNote.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-50"
+            >
+              <FileOutput className="h-4 w-4" />
+              {createDeliveryNote.isPending ? 'Creating...' : 'Delivery Note'}
             </button>
           )}
           {canConfirm && (
@@ -319,6 +340,7 @@ export default function OrderDetailPage() {
           <PickingSlipsSection pickingSlips={pickingSlips ?? []} />
           <JobCardsSection jobCards={jobCards ?? []} />
           <TransferRequestsSection transferRequests={transferRequests ?? []} />
+          <DeliveryNotesSection deliveryNotes={deliveryNotes ?? []} />
 
           {/* Notes */}
           <OrderNotesSection

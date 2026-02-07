@@ -23,6 +23,9 @@ export type TimelineEventType =
   | 'TRANSFER_CREATED'
   | 'TRANSFER_SHIPPED'
   | 'TRANSFER_RECEIVED'
+  | 'DELIVERY_NOTE_CREATED'
+  | 'DELIVERY_NOTE_DISPATCHED'
+  | 'DELIVERY_NOTE_DELIVERED'
   | 'FULFILLMENT_PLAN_EXECUTED';
 
 export interface TimelineEvent {
@@ -71,7 +74,7 @@ export async function getOrderTimeline(
   }
 
   // Phase 1: Fetch all related documents in parallel
-  const [pickingSlips, jobCards, transferRequests] = await Promise.all([
+  const [pickingSlips, jobCards, transferRequests, deliveryNotes] = await Promise.all([
     prisma.pickingSlip.findMany({
       where: { orderId, companyId },
       select: {
@@ -123,6 +126,22 @@ export async function getOrderTimeline(
       },
       orderBy: { createdAt: 'asc' },
     }),
+    prisma.deliveryNote.findMany({
+      where: { orderId, companyId },
+      select: {
+        id: true,
+        deliveryNoteNumber: true,
+        location: true,
+        status: true,
+        createdAt: true,
+        createdBy: true,
+        dispatchedAt: true,
+        dispatchedByName: true,
+        deliveredAt: true,
+        deliveredByName: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
   ]);
 
   // Phase 2: Resolve user names from all createdBy IDs
@@ -133,6 +152,7 @@ export async function getOrderTimeline(
     ...pickingSlips.map((ps) => ps.createdBy),
     ...jobCards.map((jc) => jc.createdBy),
     ...transferRequests.map((tr) => tr.createdBy),
+    ...deliveryNotes.map((dn) => dn.createdBy),
   ].filter((id): id is string => id !== null && id !== undefined);
 
   const uniqueUserIds = [...new Set(allUserIds)];
@@ -388,6 +408,51 @@ export async function getOrderTimeline(
         documentType: 'TransferRequest',
         documentId: tr.id,
         documentNumber: tr.transferNumber,
+      });
+    }
+  }
+
+  // --- Delivery note events ---
+  for (const dn of deliveryNotes) {
+    const locationLabel = dn.location === 'JHB' ? 'Johannesburg' : 'Cape Town';
+
+    events.push({
+      id: `dn-created-${dn.id}`,
+      timestamp: dn.createdAt.toISOString(),
+      type: 'DELIVERY_NOTE_CREATED',
+      title: `Delivery note created`,
+      description: `${dn.deliveryNoteNumber} — ${locationLabel}`,
+      actor: getUserName(dn.createdBy),
+      documentType: 'DeliveryNote',
+      documentId: dn.id,
+      documentNumber: dn.deliveryNoteNumber,
+    });
+
+    if (dn.dispatchedAt) {
+      events.push({
+        id: `dn-dispatched-${dn.id}`,
+        timestamp: dn.dispatchedAt.toISOString(),
+        type: 'DELIVERY_NOTE_DISPATCHED',
+        title: `Goods dispatched`,
+        description: `${dn.deliveryNoteNumber} — ${locationLabel}`,
+        actor: dn.dispatchedByName,
+        documentType: 'DeliveryNote',
+        documentId: dn.id,
+        documentNumber: dn.deliveryNoteNumber,
+      });
+    }
+
+    if (dn.deliveredAt) {
+      events.push({
+        id: `dn-delivered-${dn.id}`,
+        timestamp: dn.deliveredAt.toISOString(),
+        type: 'DELIVERY_NOTE_DELIVERED',
+        title: `Delivery confirmed`,
+        description: `${dn.deliveryNoteNumber} — received by ${dn.deliveredByName || 'unknown'}`,
+        actor: dn.deliveredByName,
+        documentType: 'DeliveryNote',
+        documentId: dn.id,
+        documentNumber: dn.deliveryNoteNumber,
       });
     }
   }

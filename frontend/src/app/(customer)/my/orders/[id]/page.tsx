@@ -5,16 +5,19 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Calendar,
+  Clock,
   FileText,
   Package,
   Pause,
   X,
 } from 'lucide-react';
 import { useOrder } from '@/hooks/useOrders';
+import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
 import { FulfillmentPipelineSteps } from '@/components/orders/order-detail';
+import { DeliveryNoteStatusBadge } from '@/components/delivery-notes/DeliveryNoteStatusBadge';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -49,6 +52,7 @@ export default function CustomerOrderDetailPage() {
   const orderId = params.id as string;
 
   const { data: order, isLoading, error } = useOrder(orderId);
+  const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -129,6 +133,50 @@ export default function CustomerOrderDetailPage() {
               hideOperationalColumns
             />
           </div>
+
+          {/* Delivery Notes */}
+          {deliveryNotes && deliveryNotes.length > 0 && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Deliveries</h2>
+                <span className="text-sm text-slate-500">
+                  {deliveryNotes.length} delivery note{deliveryNotes.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {deliveryNotes.map((dn) => (
+                  <div
+                    key={dn.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Link
+                        href={`/my/delivery-notes/${dn.id}`}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        {dn.deliveryNoteNumber}
+                      </Link>
+                      <DeliveryNoteStatusBadge status={dn.status} />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                      {dn.deliveredAt ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Delivered {new Intl.DateTimeFormat('en-ZA', { month: 'short', day: 'numeric' }).format(new Date(dn.deliveredAt))}
+                        </span>
+                      ) : dn.dispatchedAt ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Dispatched {new Intl.DateTimeFormat('en-ZA', { month: 'short', day: 'numeric' }).format(new Date(dn.dispatchedAt))}
+                        </span>
+                      ) : null}
+                      <span className="text-slate-500">{dn.lineCount} item{dn.lineCount !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Customer Notes */}
           {order.customerNotes && (

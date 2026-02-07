@@ -10,6 +10,7 @@ export const REFERENCE_TYPE_ROUTES: Record<string, string> = {
   TransferRequest: '/transfer-requests',
   JobCard: '/job-cards',
   StockAdjustment: '/inventory/adjustments',
+  DeliveryNote: '/delivery-notes',
 };
 
 /**
