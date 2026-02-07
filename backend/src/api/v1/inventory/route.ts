@@ -40,6 +40,7 @@ import {
   reconcileCycleCountSession,
   cancelCycleCountSession,
 } from '../../../services/cycle-count.service';
+import { getInventoryDashboard } from '../../../services/inventory-dashboard.service';
 import { Warehouse } from '@prisma/client';
 
 const router = Router();
@@ -67,6 +68,34 @@ router.get('/summary', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), a
       error: {
         code: 'SUMMARY_ERROR',
         message: error instanceof Error ? error.message : 'Failed to fetch inventory summary',
+      },
+    });
+  }
+});
+
+// ============================================
+// INVENTORY DASHBOARD (AGGREGATED)
+// ============================================
+
+/**
+ * GET /api/v1/inventory/dashboard
+ * Get aggregated inventory dashboard data for all warehouses
+ */
+router.get('/dashboard', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'), async (_req, res) => {
+  try {
+    const data = await getInventoryDashboard();
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error('Get inventory dashboard error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DASHBOARD_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch inventory dashboard',
       },
     });
   }

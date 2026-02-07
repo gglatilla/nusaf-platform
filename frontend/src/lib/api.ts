@@ -645,6 +645,89 @@ export interface InventorySummary {
   movementsToday: number;
 }
 
+// Inventory Dashboard (aggregated) types
+export interface WarehouseStockSummary {
+  location: 'JHB' | 'CT';
+  totalSKUs: number;
+  totalOnHand: number;
+  totalAvailable: number;
+  totalOnOrder: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+}
+
+export interface LowStockAlertItem {
+  productId: string;
+  nusafSku: string;
+  description: string;
+  location: 'JHB' | 'CT';
+  onHand: number;
+  available: number;
+  reorderPoint: number;
+  shortfall: number;
+}
+
+export interface PendingAdjustmentItem {
+  id: string;
+  adjustmentNumber: string;
+  location: 'JHB' | 'CT';
+  reason: string;
+  lineCount: number;
+  createdAt: string;
+  createdByName: string | null;
+}
+
+export interface ActiveCycleCountItem {
+  id: string;
+  sessionNumber: string;
+  location: 'JHB' | 'CT';
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+  totalLines: number;
+  countedLines: number;
+  createdAt: string;
+}
+
+export interface RecentMovementItem {
+  id: string;
+  productSku: string;
+  productDescription: string;
+  location: 'JHB' | 'CT';
+  movementType: string;
+  quantity: number;
+  referenceNumber: string | null;
+  referenceType: string | null;
+  createdAt: string;
+}
+
+export interface InventoryDashboardData {
+  summary: {
+    totalSKUs: number;
+    totalStockValue: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+    pendingAdjustments: number;
+    activeCycleCounts: number;
+    movementsToday: number;
+  };
+  warehouseBreakdown: WarehouseStockSummary[];
+  lowStockAlerts: {
+    count: number;
+    items: LowStockAlertItem[];
+  };
+  pendingAdjustments: {
+    count: number;
+    items: PendingAdjustmentItem[];
+  };
+  activeCycleCounts: {
+    count: number;
+    items: ActiveCycleCountItem[];
+  };
+  recentMovements: {
+    todayCount: number;
+    items: RecentMovementItem[];
+  };
+}
+
 export interface StockLevelsQueryParams {
   location?: string;
   categoryId?: string;
@@ -2458,6 +2541,13 @@ class ApiClient {
    */
   async getInventorySummary(): Promise<ApiResponse<InventorySummary>> {
     return this.request<ApiResponse<InventorySummary>>('/inventory/summary');
+  }
+
+  /**
+   * Get aggregated inventory dashboard data
+   */
+  async getInventoryDashboard(): Promise<ApiResponse<InventoryDashboardData>> {
+    return this.request<ApiResponse<InventoryDashboardData>>('/inventory/dashboard');
   }
 
   /**

@@ -1,43 +1,44 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Phase 4: Inventory Module (4.3 Inventory Dashboard — LAST)
+ERP Remediation — Phase 4: Inventory Module — **COMPLETE**
 
 ## Status
-IN_PROGRESS | 4.1, 4.2, 4.4, 4.5 done — only 4.3 (Inventory Dashboard) remains
+COMPLETE | All 5 micro-tasks done (4.1, 4.2, 4.4, 4.5, 4.3)
 
 ## Completed Micro-tasks
 - [x] 4.1 — Stock Movements page (filterable audit log)
 - [x] 4.2 — Stock Adjustment workflow (list + detail + create pages)
 - [x] 4.4 — Reorder Report (below reorder point, group by supplier, generate draft POs)
 - [x] 4.5 — Cycle Count workflow (create session → blind count → variance analysis → reconcile)
-- [ ] 4.3 — Inventory Dashboard (multi-warehouse summary, alerts) — LAST
+- [x] 4.3 — Inventory Dashboard (multi-warehouse summary, alerts, role-ordered sections)
 
-## Files Created (Session 8)
-- `backend/src/services/cycle-count.service.ts` — cycle count service (7 functions)
-- `frontend/src/app/(portal)/inventory/cycle-counts/page.tsx` — list page
-- `frontend/src/app/(portal)/inventory/cycle-counts/new/page.tsx` — create page
-- `frontend/src/app/(portal)/inventory/cycle-counts/[id]/page.tsx` — detail/count page
+## Files Created (Session 9)
+- `backend/src/services/inventory-dashboard.service.ts` — dashboard service (9 parallel queries)
 
-## Files Modified (Session 8)
-- `backend/prisma/schema.prisma` — added CycleCount models + enum
-- `backend/src/api/v1/inventory/route.ts` — added 7 cycle count endpoints
-- `backend/src/utils/validation/inventory.ts` — added Zod schemas
-- `frontend/src/lib/api.ts` — added cycle count types + API methods
-- `frontend/src/hooks/useInventory.ts` — added cycle count hooks
-- `frontend/src/lib/navigation.ts` — added Cycle Counts nav item
+## Files Modified (Session 9)
+- `backend/src/api/v1/inventory/route.ts` — added GET /dashboard endpoint
+- `frontend/src/lib/api.ts` — added 7 dashboard types + API method
+- `frontend/src/hooks/useInventory.ts` — added useInventoryDashboard hook (30s refresh)
+- `frontend/src/app/(portal)/inventory/page.tsx` — complete rewrite: tabs → dashboard
+- `frontend/src/lib/navigation.ts` — "Stock Levels" → "Dashboard", added PURCHASER
 
 ## Key Decisions
-- Blind counting: system quantities hidden during counting, revealed after completion
-- Reconciliation creates StockAdjustment with reason=CYCLE_COUNT (reuses approval pipeline)
-- WAREHOUSE role can create+count but not reconcile (needs ADMIN/MANAGER)
-- Counter format: CC-YYYY-NNNNN (yearly reset)
+- Replaced redundant 4-tab /inventory page (tabs duplicated by dedicated pages)
+- Dashboard aggregates: summary bar (6 cards), JHB/CT warehouse breakdown, 4 role-ordered sections
+- Role-based ordering: WAREHOUSE→movements first, PURCHASER→low stock first, ADMIN→alerts first
+- Stock value = sum(onHand * costPrice) across all warehouses
+- Low stock alerts sorted by shortfall severity (most critical first)
 
 ## Next Steps
-1. 4.3 — Build Inventory Dashboard (aggregates all inventory features)
-2. Then Phase 5: Missing ERP Documents
+1. Phase 5: Missing ERP Documents
+   - 5.1 — Build Delivery Note model + create from picking slips
+   - 5.2 — Build Proforma Invoice generation from Sales Order
+   - 5.3 — Build Purchase Requisition workflow
+   - 5.4 — Build Return Authorization process
+   - 5.5 — Build Packing List generation
 
 ## Context for Next Session
 - Progress tracker: `.claude/plans/erp-progress.md`
-- All inventory sub-features are built (stock levels, adjustments, movements, reorder, cycle counts)
-- Dashboard should aggregate: stock overview, low stock alerts, pending adjustments, active cycle counts, recent movements
+- Phase 4 (Inventory Module) is fully complete
+- Next phase is Phase 5 (Missing ERP Documents) starting with Delivery Notes

@@ -1,12 +1,39 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 4 — Inventory Module
-## Current Micro-Task: 4.3 (Inventory Dashboard — LAST)
-## Status: IN PROGRESS (4.1, 4.2, 4.4, 4.5 complete — only 4.3 remains)
+## Current Phase: Phase 4 — COMPLETE
+## Current Micro-Task: None — Phase 4 finished
+## Status: COMPLETE (all 5 micro-tasks done: 4.1, 4.2, 4.4, 4.5, 4.3)
+## Next Phase: Phase 5 — Missing ERP Documents (5.1: Delivery Note)
 
 ---
 
 ## Last Session Notes
+### Session 9 — Phase 4 Micro-Task 4.3 (2026-02-07)
+**Micro-task 4.3 — Inventory Dashboard**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+- Created `inventory-dashboard.service.ts` with `getInventoryDashboard()` running 9 parallel Prisma queries
+- Added `GET /api/v1/inventory/dashboard` endpoint (all staff roles)
+- Added 7 frontend types (`WarehouseStockSummary`, `LowStockAlertItem`, `PendingAdjustmentItem`, `ActiveCycleCountItem`, `RecentMovementItem`, `InventoryDashboardData`) + API method
+- Added `useInventoryDashboard()` hook with 30s auto-refresh
+- Rewrote `/inventory` page: replaced redundant 4-tab layout with operational dashboard
+- Dashboard sections: summary bar (6 cards), warehouse breakdown (JHB/CT), low stock alerts, pending adjustments, active cycle counts, recent movements
+- Role-based section ordering: WAREHOUSE sees movements first, PURCHASER sees low stock first, ADMIN/MANAGER sees alerts first
+- Updated navigation: "Stock Levels" → "Dashboard", added PURCHASER role, changed icon to LayoutDashboard
+
+**Files created (1):**
+- `backend/src/services/inventory-dashboard.service.ts`
+
+**Files modified (5):**
+- `backend/src/api/v1/inventory/route.ts` — added dashboard endpoint
+- `frontend/src/lib/api.ts` — added dashboard types + API method
+- `frontend/src/hooks/useInventory.ts` — added useInventoryDashboard hook
+- `frontend/src/app/(portal)/inventory/page.tsx` — complete rewrite (tabs → dashboard)
+- `frontend/src/lib/navigation.ts` — renamed nav item, changed icon, added PURCHASER role
+
+**Phase 4 is now COMPLETE.** Next: Phase 5 (Missing ERP Documents).
+
 ### Session 8 — Phase 4 Micro-Task 4.5 (2026-02-07)
 **Micro-task 4.5 — Cycle Count Workflow**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -753,7 +780,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 4.2 — Build Stock Adjustment workflow (create → approve → apply) ✅
 - [x] 4.4 — Build Reorder Report (below reorder point, suggested PO quantities) ✅
 - [x] 4.5 — Build Cycle Count workflow (create session → count → reconcile) ✅
-- [ ] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts) — LAST
+- [x] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts) ✅
 
 ## Phase 5: Missing ERP Documents
 - [ ] 5.1 — Build Delivery Note model + create from picking slips

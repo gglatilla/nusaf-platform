@@ -14,6 +14,23 @@ import type {
 } from '@/lib/api';
 
 /**
+ * Hook for fetching aggregated inventory dashboard data (auto-refreshes every 30s)
+ */
+export function useInventoryDashboard() {
+  return useQuery({
+    queryKey: ['inventory', 'dashboard'],
+    queryFn: async () => {
+      const response = await api.getInventoryDashboard();
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch inventory dashboard');
+      }
+      return response.data;
+    },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+}
+
+/**
  * Hook for fetching inventory summary data
  */
 export function useInventorySummary() {
