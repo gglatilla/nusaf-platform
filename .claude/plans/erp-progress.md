@@ -1,12 +1,34 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.5 (Customer Product Detail Page)
-## Status: IN PROGRESS (2.1-2.4 done, 2.5-2.9 remaining)
+## Current Micro-Task: 2.6 (Customer Quotes List + Detail)
+## Status: IN PROGRESS (2.1-2.5 done, 2.6-2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 2 — Phase 2 Micro-Tasks 2.4-2.5 (2026-02-07)
+**Micro-task 2.5 — Customer Product Detail Page**
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Built customer product detail page at `/my/products/[sku]`
+- Two-column layout: image gallery (left) + product info (right)
+- Dual data source: public API for rich content (images, specs, docs), catalog API for tier pricing + stock badge
+- Inline add-to-quote with quantity selector, line total, success confirmation
+- Tabbed bottom section: Specifications, Documents, Cross-References (conditional tabs)
+- Loading skeleton and error state with back link
+- Breadcrumb navigation linking to category filters
+
+**Files created (1):**
+- `frontend/src/app/(customer)/my/products/[sku]/page.tsx`
+
+**Key decisions:**
+- Inlined image gallery + add-to-quote components to avoid creating separate files for customer-specific variants
+- Used `useProducts({ search: sku })` to get authenticated tier pricing (public API has no pricing)
+- Cross-references shown to help customers identify replacement parts
+- No supplier info, no stock quantities, no internal data (Golden Rule 4)
+
 ### Session 2 — Phase 2 Micro-Task 2.4 (2026-02-07)
 **Result: COMPLETE — TypeScript compiles cleanly**
 
@@ -523,7 +545,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.2 — Login redirect + middleware + cross-guards (AuthGuard blocks CUSTOMER, QuoteCart role-aware) ✅
 - [x] 2.3 — Build customer dashboard at /my/dashboard ✅
 - [x] 2.4 — Build customer product catalog page (tier pricing, no internals) ✅
-- [ ] 2.5 — Build customer product detail page
+- [x] 2.5 — Build customer product detail page ✅
 - [ ] 2.6 — Build customer quotes list + detail pages
 - [ ] 2.7 — Build customer orders list + detail pages
 - [ ] 2.8 — Build customer account page

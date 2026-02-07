@@ -4,14 +4,14 @@
 ERP Remediation — Phase 2: Route Separation (ERP vs Customer Portal)
 
 ## Status
-IN_PROGRESS | 44% complete (2.1-2.4 done, 2.5-2.9 remaining)
+IN_PROGRESS | 56% complete (2.1-2.5 done, 2.6-2.9 remaining)
 
 ## Completed Micro-tasks
 - [x] 2.1 — Customer route group + layout infrastructure
 - [x] 2.2 — Login redirect + middleware + cross-guards
 - [x] 2.3 — Customer dashboard at /my/dashboard
 - [x] 2.4 — Customer product catalog page at /my/products
-- [ ] 2.5 — Customer product detail page
+- [x] 2.5 — Customer product detail page at /my/products/[sku]
 - [ ] 2.6 — Customer quotes (list + detail)
 - [ ] 2.7 — Customer orders (list + detail)
 - [ ] 2.8 — Customer account page
