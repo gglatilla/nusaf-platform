@@ -32,16 +32,17 @@ import {
 
 const router = Router();
 
-// Apply authentication and role-based access control to all routes
-// Orders can only be managed by internal staff, not customers
+// All routes require authentication
 router.use(authenticate);
-router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
+
+// Staff-only middleware for write operations
+const staffOnly = requireRole('ADMIN', 'MANAGER', 'SALES');
 
 /**
  * POST /api/v1/orders/from-quote
  * Create a new order from an accepted quote
  */
-router.post('/from-quote', async (req, res) => {
+router.post('/from-quote', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
 
@@ -201,7 +202,7 @@ router.get('/:id/timeline', async (req, res) => {
  * Get allocation plan for an order (preview - does NOT create reservations)
  * Returns which warehouse(s) would fulfill each line item
  */
-router.get('/:id/allocation-plan', async (req, res) => {
+router.get('/:id/allocation-plan', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -244,7 +245,7 @@ router.get('/:id/allocation-plan', async (req, res) => {
  * PATCH /api/v1/orders/:id
  * Update order notes
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -300,7 +301,7 @@ router.patch('/:id', async (req, res) => {
  * POST /api/v1/orders/:id/confirm
  * Confirm order (DRAFT -> CONFIRMED)
  */
-router.post('/:id/confirm', async (req, res) => {
+router.post('/:id/confirm', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -338,7 +339,7 @@ router.post('/:id/confirm', async (req, res) => {
  * POST /api/v1/orders/:id/hold
  * Put order on hold
  */
-router.post('/:id/hold', async (req, res) => {
+router.post('/:id/hold', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -389,7 +390,7 @@ router.post('/:id/hold', async (req, res) => {
  * POST /api/v1/orders/:id/release
  * Release order from hold
  */
-router.post('/:id/release', async (req, res) => {
+router.post('/:id/release', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -427,7 +428,7 @@ router.post('/:id/release', async (req, res) => {
  * POST /api/v1/orders/:id/cancel
  * Cancel order
  */
-router.post('/:id/cancel', async (req, res) => {
+router.post('/:id/cancel', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -482,7 +483,7 @@ router.post('/:id/cancel', async (req, res) => {
  * POST /api/v1/orders/:id/fulfillment-plan
  * Generate a fulfillment plan for an order (preview)
  */
-router.post('/:id/fulfillment-plan', async (req, res) => {
+router.post('/:id/fulfillment-plan', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -545,7 +546,7 @@ router.post('/:id/fulfillment-plan', async (req, res) => {
  * POST /api/v1/orders/:id/fulfillment-plan/execute
  * Execute a fulfillment plan (create documents)
  */
-router.post('/:id/fulfillment-plan/execute', async (req, res) => {
+router.post('/:id/fulfillment-plan/execute', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
@@ -606,7 +607,7 @@ router.post('/:id/fulfillment-plan/execute', async (req, res) => {
  * PATCH /api/v1/orders/:id/fulfillment-policy
  * Update the fulfillment policy override for an order
  */
-router.patch('/:id/fulfillment-policy', async (req, res) => {
+router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;

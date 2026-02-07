@@ -8,6 +8,8 @@ import { OrderStatusBadge } from './OrderStatusBadge';
 interface OrderListTableProps {
   orders: SalesOrderListItem[];
   isLoading?: boolean;
+  linkPrefix?: string; // Default: '/orders' — use '/my/orders' for customer portal
+  quotesHref?: string; // Default: '/quotes' — use '/my/quotes' for customer portal
 }
 
 function formatCurrency(amount: number): string {
@@ -56,7 +58,7 @@ function SkeletonRow() {
   );
 }
 
-export function OrderListTable({ orders, isLoading }: OrderListTableProps) {
+export function OrderListTable({ orders, isLoading, linkPrefix = '/orders', quotesHref = '/quotes' }: OrderListTableProps) {
   if (isLoading) {
     return (
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -108,7 +110,7 @@ export function OrderListTable({ orders, isLoading }: OrderListTableProps) {
           When you create orders from quotes, they will appear here.
         </p>
         <Link
-          href="/quotes"
+          href={quotesHref}
           className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
         >
           View Quotes
@@ -153,7 +155,7 @@ export function OrderListTable({ orders, isLoading }: OrderListTableProps) {
             <tr key={order.id} className="hover:bg-slate-50 transition-colors">
               <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                 <Link
-                  href={`/orders/${order.id}`}
+                  href={`${linkPrefix}/${order.id}`}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700"
                 >
                   {order.orderNumber}
@@ -179,7 +181,7 @@ export function OrderListTable({ orders, isLoading }: OrderListTableProps) {
               </td>
               <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
                 <Link
-                  href={`/orders/${order.id}`}
+                  href={`${linkPrefix}/${order.id}`}
                   className="text-slate-400 hover:text-slate-600"
                 >
                   <ChevronRight className="h-5 w-5" />

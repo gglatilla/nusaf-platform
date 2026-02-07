@@ -1,12 +1,35 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.7 (Customer Orders List + Detail)
-## Status: IN PROGRESS (2.1-2.6 done, 2.7-2.9 remaining)
+## Current Micro-Task: 2.8 (Customer Account Page)
+## Status: IN PROGRESS (2.1-2.7 done, 2.8-2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 3 — Phase 2 Micro-Task 2.7 (2026-02-07)
+**Micro-task 2.7 — Customer Orders List + Detail Pages**
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Modified backend orders API to allow CUSTOMER role on GET routes (list, detail, timeline)
+- Write operations (create, confirm, hold, release, cancel, fulfillment) remain staff-only via `staffOnly` middleware
+- Company isolation already protects cross-company access (all queries filter by `companyId`)
+- Built customer orders list at `/my/orders` with status filter tabs (All, Confirmed, In Progress, Shipped, Delivered, Cancelled)
+- Built customer order detail at `/my/orders/[id]` with pipeline steps, items, totals, key dates
+- Added `linkPrefix` and `quotesHref` props to `OrderListTable` for portal reuse
+- Added `hideOperationalColumns` prop to `OrderLineTable` to hide Status and Picked columns
+- Customer order detail hides: picking slips, job cards, transfers, internal notes, fulfillment stats, warehouse, company name, hold/cancel reasons (generic messages only)
+
+**Files created (2):**
+- `frontend/src/app/(customer)/my/orders/page.tsx`
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx`
+
+**Files modified (3):**
+- `backend/src/api/v1/orders/route.ts` — per-route auth instead of global staff-only
+- `frontend/src/components/orders/OrderListTable.tsx` — added linkPrefix + quotesHref props
+- `frontend/src/components/orders/OrderLineTable.tsx` — added hideOperationalColumns prop
+
 ### Session 2 — Phase 2 Micro-Tasks 2.4-2.6 (2026-02-07)
 **Micro-task 2.6 — Customer Quotes List + Detail Pages**
 **Result: COMPLETE — TypeScript compiles cleanly**
