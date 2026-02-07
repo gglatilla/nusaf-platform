@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes } from 'lucide-react';
-import { useOrder, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
+import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
@@ -19,6 +19,7 @@ import {
   JobCardsSection,
   TransferRequestsSection,
   OrderNotesSection,
+  OrderTimelineSection,
 } from '@/components/orders/order-detail';
 import { GeneratePickingSlipModal } from '@/components/picking-slips/GeneratePickingSlipModal';
 import { CreateJobCardModal } from '@/components/job-cards/CreateJobCardModal';
@@ -64,6 +65,7 @@ export default function OrderDetailPage() {
   const orderId = params.id as string;
 
   const { data: order, isLoading, error } = useOrder(orderId);
+  const { data: timelineEvents, isLoading: isTimelineLoading } = useOrderTimeline(orderId);
   const { data: pickingSlips } = usePickingSlipsForOrder(orderId);
   const { data: jobCards } = useJobCardsForOrder(orderId);
   const { data: transferRequests } = useTransferRequestsForOrder(orderId);
@@ -429,6 +431,11 @@ export default function OrderDetailPage() {
           </div>
 
           <OrderDocumentsSection orderId={orderId} orderNumber={order.orderNumber} />
+
+          <OrderTimelineSection
+            events={timelineEvents ?? []}
+            isLoading={isTimelineLoading}
+          />
         </div>
       </div>
 

@@ -993,6 +993,41 @@ export interface OrdersQueryParams {
   pageSize?: number;
 }
 
+// Timeline event for order activity log
+export type TimelineEventType =
+  | 'ORDER_CREATED'
+  | 'ORDER_CONFIRMED'
+  | 'ORDER_PROCESSING'
+  | 'ORDER_READY_TO_SHIP'
+  | 'ORDER_SHIPPED'
+  | 'ORDER_DELIVERED'
+  | 'ORDER_ON_HOLD'
+  | 'ORDER_HOLD_RELEASED'
+  | 'ORDER_CANCELLED'
+  | 'PICKING_SLIP_CREATED'
+  | 'PICKING_SLIP_STARTED'
+  | 'PICKING_SLIP_COMPLETED'
+  | 'JOB_CARD_CREATED'
+  | 'JOB_CARD_STARTED'
+  | 'JOB_CARD_ON_HOLD'
+  | 'JOB_CARD_COMPLETED'
+  | 'TRANSFER_CREATED'
+  | 'TRANSFER_SHIPPED'
+  | 'TRANSFER_RECEIVED'
+  | 'FULFILLMENT_PLAN_EXECUTED';
+
+export interface TimelineEvent {
+  id: string;
+  timestamp: string;
+  type: TimelineEventType;
+  title: string;
+  description: string | null;
+  actor: string | null;
+  documentType: string | null;
+  documentId: string | null;
+  documentNumber: string | null;
+}
+
 // Re-export picking slip types from shared
 export type { PickingSlipStatus } from '@nusaf/shared';
 
@@ -2519,6 +2554,10 @@ class ApiClient {
 
   async getOrderById(id: string): Promise<ApiResponse<SalesOrder>> {
     return this.request<ApiResponse<SalesOrder>>(`/orders/${id}`);
+  }
+
+  async getOrderTimeline(orderId: string): Promise<ApiResponse<TimelineEvent[]>> {
+    return this.request<ApiResponse<TimelineEvent[]>>(`/orders/${orderId}/timeline`);
   }
 
   async updateOrderNotes(id: string, notes: { internalNotes?: string; customerNotes?: string }): Promise<ApiResponse<{ message: string }>> {

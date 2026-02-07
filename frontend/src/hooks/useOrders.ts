@@ -127,6 +127,21 @@ export function useCancelOrder() {
 }
 
 /**
+ * Hook for fetching the activity timeline of an order
+ */
+export function useOrderTimeline(orderId: string | null) {
+  return useQuery({
+    queryKey: ['order-timeline', orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error('Order ID is required');
+      const response = await api.getOrderTimeline(orderId);
+      return response.data;
+    },
+    enabled: !!orderId,
+  });
+}
+
+/**
  * Hook for updating order notes
  */
 export function useUpdateOrderNotes() {

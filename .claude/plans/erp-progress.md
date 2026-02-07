@@ -1,12 +1,48 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 3 — Document Chain + Status Propagation
-## Current Micro-Task: 3.7 DONE — Next: 3.8 (Timeline/Activity Log)
-## Status: IN PROGRESS (3.1-3.7 complete, 3.2-3.5 already done in Phase 0.8)
+## Current Micro-Task: 3.8 DONE — Next: 3.9 (Multi-warehouse Fulfillment Orchestration)
+## Status: IN PROGRESS (3.1-3.8 complete, 3.2-3.5 already done in Phase 0.8)
 
 ---
 
 ## Last Session Notes
+### Micro-Task 3.8 — Add Timeline/Activity Log to Sales Order Page (2026-02-07)
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+- Created backend service `getOrderTimeline()` that aggregates events from the order itself + all related documents (picking slips, job cards, transfer requests)
+- Two-phase query: first fetch all documents in parallel, then resolve user names from collected IDs
+- Created `GET /api/v1/orders/:id/timeline` endpoint (staff-only auth)
+- Created frontend `TimelineEvent` type + `getOrderTimeline()` API method + `useOrderTimeline()` hook
+- Created `OrderTimelineSection` component with vertical timeline UI (colored dots, icons per event type, clickable document links, actor names, relative timestamps)
+- Integrated timeline into order detail page sidebar (below Documents section)
+
+**Timeline event sources:**
+| Source | Events |
+|--------|--------|
+| SalesOrder | Created, Confirmed, Shipped, Delivered, On Hold, Cancelled |
+| PickingSlip | Created, Started, Completed |
+| JobCard | Created, Started, On Hold, Completed |
+| TransferRequest | Created, Shipped, Received |
+
+**Files created:**
+- `backend/src/services/order-timeline.service.ts`
+- `frontend/src/components/orders/order-detail/OrderTimelineSection.tsx`
+
+**Files modified:**
+- `backend/src/api/v1/orders/route.ts` — added timeline endpoint
+- `frontend/src/lib/api.ts` — added TimelineEvent types + getOrderTimeline()
+- `frontend/src/hooks/useOrders.ts` — added useOrderTimeline() hook
+- `frontend/src/components/orders/order-detail/index.ts` — exported OrderTimelineSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — integrated timeline into sidebar
+
+**Key decisions:**
+- Events sorted newest-first for easy scanning
+- User names resolved via second query phase (not embedded in documents)
+- Sidebar placement keeps main content area for fulfillment documents
+- Document references are clickable links to detail pages
+
 ### Micro-Task 3.7 — Build Fulfillment Dashboard (2026-02-07)
 **Result: COMPLETE — Both backend and frontend compile cleanly**
 
@@ -385,7 +421,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 3.5 — Implement GRV → PO status + stock update propagation ✅ (done in Phase 0.1)
 - [x] 3.6 — Build PO detail page with GRV history + linked orders ✅
 - [x] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts) ✅
-- [ ] 3.8 — Add timeline/activity log to Sales Order page
+- [x] 3.8 — Add timeline/activity log to Sales Order page ✅
 - [ ] 3.9 — Multi-warehouse fulfillment orchestration (auto picking slip splitting + transfer requests)
 
 ## Phase 2: Route Separation (ERP vs Portal)

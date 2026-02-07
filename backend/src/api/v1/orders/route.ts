@@ -22,6 +22,7 @@ import {
   cancelOrder,
   updateOrderNotes,
 } from '../../../services/order.service';
+import { getOrderTimeline } from '../../../services/order-timeline.service';
 import { allocateForOrder } from '../../../services/allocation.service';
 import {
   generateFulfillmentPlan,
@@ -163,6 +164,33 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'ORDER_ERROR',
         message: error instanceof Error ? error.message : 'Failed to fetch order',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/orders/:id/timeline
+ * Get chronological activity log for an order
+ */
+router.get('/:id/timeline', async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const events = await getOrderTimeline(id, authReq.user.companyId);
+
+    return res.json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    console.error('Get order timeline error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'TIMELINE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch order timeline',
       },
     });
   }
