@@ -1,12 +1,31 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.8 (Customer Account Page)
-## Status: IN PROGRESS (2.1-2.7 done, 2.8-2.9 remaining)
+## Current Micro-Task: 2.9 (Data Leak Audit + Verification)
+## Status: IN PROGRESS (2.1-2.8 done, 2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 3 — Phase 2 Micro-Task 2.8 (2026-02-07)
+**Micro-task 2.8 — Customer Account Page**
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Added `POST /api/v1/auth/change-password` backend endpoint with validation
+- Verifies current password, hashes new one, revokes all sessions for security
+- Added `changePassword()` method to frontend API client
+- Built customer account page at `/my/account` with profile info, company info, change password form
+- After password change, all sessions revoked and user redirected to login
+
+**Files created (1):**
+- `frontend/src/app/(customer)/my/account/page.tsx`
+
+**Files modified (3):**
+- `backend/src/api/v1/auth/route.ts` — added change-password endpoint
+- `backend/src/utils/validation/auth.ts` — added changePasswordSchema
+- `frontend/src/lib/api.ts` — added changePassword method
+
 ### Session 3 — Phase 2 Micro-Task 2.7 (2026-02-07)
 **Micro-task 2.7 — Customer Orders List + Detail Pages**
 **Result: COMPLETE — TypeScript compiles cleanly**

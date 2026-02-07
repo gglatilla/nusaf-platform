@@ -2200,6 +2200,13 @@ class ApiClient {
     return this.request<ApiResponse<AuthenticatedUser>>('/auth/me');
   }
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
   // Import endpoints
   async uploadImportFile(file: File, supplierCode: string): Promise<ApiResponse<UploadResponse>> {
     const formData = new FormData();

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { loginSchema, refreshSchema } from '../../../utils/validation/auth';
+import { loginSchema, refreshSchema, changePasswordSchema } from '../../../utils/validation/auth';
 import {
   login,
   refreshTokens,
@@ -10,6 +10,9 @@ import {
 } from '../../../services/auth.service';
 import { authenticate, AuthenticatedRequest } from '../../../middleware/auth';
 import { authLimiter } from '../../../middleware/rate-limit';
+import { prisma } from '../../../config/database';
+import { verifyPassword, hashPassword } from '../../../utils/password';
+import { revokeAllUserSessions } from '../../../services/auth.service';
 
 const router = Router();
 
@@ -196,6 +199,82 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/auth/change-password
+ * Change the current user's password
+ */
+router.post('/change-password', authenticate, async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+
+    // Validate input
+    const data = changePasswordSchema.parse(req.body);
+
+    // Get user with password hash
+    const user = await prisma.user.findUnique({
+      where: { id: authReq.user.id },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' },
+      });
+      return;
+    }
+
+    // Verify current password
+    const isValid = await verifyPassword(data.currentPassword, user.password);
+    if (!isValid) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PASSWORD', message: 'Current password is incorrect' },
+      });
+      return;
+    }
+
+    // Hash new password and update
+    const hashedPassword = await hashPassword(data.newPassword);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    // Revoke all sessions (force re-login for security)
+    await revokeAllUserSessions(user.id, 'Password changed');
+
+    res.json({
+      success: true,
+      data: { message: 'Password changed successfully. Please log in again.' },
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        },
+      });
+      return;
+    }
+
+    console.error('Change password error:', error);
     res.status(500).json({
       success: false,
       error: {
