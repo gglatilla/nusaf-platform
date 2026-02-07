@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Activity,
   Package,
   FileText,
   ShoppingCart,
@@ -36,6 +37,7 @@ export interface NavGroup {
  */
 export const mainNavigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Fulfillment', href: '/fulfillment', icon: Activity, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'] },
   { name: 'Products', href: '/catalog', icon: Package },
   { name: 'Quotes', href: '/quotes', icon: FileText },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },

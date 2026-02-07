@@ -1969,6 +1969,105 @@ export interface ExecuteFulfillmentPlanData {
   plan: OrchestrationPlan;
 }
 
+// ============================================
+// FULFILLMENT DASHBOARD TYPES
+// ============================================
+
+export interface FulfillmentDashboardPickingSlipItem {
+  id: string;
+  pickingSlipNumber: string;
+  orderNumber: string;
+  orderId: string;
+  location: Warehouse;
+  status: PickingSlipStatus;
+  assignedToName: string | null;
+  lineCount: number;
+  createdAt: string;
+}
+
+export interface FulfillmentDashboardJobCardItem {
+  id: string;
+  jobCardNumber: string;
+  orderNumber: string;
+  orderId: string;
+  productSku: string;
+  productDescription: string;
+  quantity: number;
+  jobType: JobType;
+  status: JobCardStatus;
+  assignedToName: string | null;
+  createdAt: string;
+}
+
+export interface FulfillmentDashboardTransferItem {
+  id: string;
+  transferNumber: string;
+  orderNumber: string | null;
+  orderId: string | null;
+  fromLocation: Warehouse;
+  toLocation: Warehouse;
+  status: TransferRequestStatus;
+  lineCount: number;
+  createdAt: string;
+}
+
+export interface FulfillmentDashboardPOItem {
+  id: string;
+  poNumber: string;
+  supplierName: string;
+  status: PurchaseOrderStatus;
+  currency: string;
+  lineCount: number;
+  total: number;
+  expectedDate: string | null;
+  createdAt: string;
+}
+
+export interface FulfillmentDashboardOrderItem {
+  id: string;
+  orderNumber: string;
+  status: SalesOrderStatus;
+  customerName: string | null;
+  lineCount: number;
+  total: number;
+  createdAt: string;
+}
+
+export interface FulfillmentDashboardData {
+  pickingQueue: {
+    pendingCount: number;
+    inProgressCount: number;
+    recentItems: FulfillmentDashboardPickingSlipItem[];
+  };
+  jobCards: {
+    pendingCount: number;
+    inProgressCount: number;
+    onHoldCount: number;
+    recentItems: FulfillmentDashboardJobCardItem[];
+  };
+  transfers: {
+    pendingCount: number;
+    inTransitCount: number;
+    recentItems: FulfillmentDashboardTransferItem[];
+  };
+  awaitingDelivery: {
+    sentCount: number;
+    acknowledgedCount: number;
+    partiallyReceivedCount: number;
+    overdueCount: number;
+    recentItems: FulfillmentDashboardPOItem[];
+  };
+  readyToShip: {
+    count: number;
+    recentItems: FulfillmentDashboardOrderItem[];
+  };
+  exceptions: {
+    overduePOs: number;
+    stalledJobCards: number;
+    onHoldOrders: number;
+  };
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -3500,6 +3599,14 @@ class ApiClient {
     if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
     const query = searchParams.toString();
     return this.request(`/products/${productId}/sales-history${query ? `?${query}` : ''}`);
+  }
+
+  // ============================================
+  // FULFILLMENT DASHBOARD
+  // ============================================
+
+  async getFulfillmentDashboard(): Promise<ApiResponse<FulfillmentDashboardData>> {
+    return this.request<ApiResponse<FulfillmentDashboardData>>('/fulfillment/dashboard');
   }
 }
 

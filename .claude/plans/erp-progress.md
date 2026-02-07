@@ -1,12 +1,59 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 3 — Document Chain + Status Propagation
-## Current Micro-Task: 3.6 DONE — Next: 3.7 (Fulfillment Dashboard)
-## Status: IN PROGRESS (3.1-3.6 complete, 3.2-3.5 already done in Phase 0.8)
+## Current Micro-Task: 3.7 DONE — Next: 3.8 (Timeline/Activity Log)
+## Status: IN PROGRESS (3.1-3.7 complete, 3.2-3.5 already done in Phase 0.8)
 
 ---
 
 ## Last Session Notes
+### Micro-Task 3.7 — Build Fulfillment Dashboard (2026-02-07)
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+- Created backend service with `getFulfillmentDashboard()` running 19 parallel Prisma queries
+- Created `GET /api/v1/fulfillment/dashboard` endpoint with auth + role check
+- Created 7 dashboard section components + summary bar
+- Created `/fulfillment` page with role-based section ordering (warehouse→picking first, purchaser→delivery first, sales→ready-to-ship first, manager→exceptions first)
+- Added "Fulfillment" nav item (staff-only, excludes CUSTOMER)
+- Hook auto-refreshes every 30 seconds for live operations feel
+
+**Dashboard sections:**
+| Section | Shows | Data |
+|---------|-------|------|
+| Summary Bar | 6 count cards across top | Totals per category |
+| Picking Queue | PENDING + IN_PROGRESS picking slips | Top 5, links to detail + order |
+| Jobs In Progress | PENDING + IN_PROGRESS + ON_HOLD job cards | Top 5, job type, assigned to |
+| Pending Transfers | PENDING + IN_TRANSIT transfers | Top 5, from→to, linked order |
+| Awaiting Delivery | SENT + ACKNOWLEDGED + PARTIALLY_RECEIVED POs | Top 5, supplier, overdue flag |
+| Ready to Ship | READY_TO_SHIP orders | Top 5, customer, total |
+| Exception Alerts | Overdue POs, stalled jobs (48h+), on-hold orders | Count + links |
+
+**Files created:**
+- `backend/src/services/fulfillment-dashboard.service.ts`
+- `backend/src/api/v1/fulfillment/route.ts`
+- `frontend/src/app/(portal)/fulfillment/page.tsx`
+- `frontend/src/components/fulfillment/dashboard/FulfillmentSummaryBar.tsx`
+- `frontend/src/components/fulfillment/dashboard/PickingQueueSection.tsx`
+- `frontend/src/components/fulfillment/dashboard/JobsInProgressSection.tsx`
+- `frontend/src/components/fulfillment/dashboard/PendingTransfersSection.tsx`
+- `frontend/src/components/fulfillment/dashboard/AwaitingDeliverySection.tsx`
+- `frontend/src/components/fulfillment/dashboard/ReadyToShipSection.tsx`
+- `frontend/src/components/fulfillment/dashboard/ExceptionAlertsSection.tsx`
+- `frontend/src/components/fulfillment/dashboard/index.ts`
+
+**Files modified:**
+- `backend/src/index.ts` — registered fulfillment route
+- `frontend/src/lib/api.ts` — added FulfillmentDashboardData types + getFulfillmentDashboard()
+- `frontend/src/hooks/useFulfillment.ts` — added useFulfillmentDashboard() hook
+- `frontend/src/lib/navigation.ts` — added Fulfillment nav item
+
+**Key decisions:**
+- POs are not company-scoped (no companyId on PurchaseOrder model) — PO queries don't filter by company
+- Schema uses snapshot fields (orderNumber, assignedToName) — no relation joins needed for most queries
+- 30s refetchInterval for near-real-time operations dashboard
+- Exception thresholds: stalled = ON_HOLD > 48 hours, overdue = expectedDate < now
+
 ### Micro-Task 3.6 — Enhance PO Detail Page with GRV History + Linked Orders (2026-02-06)
 **Result: COMPLETE — TypeScript compiles cleanly**
 
@@ -337,7 +384,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 3.4 — Implement transfer completion → stock + order status update ✅ (done in Phase 0.8)
 - [x] 3.5 — Implement GRV → PO status + stock update propagation ✅ (done in Phase 0.1)
 - [x] 3.6 — Build PO detail page with GRV history + linked orders ✅
-- [ ] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts)
+- [x] 3.7 — Build Fulfillment Dashboard (picking queue, jobs, transfers, alerts) ✅
 - [ ] 3.8 — Add timeline/activity log to Sales Order page
 - [ ] 3.9 — Multi-warehouse fulfillment orchestration (auto picking slip splitting + transfer requests)
 

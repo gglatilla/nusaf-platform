@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, FulfillmentPolicy, OrchestrationPlan, ExecutionResult } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api, FulfillmentPolicy, OrchestrationPlan, ExecutionResult, FulfillmentDashboardData } from '@/lib/api';
 
 /**
  * Hook to generate a fulfillment plan (preview only)
@@ -56,6 +56,23 @@ export function useExecuteFulfillmentPlan() {
 /**
  * Hook to update the fulfillment policy override for an order
  */
+/**
+ * Hook to fetch fulfillment dashboard data (auto-refreshes every 30 seconds)
+ */
+export function useFulfillmentDashboard() {
+  return useQuery<FulfillmentDashboardData>({
+    queryKey: ['fulfillmentDashboard'],
+    queryFn: async () => {
+      const response = await api.getFulfillmentDashboard();
+      if (!response.data) {
+        throw new Error('Failed to fetch fulfillment dashboard');
+      }
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
 export function useUpdateFulfillmentPolicy() {
   const queryClient = useQueryClient();
 
