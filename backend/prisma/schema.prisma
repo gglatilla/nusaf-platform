@@ -1626,3 +1626,77 @@ model GrvCounter {
 
   @@map("grv_counter")
 }
+
+// ============================================
+// CYCLE COUNT
+// ============================================
+
+enum CycleCountStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  RECONCILED
+  CANCELLED
+}
+
+model CycleCountSession {
+  id            String           @id @default(cuid())
+  sessionNumber String           @unique @map("session_number")
+  location      Warehouse
+  status        CycleCountStatus @default(OPEN)
+  notes         String?
+
+  // Link to StockAdjustment created during reconciliation
+  adjustmentId     String? @map("adjustment_id")
+  adjustmentNumber String? @map("adjustment_number")
+
+  // Audit
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdBy   String    @map("created_by")
+  completedAt DateTime? @map("completed_at")
+  completedBy String?   @map("completed_by")
+  cancelledAt DateTime? @map("cancelled_at")
+  cancelledBy String?   @map("cancelled_by")
+
+  // Relations
+  lines CycleCountLine[]
+
+  @@index([status])
+  @@index([location])
+  @@index([createdAt])
+  @@map("cycle_count_sessions")
+}
+
+model CycleCountLine {
+  id        String            @id @default(cuid())
+  sessionId String            @map("session_id")
+  session   CycleCountSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+
+  // System quantity snapshot at session creation
+  systemQuantity Int @map("system_quantity")
+
+  // Counted data (null until counted)
+  countedQuantity Int?      @map("counted_quantity")
+  variance        Int?
+  countedAt       DateTime? @map("counted_at")
+  countedBy       String?   @map("counted_by")
+
+  notes String?
+
+  @@index([sessionId])
+  @@index([productId])
+  @@map("cycle_count_lines")
+}
+
+model CycleCountCounter {
+  id    String @id @default("cycle_count_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("cycle_count_counter")
+}

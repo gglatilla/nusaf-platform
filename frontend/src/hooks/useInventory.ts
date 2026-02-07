@@ -8,6 +8,9 @@ import type {
   StockMovementsQueryParams,
   UpdateReorderSettingsData,
   CreateInventoryAdjustmentData,
+  CycleCountsQueryParams,
+  CreateCycleCountData,
+  SubmitCycleCountLinesData,
 } from '@/lib/api';
 
 /**
@@ -207,6 +210,131 @@ export function useUpdateReorderSettings() {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['inventory', 'stockLevels'] });
       queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'] });
+    },
+  });
+}
+
+// ============================================
+// CYCLE COUNT HOOKS
+// ============================================
+
+export function useCycleCounts(params: CycleCountsQueryParams = {}) {
+  return useQuery({
+    queryKey: ['inventory', 'cycleCounts', params],
+    queryFn: async () => {
+      const response = await api.getCycleCounts(params);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch cycle counts');
+      }
+      return response.data;
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCycleCount(id: string | undefined) {
+  return useQuery({
+    queryKey: ['inventory', 'cycleCount', id],
+    queryFn: async () => {
+      if (!id) throw new Error('No cycle count ID provided');
+      const response = await api.getCycleCountById(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch cycle count');
+      }
+      return response.data;
+    },
+    enabled: !!id,
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useCreateCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateCycleCountData) => {
+      const response = await api.createCycleCount(data);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to create cycle count');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+    },
+  });
+}
+
+export function useSubmitCycleCountLines() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ sessionId, data }: { sessionId: string; data: SubmitCycleCountLinesData }) => {
+      const response = await api.submitCycleCountLines(sessionId, data);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to submit counts');
+      }
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCount', variables.sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+    },
+  });
+}
+
+export function useCompleteCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.completeCycleCount(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to complete cycle count');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCount'] });
+    },
+  });
+}
+
+export function useReconcileCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.reconcileCycleCount(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to reconcile cycle count');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCount'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'] });
+    },
+  });
+}
+
+export function useCancelCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.cancelCycleCount(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to cancel cycle count');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCount'] });
     },
   });
 }

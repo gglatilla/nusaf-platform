@@ -8,6 +8,9 @@ import {
   rejectStockAdjustmentSchema,
   reservationListQuerySchema,
   releaseReservationSchema,
+  createCycleCountSchema,
+  submitCycleCountLinesSchema,
+  cycleCountListQuerySchema,
 } from '../../../utils/validation/inventory';
 import {
   getStockLevel,
@@ -28,6 +31,15 @@ import {
   getInventorySummary,
   updateReorderSettings,
 } from '../../../services/inventory.service';
+import {
+  createCycleCountSession,
+  getCycleCountSession,
+  getCycleCountSessions,
+  submitCycleCountLines,
+  completeCycleCountSession,
+  reconcileCycleCountSession,
+  cancelCycleCountSession,
+} from '../../../services/cycle-count.service';
 import { Warehouse } from '@prisma/client';
 
 const router = Router();
@@ -682,6 +694,283 @@ router.post('/reservations/cleanup-expired', authenticate, requireRole('ADMIN'),
       error: {
         code: 'CLEANUP_ERROR',
         message: error instanceof Error ? error.message : 'Failed to cleanup expired reservations',
+      },
+    });
+  }
+});
+
+// ============================================
+// CYCLE COUNT ENDPOINTS
+// ============================================
+
+/**
+ * POST /api/v1/inventory/cycle-counts
+ * Create a new cycle count session
+ */
+router.post('/cycle-counts', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+
+    const bodyResult = createCycleCountSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await createCycleCountSession(
+      bodyResult.data.location as Warehouse,
+      bodyResult.data.productIds,
+      bodyResult.data.notes,
+      authReq.user.id
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CYCLE_COUNT_CREATE_FAILED', message: result.error },
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: result.session,
+    });
+  } catch (error) {
+    console.error('Create cycle count session error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CYCLE_COUNT_CREATE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to create cycle count session',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/inventory/cycle-counts
+ * List cycle count sessions with filtering and pagination
+ */
+router.get('/cycle-counts', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const queryResult = cycleCountListQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid query parameters',
+          details: queryResult.error.errors,
+        },
+      });
+    }
+
+    const result = await getCycleCountSessions(queryResult.data);
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('List cycle count sessions error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CYCLE_COUNTS_LIST_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch cycle count sessions',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/inventory/cycle-counts/:id
+ * Get cycle count session details with lines
+ */
+router.get('/cycle-counts/:id', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const session = await getCycleCountSession(id);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Cycle count session not found' },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: session,
+    });
+  } catch (error) {
+    console.error('Get cycle count session error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CYCLE_COUNT_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch cycle count session',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/inventory/cycle-counts/:id/count
+ * Submit counted quantities for lines
+ */
+router.patch('/cycle-counts/:id/count', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const bodyResult = submitCycleCountLinesSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await submitCycleCountLines(id, bodyResult.data.lines, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'SUBMIT_COUNT_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Counts submitted successfully' },
+    });
+  } catch (error) {
+    console.error('Submit cycle count lines error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SUBMIT_COUNT_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to submit counts',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/cycle-counts/:id/complete
+ * Mark counting as complete (all lines must be counted)
+ */
+router.post('/cycle-counts/:id/complete', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await completeCycleCountSession(id, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'COMPLETE_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Cycle count completed' },
+    });
+  } catch (error) {
+    console.error('Complete cycle count session error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'COMPLETE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to complete cycle count',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/cycle-counts/:id/reconcile
+ * Reconcile variances by creating a stock adjustment
+ */
+router.post('/cycle-counts/:id/reconcile', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await reconcileCycleCountSession(id, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'RECONCILE_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        message: result.adjustmentId
+          ? 'Cycle count reconciled — stock adjustment created'
+          : 'Cycle count reconciled — no variances found',
+        adjustmentId: result.adjustmentId,
+        adjustmentNumber: result.adjustmentNumber,
+      },
+    });
+  } catch (error) {
+    console.error('Reconcile cycle count session error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RECONCILE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to reconcile cycle count',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/cycle-counts/:id/cancel
+ * Cancel a cycle count session
+ */
+router.post('/cycle-counts/:id/cancel', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await cancelCycleCountSession(id, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CANCEL_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Cycle count session cancelled' },
+    });
+  } catch (error) {
+    console.error('Cancel cycle count session error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CANCEL_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to cancel cycle count session',
       },
     });
   }

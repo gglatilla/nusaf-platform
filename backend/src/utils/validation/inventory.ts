@@ -128,6 +128,43 @@ export const releaseReservationSchema = z.object({
   reason: z.string().min(1, 'Reason is required').max(500),
 });
 
+/**
+ * Valid cycle count statuses
+ */
+export const cycleCountStatuses = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'RECONCILED', 'CANCELLED'] as const;
+
+/**
+ * Schema for creating a cycle count session
+ */
+export const createCycleCountSchema = z.object({
+  location: z.enum(warehouses),
+  productIds: z.array(z.string().min(1)).min(1, 'At least one product is required'),
+  notes: z.string().max(2000).optional(),
+});
+
+/**
+ * Schema for submitting counted quantities
+ */
+export const submitCycleCountLinesSchema = z.object({
+  lines: z.array(
+    z.object({
+      lineId: z.string().min(1),
+      countedQuantity: z.number().int().min(0, 'Quantity must be non-negative'),
+      notes: z.string().max(500).optional(),
+    })
+  ).min(1, 'At least one line is required'),
+});
+
+/**
+ * Schema for cycle count list query parameters
+ */
+export const cycleCountListQuerySchema = z.object({
+  location: z.enum(warehouses).optional(),
+  status: z.enum(cycleCountStatuses).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 // Type exports
 export type ReservationListQuery = z.infer<typeof reservationListQuerySchema>;
 export type ReleaseReservationInput = z.infer<typeof releaseReservationSchema>;
@@ -137,3 +174,6 @@ export type CreateStockAdjustmentInput = z.infer<typeof createStockAdjustmentSch
 export type StockAdjustmentLineInput = z.infer<typeof stockAdjustmentLineSchema>;
 export type StockAdjustmentListQuery = z.infer<typeof stockAdjustmentListQuerySchema>;
 export type RejectStockAdjustmentInput = z.infer<typeof rejectStockAdjustmentSchema>;
+export type CreateCycleCountInput = z.infer<typeof createCycleCountSchema>;
+export type SubmitCycleCountLinesInput = z.infer<typeof submitCycleCountLinesSchema>;
+export type CycleCountListQuery = z.infer<typeof cycleCountListQuerySchema>;

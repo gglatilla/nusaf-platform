@@ -835,6 +835,84 @@ export interface UpdateReorderSettingsData {
   maximumStock?: number | null;
 }
 
+// ============================================
+// CYCLE COUNT TYPES
+// ============================================
+
+export type CycleCountStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'RECONCILED' | 'CANCELLED';
+
+export interface CycleCountLine {
+  id: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  systemQuantity: number;
+  countedQuantity: number | null;
+  variance: number | null;
+  countedAt: string | null;
+  countedBy: string | null;
+  notes: string | null;
+}
+
+export interface CycleCountSession {
+  id: string;
+  sessionNumber: string;
+  location: 'JHB' | 'CT';
+  status: CycleCountStatus;
+  notes: string | null;
+  adjustmentId: string | null;
+  adjustmentNumber: string | null;
+  lines: CycleCountLine[];
+  lineCount: number;
+  countedLineCount: number;
+  createdAt: string;
+  createdBy: string;
+  completedAt: string | null;
+  completedBy: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+}
+
+export interface CycleCountSessionSummary {
+  id: string;
+  sessionNumber: string;
+  location: 'JHB' | 'CT';
+  status: CycleCountStatus;
+  lineCount: number;
+  countedLineCount: number;
+  adjustmentNumber: string | null;
+  createdAt: string;
+  createdBy: string;
+  completedAt: string | null;
+}
+
+export interface CycleCountsQueryParams {
+  location?: string;
+  status?: CycleCountStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CycleCountsResponse {
+  sessions: CycleCountSessionSummary[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface CreateCycleCountData {
+  location: 'JHB' | 'CT';
+  productIds: string[];
+  notes?: string;
+}
+
+export interface SubmitCycleCountLinesData {
+  lines: Array<{ lineId: string; countedQuantity: number; notes?: string }>;
+}
+
 export interface ProductsResponse {
   products: CatalogProduct[];
   pagination: {
@@ -2493,6 +2571,64 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/inventory/stock/${productId}`, {
       method: 'PATCH',
       body: JSON.stringify({ location, ...data }),
+    });
+  }
+
+  // ============================================
+  // CYCLE COUNT METHODS
+  // ============================================
+
+  async getCycleCounts(params: CycleCountsQueryParams = {}): Promise<ApiResponse<CycleCountsResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/inventory/cycle-counts?${queryString}` : '/inventory/cycle-counts';
+    return this.request<ApiResponse<CycleCountsResponse>>(endpoint);
+  }
+
+  async getCycleCountById(id: string): Promise<ApiResponse<CycleCountSession>> {
+    return this.request<ApiResponse<CycleCountSession>>(`/inventory/cycle-counts/${id}`);
+  }
+
+  async createCycleCount(data: CreateCycleCountData): Promise<ApiResponse<{ id: string; sessionNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; sessionNumber: string }>>('/inventory/cycle-counts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async submitCycleCountLines(
+    id: string,
+    data: SubmitCycleCountLinesData
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/cycle-counts/${id}/count`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async completeCycleCount(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/cycle-counts/${id}/complete`, {
+      method: 'POST',
+    });
+  }
+
+  async reconcileCycleCount(
+    id: string
+  ): Promise<ApiResponse<{ message: string; adjustmentId?: string; adjustmentNumber?: string }>> {
+    return this.request<ApiResponse<{ message: string; adjustmentId?: string; adjustmentNumber?: string }>>(
+      `/inventory/cycle-counts/${id}/reconcile`,
+      { method: 'POST' }
+    );
+  }
+
+  async cancelCycleCount(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/inventory/cycle-counts/${id}/cancel`, {
+      method: 'POST',
     });
   }
 

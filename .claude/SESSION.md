@@ -1,40 +1,43 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Phase 4: Inventory Module (4.5 Cycle Count Workflow)
+ERP Remediation — Phase 4: Inventory Module (4.3 Inventory Dashboard — LAST)
 
 ## Status
-IN_PROGRESS | 4.1, 4.2, 4.4 done — order: 4.5 next, then 4.3 (dashboard last)
+IN_PROGRESS | 4.1, 4.2, 4.4, 4.5 done — only 4.3 (Inventory Dashboard) remains
 
 ## Completed Micro-tasks
 - [x] 4.1 — Stock Movements page (filterable audit log)
 - [x] 4.2 — Stock Adjustment workflow (list + detail + create pages)
 - [x] 4.4 — Reorder Report (below reorder point, group by supplier, generate draft POs)
-- [ ] 4.5 — Cycle Count workflow (create session → count → reconcile)
+- [x] 4.5 — Cycle Count workflow (create session → blind count → variance analysis → reconcile)
 - [ ] 4.3 — Inventory Dashboard (multi-warehouse summary, alerts) — LAST
 
-## Files Created (Session 7)
-- `frontend/src/app/(portal)/inventory/reorder/page.tsx` — reorder report page
+## Files Created (Session 8)
+- `backend/src/services/cycle-count.service.ts` — cycle count service (7 functions)
+- `frontend/src/app/(portal)/inventory/cycle-counts/page.tsx` — list page
+- `frontend/src/app/(portal)/inventory/cycle-counts/new/page.tsx` — create page
+- `frontend/src/app/(portal)/inventory/cycle-counts/[id]/page.tsx` — detail/count page
 
-## Files Modified (Session 7)
-- `backend/src/services/inventory.service.ts` — enriched getLowStockProducts()
-- `backend/src/api/v1/inventory/route.ts` — added PURCHASER/WAREHOUSE roles
-- `frontend/src/lib/api.ts` — added LowStockProduct types + getLowStockProducts()
-- `frontend/src/hooks/useInventory.ts` — added useLowStockProducts() hook
-- `frontend/src/lib/navigation.ts` — added Reorder Report nav item
+## Files Modified (Session 8)
+- `backend/prisma/schema.prisma` — added CycleCount models + enum
+- `backend/src/api/v1/inventory/route.ts` — added 7 cycle count endpoints
+- `backend/src/utils/validation/inventory.ts` — added Zod schemas
+- `frontend/src/lib/api.ts` — added cycle count types + API methods
+- `frontend/src/hooks/useInventory.ts` — added cycle count hooks
+- `frontend/src/lib/navigation.ts` — added Cycle Counts nav item
 
 ## Key Decisions
-- Phase 4 order changed: dashboard (4.3) moved to last since it aggregates all other features
-- Reorder Report lives at `/inventory/reorder` under inventoryNavigation
-- Frontend grouping by supplier (dataset is small, no need for backend grouping)
-- Generate PO uses `reorderQuantity` if set, falls back to `shortfall`
-- Single PO generated → redirect to PO detail; multiple POs → success banner with links
+- Blind counting: system quantities hidden during counting, revealed after completion
+- Reconciliation creates StockAdjustment with reason=CYCLE_COUNT (reuses approval pipeline)
+- WAREHOUSE role can create+count but not reconcile (needs ADMIN/MANAGER)
+- Counter format: CC-YYYY-NNNNN (yearly reset)
 
 ## Next Steps
-1. 4.5 — Build Cycle Count workflow (create session → count → reconcile)
-2. 4.3 — Build Inventory Dashboard (last — aggregates everything)
+1. 4.3 — Build Inventory Dashboard (aggregates all inventory features)
+2. Then Phase 5: Missing ERP Documents
 
 ## Context for Next Session
 - Progress tracker: `.claude/plans/erp-progress.md`
-- Cycle Count may need new backend models (CycleCountSession, CycleCountLine) — check schema
-- Existing StockAdjustment model can be reused for reconciliation (reason: CYCLE_COUNT already exists)
+- All inventory sub-features are built (stock levels, adjustments, movements, reorder, cycle counts)
+- Dashboard should aggregate: stock overview, low stock alerts, pending adjustments, active cycle counts, recent movements
