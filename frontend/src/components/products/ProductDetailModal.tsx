@@ -23,6 +23,8 @@ interface ProductDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   showStockQuantity?: boolean; // Internal users see numbers, customers see badges only
+  hideSupplier?: boolean; // Hide supplier info for customer views (Golden Rule 4)
+  detailLinkPrefix?: string; // Override detail link prefix (default: '/catalog')
 }
 
 export function ProductDetailModal({
@@ -30,6 +32,8 @@ export function ProductDetailModal({
   open,
   onOpenChange,
   showStockQuantity = true,
+  hideSupplier = false,
+  detailLinkPrefix = '/catalog',
 }: ProductDetailModalProps) {
   const [showAddToQuote, setShowAddToQuote] = useState(false);
 
@@ -89,13 +93,15 @@ export function ProductDetailModal({
               </dd>
             </div>
 
-            {/* Supplier SKU */}
-            <div className="space-y-1">
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                Supplier SKU
-              </dt>
-              <dd className="text-sm text-slate-600">{product.supplierSku}</dd>
-            </div>
+            {/* Supplier SKU — hidden for customer views (Golden Rule 4) */}
+            {!hideSupplier && (
+              <div className="space-y-1">
+                <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Supplier SKU
+                </dt>
+                <dd className="text-sm text-slate-600">{product.supplierSku}</dd>
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-1">
@@ -105,15 +111,17 @@ export function ProductDetailModal({
               <dd className="text-sm text-slate-900">{product.description}</dd>
             </div>
 
-            {/* Supplier */}
-            <div className="space-y-1">
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                Supplier
-              </dt>
-              <dd>
-                <span className={supplierBadgeClass}>{product.supplier.name}</span>
-              </dd>
-            </div>
+            {/* Supplier — hidden for customer views (Golden Rule 4) */}
+            {!hideSupplier && (
+              <div className="space-y-1">
+                <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Supplier
+                </dt>
+                <dd>
+                  <span className={supplierBadgeClass}>{product.supplier.name}</span>
+                </dd>
+              </div>
+            )}
 
             {/* Category */}
             <div className="space-y-1">
@@ -205,7 +213,7 @@ export function ProductDetailModal({
                       )}
                     </div>
                     <Link
-                      href={`/catalog/${product.nusafSku}`}
+                      href={`${detailLinkPrefix}/${product.nusafSku}`}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                       onClick={() => onOpenChange(false)}
                     >

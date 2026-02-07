@@ -1,12 +1,36 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.4 (Customer Product Catalog)
-## Status: IN PROGRESS (2.1-2.3 done, 2.4-2.9 remaining)
+## Current Micro-Task: 2.5 (Customer Product Detail Page)
+## Status: IN PROGRESS (2.1-2.4 done, 2.5-2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 2 — Phase 2 Micro-Task 2.4 (2026-02-07)
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Built customer product catalog page at `/my/products`
+- Added `hideSupplier` prop to ProductCard, ProductGrid, ProductDetailModal (Golden Rule 4 compliance)
+- Added `detailLinkPrefix` prop to ProductDetailModal for configurable "View Full Details" link
+- Customer page: grid-only, published products only, no supplier info, no stock quantities (badges only)
+- Full filter support: category sidebar, search, stock status chips, sort dropdown, URL-synced state, pagination
+
+**Files modified (3):**
+- `frontend/src/components/products/ProductCard.tsx` — added hideSupplier prop
+- `frontend/src/components/products/ProductGrid.tsx` — added hideSupplier passthrough
+- `frontend/src/components/products/ProductDetailModal.tsx` — added hideSupplier + detailLinkPrefix props
+
+**Files created (1):**
+- `frontend/src/app/(customer)/my/products/page.tsx`
+
+**Key decisions:**
+- Reused existing ProductGrid/ProductCard/CategoryFilter/Pagination components with new props
+- Customer always sees `isPublished: 'true'` filter (cannot see unpublished products)
+- No warehouse selector (customer sees aggregate availability)
+- "View Full Details" link points to `/my/products/${sku}` (customer detail page, micro-task 2.5)
+
 ### Session 1 — Phase 2 Micro-Tasks 2.1-2.3 (2026-02-07)
 **Result: COMPLETE — TypeScript compiles cleanly**
 
@@ -498,7 +522,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.1 — Create (customer) route group + layout infrastructure (CustomerAuthGuard, CustomerHeader, CustomerLayout) ✅
 - [x] 2.2 — Login redirect + middleware + cross-guards (AuthGuard blocks CUSTOMER, QuoteCart role-aware) ✅
 - [x] 2.3 — Build customer dashboard at /my/dashboard ✅
-- [ ] 2.4 — Build customer product catalog page (tier pricing, no internals)
+- [x] 2.4 — Build customer product catalog page (tier pricing, no internals) ✅
 - [ ] 2.5 — Build customer product detail page
 - [ ] 2.6 — Build customer quotes list + detail pages
 - [ ] 2.7 — Build customer orders list + detail pages

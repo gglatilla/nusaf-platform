@@ -9,9 +9,10 @@ interface ProductCardProps {
   product: CatalogProduct;
   onViewDetails?: (product: CatalogProduct) => void;
   showQuantity?: boolean;
+  hideSupplier?: boolean;
 }
 
-export const ProductCard = memo(function ProductCard({ product, onViewDetails, showQuantity = true }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, onViewDetails, showQuantity = true, hideSupplier = false }: ProductCardProps) {
   const formattedPrice = product.price
     ? new Intl.NumberFormat('en-ZA', {
         style: 'currency',
@@ -21,22 +22,24 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails, s
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all">
-      {/* Supplier badge */}
-      <div className="mb-3">
-        <span
-          className={cn(
-            'px-2 py-1 text-xs font-medium rounded',
-            product.supplier.code === 'TECOM' && 'bg-blue-100 text-blue-700',
-            product.supplier.code === 'CHIARAVALLI' && 'bg-green-100 text-green-700',
-            product.supplier.code === 'REGINA' && 'bg-purple-100 text-purple-700',
-            product.supplier.code === 'NUSAF' && 'bg-orange-100 text-orange-700',
-            !['TECOM', 'CHIARAVALLI', 'REGINA', 'NUSAF'].includes(product.supplier.code) &&
-              'bg-slate-100 text-slate-700'
-          )}
-        >
-          {product.supplier.name}
-        </span>
-      </div>
+      {/* Supplier badge — hidden for customer views (Golden Rule 4) */}
+      {!hideSupplier && (
+        <div className="mb-3">
+          <span
+            className={cn(
+              'px-2 py-1 text-xs font-medium rounded',
+              product.supplier.code === 'TECOM' && 'bg-blue-100 text-blue-700',
+              product.supplier.code === 'CHIARAVALLI' && 'bg-green-100 text-green-700',
+              product.supplier.code === 'REGINA' && 'bg-purple-100 text-purple-700',
+              product.supplier.code === 'NUSAF' && 'bg-orange-100 text-orange-700',
+              !['TECOM', 'CHIARAVALLI', 'REGINA', 'NUSAF'].includes(product.supplier.code) &&
+                'bg-slate-100 text-slate-700'
+            )}
+          >
+            {product.supplier.name}
+          </span>
+        </div>
+      )}
 
       {/* SKU */}
       <p className="text-xs text-slate-500 mb-1">SKU: {product.nusafSku}</p>
