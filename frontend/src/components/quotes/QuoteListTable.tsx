@@ -8,6 +8,8 @@ import { QuoteStatusBadge } from './QuoteStatusBadge';
 interface QuoteListTableProps {
   quotes: QuoteListItem[];
   isLoading?: boolean;
+  linkPrefix?: string; // Default: '/quotes' — use '/my/quotes' for customer portal
+  browseHref?: string; // Default: '/catalog' — use '/my/products' for customer portal
 }
 
 function formatCurrency(amount: number): string {
@@ -76,7 +78,7 @@ function SkeletonRow() {
   );
 }
 
-export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
+export function QuoteListTable({ quotes, isLoading, linkPrefix = '/quotes', browseHref = '/catalog' }: QuoteListTableProps) {
   if (isLoading) {
     return (
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -125,7 +127,7 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
           When you create quotes, they will appear here.
         </p>
         <Link
-          href="/catalog"
+          href={browseHref}
           className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
         >
           Browse Products
@@ -169,7 +171,7 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
               <tr key={quote.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                   <Link
-                    href={`/quotes/${quote.id}`}
+                    href={`${linkPrefix}/${quote.id}`}
                     className="text-sm font-medium text-primary-600 hover:text-primary-700"
                   >
                     {quote.quoteNumber}
@@ -198,7 +200,7 @@ export function QuoteListTable({ quotes, isLoading }: QuoteListTableProps) {
                 </td>
                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
                   <Link
-                    href={`/quotes/${quote.id}`}
+                    href={`${linkPrefix}/${quote.id}`}
                     className="text-slate-400 hover:text-slate-600"
                   >
                     <ChevronRight className="h-5 w-5" />

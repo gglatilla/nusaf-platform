@@ -1,12 +1,30 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.6 (Customer Quotes List + Detail)
-## Status: IN PROGRESS (2.1-2.5 done, 2.6-2.9 remaining)
+## Current Micro-Task: 2.7 (Customer Orders List + Detail)
+## Status: IN PROGRESS (2.1-2.6 done, 2.7-2.9 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 2 — Phase 2 Micro-Tasks 2.4-2.6 (2026-02-07)
+**Micro-task 2.6 — Customer Quotes List + Detail Pages**
+**Result: COMPLETE — TypeScript compiles cleanly**
+
+**What was done:**
+- Built customer quotes list at `/my/quotes` with status filter tabs, active draft banner, pagination
+- Built customer quote detail at `/my/quotes/[id]` with items table, totals, validity banner
+- Added `linkPrefix` and `browseHref` props to `QuoteListTable` for portal reuse
+- Customer can: view quotes, filter by status, edit DRAFT items, submit (finalize), accept/reject CREATED quotes
+- No internal data shown: no customer tier, no company name, no Create Order (staff action)
+
+**Files created (2):**
+- `frontend/src/app/(customer)/my/quotes/page.tsx`
+- `frontend/src/app/(customer)/my/quotes/[id]/page.tsx`
+
+**Files modified (1):**
+- `frontend/src/components/quotes/QuoteListTable.tsx` — added linkPrefix + browseHref props
+
 ### Session 2 — Phase 2 Micro-Tasks 2.4-2.5 (2026-02-07)
 **Micro-task 2.5 — Customer Product Detail Page**
 **Result: COMPLETE — TypeScript compiles cleanly**
@@ -546,7 +564,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.3 — Build customer dashboard at /my/dashboard ✅
 - [x] 2.4 — Build customer product catalog page (tier pricing, no internals) ✅
 - [x] 2.5 — Build customer product detail page ✅
-- [ ] 2.6 — Build customer quotes list + detail pages
+- [x] 2.6 — Build customer quotes list + detail pages ✅
 - [ ] 2.7 — Build customer orders list + detail pages
 - [ ] 2.8 — Build customer account page
 - [ ] 2.9 — Data leak audit + verification
