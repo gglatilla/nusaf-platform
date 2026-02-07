@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { StockMovement } from '@/lib/api/types/products';
+import { REFERENCE_TYPE_ROUTES } from '@/lib/constants/reference-routes';
 
 interface AuditLogTabProps {
   movements: StockMovement[];
@@ -17,16 +18,6 @@ const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   ADJUSTMENT_IN: { label: 'Adjustment In', color: 'bg-cyan-100 text-cyan-700' },
   ADJUSTMENT_OUT: { label: 'Adjustment Out', color: 'bg-pink-100 text-pink-700' },
   SCRAP: { label: 'Scrap', color: 'bg-slate-100 text-slate-700' },
-};
-
-const REFERENCE_TYPE_ROUTES: Record<string, string> = {
-  GoodsReceivedVoucher: '/goods-receipts',
-  PurchaseOrder: '/purchase-orders',
-  SalesOrder: '/orders',
-  PickingSlip: '/picking-slips',
-  TransferRequest: '/transfer-requests',
-  JobCard: '/job-cards',
-  StockAdjustment: '/inventory',
 };
 
 const formatDateTime = (dateString: string) => {

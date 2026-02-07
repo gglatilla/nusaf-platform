@@ -1,12 +1,35 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 2 — COMPLETE ✅
-## Current Micro-Task: None — Phase 2 fully complete
-## Status: COMPLETE (all 2.1-2.9 done)
+## Current Phase: Phase 4 — Inventory Module
+## Current Micro-Task: 4.2 (Stock Adjustment Workflow)
+## Status: IN PROGRESS (4.1 complete, 4.2-4.4 remaining)
 
 ---
 
 ## Last Session Notes
+### Session 5 — Phase 4 Micro-Task 4.1 (2026-02-07)
+**Micro-task 4.1 — Stock Movements Page**
+**Result: COMPLETE — Both frontend and backend compile cleanly**
+
+**What was done:**
+- Updated `StockMovementItem` type to match actual backend response (was using wrong field names: `warehouseId`/`type` vs actual `location`/`movementType`)
+- Extracted `REFERENCE_TYPE_ROUTES` + `WAREHOUSE_NAMES` to shared constants at `frontend/src/lib/constants/reference-routes.ts`
+- Enhanced `MovementLogTable`: added warehouse filter, product SKU/name as clickable links to item detail, reference numbers as clickable links to source documents, updated search to filter on SKU/description/referenceNumber
+- Created dedicated `/inventory/movements` page with PageHeader
+- Added "Movements" nav item to inventoryNavigation (ADMIN, MANAGER, WAREHOUSE)
+- Expanded backend movements endpoint role to include WAREHOUSE
+
+**Files created (2):**
+- `frontend/src/lib/constants/reference-routes.ts`
+- `frontend/src/app/(portal)/inventory/movements/page.tsx`
+
+**Files modified (5):**
+- `frontend/src/lib/api.ts` — updated StockMovementItem interface
+- `frontend/src/components/inventory/MovementLogTable.tsx` — complete rewrite
+- `frontend/src/components/inventory/product-detail/AuditLogTab.tsx` — shared constant import
+- `frontend/src/lib/navigation.ts` — added Movements nav item
+- `backend/src/api/v1/inventory/route.ts` — expanded role
+
 ### Session 4 — Phase 2 Micro-Task 2.9 (2026-02-07)
 **Micro-task 2.9 — Data Leak Audit + Verification**
 **Result: COMPLETE — All 11 checks PASS, 4 backend vulnerabilities fixed, TypeScript compiles cleanly**
@@ -635,7 +658,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.9 — Data leak audit + verification ✅
 
 ## Phase 4: Inventory Module
-- [ ] 4.1 — Build Stock Movements page (filterable audit log)
+- [x] 4.1 — Build Stock Movements page (filterable audit log) ✅
 - [ ] 4.2 — Build Stock Adjustment workflow (create → approve → apply)
 - [ ] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts)
 - [ ] 4.4 — Build Reorder Report (below reorder point, suggested PO quantities)

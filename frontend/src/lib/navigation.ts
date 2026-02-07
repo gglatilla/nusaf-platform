@@ -16,6 +16,7 @@ import {
   Boxes,
   Factory,
   PackageCheck,
+  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -64,6 +65,7 @@ export const procurementNavigation: NavItem[] = [
 export const inventoryNavigation: NavItem[] = [
   { name: 'Items', href: '/inventory/items', icon: Package, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'] },
   { name: 'Stock Levels', href: '/inventory', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
+  { name: 'Movements', href: '/inventory/movements', icon: ArrowRightLeft, roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'] },
 ];
 
 /**

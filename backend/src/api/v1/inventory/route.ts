@@ -254,7 +254,7 @@ router.patch('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER'),
  * GET /api/v1/inventory/movements
  * List stock movements with filtering and pagination
  */
-router.get('/movements', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.get('/movements', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
     const queryResult = stockMovementListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -290,7 +290,7 @@ router.get('/movements', authenticate, requireRole('ADMIN', 'MANAGER'), async (r
  * GET /api/v1/inventory/movements/:productId
  * Get movement history for a specific product
  */
-router.get('/movements/:productId', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.get('/movements/:productId', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
     const { productId } = req.params;
     const location = req.query.location as Warehouse | undefined;

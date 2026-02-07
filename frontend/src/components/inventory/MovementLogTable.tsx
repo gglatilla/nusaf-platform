@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { ArrowRightLeft } from 'lucide-react';
 import { useStockMovements } from '@/hooks/useInventory';
 import { Pagination } from '@/components/products/Pagination';
+import { REFERENCE_TYPE_ROUTES, WAREHOUSE_NAMES } from '@/lib/constants/reference-routes';
 import { cn } from '@/lib/utils';
 
 const MOVEMENT_TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
@@ -70,16 +72,22 @@ function TableSkeleton() {
   );
 }
 
-export function MovementLogTable() {
+interface MovementLogTableProps {
+  initialLocation?: string;
+}
+
+export function MovementLogTable({ initialLocation }: MovementLogTableProps) {
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState('7d');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [locationFilter, setLocationFilter] = useState<string>(initialLocation || 'ALL');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const dateParams = useMemo(() => getDateRangeParams(dateRange), [dateRange]);
 
   const { data, isLoading, error } = useStockMovements({
+    location: locationFilter !== 'ALL' ? locationFilter : undefined,
     movementType: typeFilter !== 'ALL' ? typeFilter : undefined,
     startDate: dateParams.startDate,
     endDate: dateParams.endDate,
@@ -87,7 +95,7 @@ export function MovementLogTable() {
     pageSize,
   });
 
-  // Filter by search (client-side for simplicity)
+  // Filter by search (client-side — searches SKU, description, referenceNumber, notes)
   const filteredMovements = useMemo(() => {
     if (!data?.movements) return [];
     if (!search) return data.movements;
@@ -95,8 +103,9 @@ export function MovementLogTable() {
     const searchLower = search.toLowerCase();
     return data.movements.filter(
       (m) =>
-        m.productId.toLowerCase().includes(searchLower) ||
-        m.referenceId?.toLowerCase().includes(searchLower) ||
+        m.product?.nusafSku?.toLowerCase().includes(searchLower) ||
+        m.product?.description?.toLowerCase().includes(searchLower) ||
+        m.referenceNumber?.toLowerCase().includes(searchLower) ||
         m.notes?.toLowerCase().includes(searchLower)
     );
   }, [data?.movements, search]);
@@ -116,13 +125,25 @@ export function MovementLogTable() {
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search by product ID, reference, or notes..."
+            placeholder="Search by SKU, description, reference, or notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <select
+            value={locationFilter}
+            onChange={(e) => {
+              setLocationFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="ALL">All Warehouses</option>
+            <option value="JHB">Johannesburg</option>
+            <option value="CT">Cape Town</option>
+          </select>
           <select
             value={dateRange}
             onChange={(e) => {
@@ -204,11 +225,15 @@ export function MovementLogTable() {
                 </tr>
               ) : (
                 filteredMovements.map((movement) => {
-                  const config = MOVEMENT_TYPE_CONFIG[movement.type] || {
+                  const config = MOVEMENT_TYPE_CONFIG[movement.movementType] || {
                     icon: '📦',
-                    label: movement.type,
+                    label: movement.movementType,
                     color: 'text-slate-600',
                   };
+                  const refRoute = movement.referenceType ? REFERENCE_TYPE_ROUTES[movement.referenceType] : null;
+                  const refDisplay = movement.referenceNumber
+                    || (movement.referenceType ? `${movement.referenceType.replace(/([A-Z])/g, ' $1').trim()}` : null);
+
                   return (
                     <tr key={movement.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
@@ -220,19 +245,35 @@ export function MovementLogTable() {
                           <span className={config.color}>{config.label}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-slate-900 whitespace-nowrap">
-                        {movement.productId.slice(0, 8)}...
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {movement.product ? (
+                          <Link
+                            href={`/inventory/items/${movement.product.nusafSku}`}
+                            className="group"
+                          >
+                            <span className="text-sm font-mono text-primary-600 group-hover:text-primary-700">
+                              {movement.product.nusafSku}
+                            </span>
+                            <span className="block text-xs text-slate-500 max-w-[180px] truncate group-hover:text-slate-700">
+                              {movement.product.description}
+                            </span>
+                          </Link>
+                        ) : (
+                          <span className="text-sm font-mono text-slate-400">
+                            {movement.productId.slice(0, 8)}...
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(
                             'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                            movement.warehouseId === 'JHB'
+                            movement.location === 'JHB'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-purple-100 text-purple-800'
                           )}
                         >
-                          {movement.warehouseName}
+                          {WAREHOUSE_NAMES[movement.location] || movement.location}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -245,11 +286,22 @@ export function MovementLogTable() {
                           {movement.quantity > 0 ? '+' : ''}{movement.quantity}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">
-                        {movement.referenceType && movement.referenceId && (
-                          <span className="font-mono text-xs">
-                            {movement.referenceType}: {movement.referenceId.slice(0, 8)}...
-                          </span>
+                      <td className="px-4 py-3 text-sm">
+                        {movement.referenceType && movement.referenceId ? (
+                          refRoute ? (
+                            <Link
+                              href={`${refRoute}/${movement.referenceId}`}
+                              className="text-primary-600 hover:text-primary-700 font-mono text-xs"
+                            >
+                              {refDisplay} →
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-xs text-slate-600">
+                              {refDisplay}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-500 max-w-[200px] truncate">

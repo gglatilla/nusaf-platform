@@ -745,15 +745,22 @@ export interface StockMovementsQueryParams {
 export interface StockMovementItem {
   id: string;
   productId: string;
-  warehouseId: string;
-  warehouseName: string;
-  type: string;
+  product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+  };
+  location: string;
+  movementType: string;
   quantity: number;
+  balanceAfter: number;
   referenceType: string | null;
   referenceId: string | null;
+  referenceNumber: string | null;
+  adjustmentReason: string | null;
   notes: string | null;
   createdAt: string;
-  createdBy: string;
+  createdBy: string | null;
 }
 
 export interface StockMovementsResponse {
