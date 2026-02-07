@@ -154,9 +154,15 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // Golden Rule 4: Strip internal data for CUSTOMER role
+    const isCustomer = authReq.user.role === 'CUSTOMER';
+    const responseData = isCustomer
+      ? { ...order, internalNotes: undefined, warehouse: undefined }
+      : order;
+
     return res.json({
       success: true,
-      data: order,
+      data: responseData,
     });
   } catch (error) {
     console.error('Get order error:', error);

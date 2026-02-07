@@ -252,7 +252,8 @@ router.get('/', authenticate, async (req, res) => {
         supplierSku: product.supplierSku,
         description: product.description,
         unitOfMeasure: product.unitOfMeasure,
-        supplier: product.supplier,
+        // Golden Rule 4: Hide supplier from CUSTOMER role
+        ...(isCustomer ? {} : { supplier: product.supplier }),
         category: product.category,
         subCategory: product.subCategory,
         price: displayPrice,
@@ -266,8 +267,13 @@ router.get('/', authenticate, async (req, res) => {
       };
 
       // Add stock summary if requested
+      // Golden Rule 4: CUSTOMER only sees status badge, not quantities
       if (includeStockSummary) {
-        result.stockSummary = stockSummary;
+        if (isCustomer) {
+          result.stockSummary = { status: stockSummary.status };
+        } else {
+          result.stockSummary = stockSummary;
+        }
       }
 
       // Internal field for filtering/sorting (not returned to client unless includeStockSummary)
@@ -526,14 +532,15 @@ router.get('/:id', authenticate, async (req, res) => {
       landedCost = Math.round(zarValue * (1 + freightPercent / 100) * 100) / 100;
     }
 
-    // Build response
+    // Build response — Golden Rule 4: strip internal data for CUSTOMER role
     const responseData: Record<string, unknown> = {
       id: product.id,
       nusafSku: product.nusafSku,
       supplierSku: product.supplierSku,
       description: product.description,
       unitOfMeasure: product.unitOfMeasure,
-      supplier: product.supplier,
+      // Golden Rule 4: Hide supplier from CUSTOMER
+      ...(isCustomer ? {} : { supplier: product.supplier }),
       category: product.category,
       subCategory: product.subCategory,
       price: displayPrice,
@@ -541,13 +548,17 @@ router.get('/:id', authenticate, async (req, res) => {
       hasPrice: !!listPrice,
       priceUpdatedAt: product.priceUpdatedAt,
 
-      // Pricing fields (raw + calculated)
-      costPrice,  // Raw supplier cost in EUR
-      landedCost, // Calculated: Supplier EUR × EUR/ZAR × (1 + Freight%)
-      listPrice,  // Base selling price in ZAR
+      // Golden Rule 4: Hide cost/internal pricing from CUSTOMER
+      ...(isCustomer ? {} : {
+        costPrice,  // Raw supplier cost in EUR
+        landedCost, // Calculated: Supplier EUR × EUR/ZAR × (1 + Freight%)
+        listPrice,  // Base selling price in ZAR
+      }),
 
-      // Foreign keys for edit form
-      supplierId: product.supplierId,
+      // Foreign keys for edit form (staff only)
+      ...(isCustomer ? {} : {
+        supplierId: product.supplierId,
+      }),
       categoryId: product.categoryId,
       subCategoryId: product.subCategoryId,
 
@@ -566,16 +577,23 @@ router.get('/:id', authenticate, async (req, res) => {
       isActive: product.isActive,
 
       // Inventory defaults at root level (matches frontend ProductWithInventory type)
-      defaultReorderPoint: product.defaultReorderPoint,
-      defaultReorderQty: product.defaultReorderQty,
-      defaultMinStock: product.defaultMinStock,
-      defaultMaxStock: product.defaultMaxStock,
-      leadTimeDays: product.leadTimeDays,
+      ...(isCustomer ? {} : {
+        defaultReorderPoint: product.defaultReorderPoint,
+        defaultReorderQty: product.defaultReorderQty,
+        defaultMinStock: product.defaultMinStock,
+        defaultMaxStock: product.defaultMaxStock,
+        leadTimeDays: product.leadTimeDays,
+      }),
     };
 
     // Add inventory if requested (transform to match frontend ProductInventory type)
     if (includeInventory) {
-      if (inventoryResult) {
+      if (isCustomer) {
+        // Golden Rule 4: CUSTOMER only sees stock status badge, not quantities
+        responseData.inventory = {
+          stockStatus: inventoryResult?.status ?? 'OUT_OF_STOCK',
+        };
+      } else if (inventoryResult) {
         responseData.inventory = {
           onHand: inventoryResult.totalOnHand,
           available: inventoryResult.totalAvailable,

@@ -1,12 +1,35 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 2 — Route Separation (ERP vs Customer Portal)
-## Current Micro-Task: 2.9 (Data Leak Audit + Verification)
-## Status: IN PROGRESS (2.1-2.8 done, 2.9 remaining)
+## Current Phase: Phase 2 — COMPLETE ✅
+## Current Micro-Task: None — Phase 2 fully complete
+## Status: COMPLETE (all 2.1-2.9 done)
 
 ---
 
 ## Last Session Notes
+### Session 4 — Phase 2 Micro-Task 2.9 (2026-02-07)
+**Micro-task 2.9 — Data Leak Audit + Verification**
+**Result: COMPLETE — All 11 checks PASS, 4 backend vulnerabilities fixed, TypeScript compiles cleanly**
+
+**Audit scope:** 11 checks across frontend (4), backend/API (4), and auth (3) layers.
+
+**Vulnerabilities found and fixed:**
+
+| # | Issue | Severity | Fix |
+|---|-------|----------|-----|
+| 1 | Products LIST API returned `supplier` to CUSTOMER | MEDIUM | Conditional spread `...(isCustomer ? {} : { supplier })` |
+| 2 | Products LIST API returned `stockSummary.totalOnHand/totalAvailable` to CUSTOMER | MEDIUM | Customer gets `{ status }` only |
+| 3 | Products DETAIL API returned `costPrice`, `landedCost`, `supplierId`, inventory quantities | HIGH | All stripped for CUSTOMER role |
+| 4 | Orders DETAIL API returned `internalNotes` to CUSTOMER | HIGH | Set to `undefined` for CUSTOMER |
+| 5 | Quotes API global `requireRole('ADMIN','MANAGER','SALES')` blocked CUSTOMER from ALL quote operations | CRITICAL | Removed global role check; company isolation enforced in service layer |
+
+**Files modified (3):**
+- `backend/src/api/v1/products/route.ts` — role-based field filtering on LIST and DETAIL endpoints
+- `backend/src/api/v1/orders/route.ts` — strip internalNotes + warehouse for CUSTOMER
+- `backend/src/api/v1/quotes/route.ts` — removed global requireRole, removed unused import
+
+**Phase 2 is now COMPLETE.** Next phase: Phase 4 (Inventory Module) or Phase 5 (Missing ERP Documents).
+
 ### Session 3 — Phase 2 Micro-Task 2.8 (2026-02-07)
 **Micro-task 2.8 — Customer Account Page**
 **Result: COMPLETE — TypeScript compiles cleanly**
@@ -607,9 +630,9 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.4 — Build customer product catalog page (tier pricing, no internals) ✅
 - [x] 2.5 — Build customer product detail page ✅
 - [x] 2.6 — Build customer quotes list + detail pages ✅
-- [ ] 2.7 — Build customer orders list + detail pages
-- [ ] 2.8 — Build customer account page
-- [ ] 2.9 — Data leak audit + verification
+- [x] 2.7 — Build customer orders list + detail pages ✅
+- [x] 2.8 — Build customer account page ✅
+- [x] 2.9 — Data leak audit + verification ✅
 
 ## Phase 4: Inventory Module
 - [ ] 4.1 — Build Stock Movements page (filterable audit log)

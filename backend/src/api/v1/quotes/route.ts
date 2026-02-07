@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
 import {
   addQuoteItemSchema,
   updateQuoteItemSchema,
@@ -24,10 +24,9 @@ import {
 
 const router = Router();
 
-// Apply authentication and role-based access control to all routes
-// Quotes can only be managed by internal staff, not customers
+// All routes require authentication
+// Customers can manage their own quotes (company isolation enforced in service layer)
 router.use(authenticate);
-router.use(requireRole('ADMIN', 'MANAGER', 'SALES'));
 
 /**
  * POST /api/v1/quotes
