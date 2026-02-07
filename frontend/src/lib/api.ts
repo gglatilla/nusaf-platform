@@ -686,6 +686,39 @@ export interface StockLevelsResponse {
   };
 }
 
+export interface LowStockProduct {
+  id: string;
+  productId: string;
+  product: {
+    id: string;
+    nusafSku: string;
+    description: string;
+    unitOfMeasure: string;
+    category?: { id: string; name: string };
+  };
+  supplier: {
+    id: string;
+    code: string;
+    name: string;
+    currency: SupplierCurrency;
+  };
+  costPrice: number | null;
+  leadTimeDays: number | null;
+  location: 'JHB' | 'CT';
+  onHand: number;
+  onOrder: number;
+  available: number;
+  reorderPoint: number | null;
+  reorderQuantity: number | null;
+  minimumStock: number | null;
+  stockStatus: 'LOW_STOCK' | 'OUT_OF_STOCK';
+  shortfall: number;
+}
+
+export interface LowStockProductsResponse {
+  lowStockProducts: LowStockProduct[];
+}
+
 export interface StockAdjustmentsQueryParams {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   location?: string;
@@ -2364,6 +2397,14 @@ class ApiClient {
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/inventory/stock?${queryString}` : '/inventory/stock';
     return this.request<ApiResponse<StockLevelsResponse>>(endpoint);
+  }
+
+  /**
+   * Get low stock products (below reorder point)
+   */
+  async getLowStockProducts(location?: string): Promise<ApiResponse<LowStockProductsResponse>> {
+    const endpoint = location ? `/inventory/stock/low?location=${location}` : '/inventory/stock/low';
+    return this.request<ApiResponse<LowStockProductsResponse>>(endpoint);
   }
 
   /**

@@ -1,12 +1,42 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 4 — Inventory Module
-## Current Micro-Task: 4.3 (Inventory Dashboard)
-## Status: IN PROGRESS (4.1-4.2 complete, 4.3-4.5 remaining)
+## Current Micro-Task: 4.5 (Cycle Count Workflow)
+## Status: IN PROGRESS (4.1-4.2, 4.4 complete, order: 4.5→4.3, dashboard last)
 
 ---
 
 ## Last Session Notes
+### Session 7 — Phase 4 Micro-Task 4.4 (2026-02-07)
+**Micro-task 4.4 — Reorder Report**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**Note:** Phase 4 order changed per user direction — dashboard (4.3) moved to last since it aggregates data from all other features. New order: 4.1→4.2→4.4→4.5→4.3.
+
+**What was done:**
+- Enriched `getLowStockProducts()` backend service to include supplier info (id, code, name, currency), costPrice, leadTimeDays, onOrder
+- Added PURCHASER and WAREHOUSE roles to `GET /inventory/stock/low` endpoint
+- Added `LowStockProduct` type, `LowStockProductsResponse` type, `getLowStockProducts()` API method on frontend
+- Added `useLowStockProducts()` hook
+- Built Reorder Report page at `/inventory/reorder` with:
+  - Summary cards (total below reorder, out of stock, suppliers affected, total shortfall)
+  - Filter toolbar (severity tabs, warehouse dropdown, supplier dropdown)
+  - Group-by-supplier toggle with collapsible supplier sections
+  - Checkbox selection per row and per supplier group
+  - Generate Draft PO(s) from selected items — creates PO per supplier with pre-populated lines
+  - Clickable links: SKU → item detail, supplier → supplier detail, generated PO → PO detail
+- Added "Reorder Report" nav item to inventoryNavigation (ADMIN, MANAGER, PURCHASER)
+
+**Files created (1):**
+- `frontend/src/app/(portal)/inventory/reorder/page.tsx`
+
+**Files modified (5):**
+- `backend/src/services/inventory.service.ts` — enriched getLowStockProducts() product select + return shape
+- `backend/src/api/v1/inventory/route.ts` — added PURCHASER, WAREHOUSE roles to /stock/low
+- `frontend/src/lib/api.ts` — added LowStockProduct types + getLowStockProducts() method
+- `frontend/src/hooks/useInventory.ts` — added useLowStockProducts() hook
+- `frontend/src/lib/navigation.ts` — added Reorder Report nav item
+
 ### Session 6 — Phase 4 Micro-Task 4.2 (2026-02-07)
 **Micro-task 4.2 — Stock Adjustment Workflow**
 **Result: COMPLETE — TypeScript compiles cleanly**
@@ -680,12 +710,12 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 2.8 — Build customer account page ✅
 - [x] 2.9 — Data leak audit + verification ✅
 
-## Phase 4: Inventory Module
+## Phase 4: Inventory Module (reordered: dashboard last)
 - [x] 4.1 — Build Stock Movements page (filterable audit log) ✅
 - [x] 4.2 — Build Stock Adjustment workflow (create → approve → apply) ✅
-- [ ] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts)
-- [ ] 4.4 — Build Reorder Report (below reorder point, suggested PO quantities)
+- [x] 4.4 — Build Reorder Report (below reorder point, suggested PO quantities) ✅
 - [ ] 4.5 — Build Cycle Count workflow (create session → count → reconcile)
+- [ ] 4.3 — Build Inventory Dashboard (multi-warehouse summary, alerts) — LAST
 
 ## Phase 5: Missing ERP Documents
 - [ ] 5.1 — Build Delivery Note model + create from picking slips

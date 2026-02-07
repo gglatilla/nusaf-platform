@@ -555,6 +555,10 @@ export async function getLowStockProducts(location?: Warehouse) {
           defaultReorderQty: true,
           defaultMinStock: true,
           defaultMaxStock: true,
+          supplierId: true,
+          supplier: { select: { id: true, code: true, name: true, currency: true } },
+          costPrice: true,
+          leadTimeDays: true,
         },
       },
     },
@@ -581,12 +585,16 @@ export async function getLowStockProducts(location?: Warehouse) {
         product: sl.product,
         location: sl.location,
         onHand: sl.onHand,
+        onOrder: sl.onOrder,
         available,
         reorderPoint: sl.reorderPoint,
         reorderQuantity: sl.reorderQuantity,
         minimumStock: sl.minimumStock,
         stockStatus,
         shortfall: effectiveReorderPoint > 0 ? Math.max(0, effectiveReorderPoint - available) : 0,
+        supplier: sl.product.supplier,
+        costPrice: sl.product.costPrice ? Number(sl.product.costPrice) : null,
+        leadTimeDays: sl.product.leadTimeDays,
       };
     })
     .filter((sl) => sl.stockStatus === 'LOW_STOCK' || sl.stockStatus === 'OUT_OF_STOCK');

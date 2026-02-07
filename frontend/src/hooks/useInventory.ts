@@ -45,6 +45,23 @@ export function useStockLevels(params: StockLevelsQueryParams = {}) {
 }
 
 /**
+ * Hook for fetching low stock products (below reorder point)
+ */
+export function useLowStockProducts(location?: string) {
+  return useQuery({
+    queryKey: ['inventory', 'lowStock', location],
+    queryFn: async () => {
+      const response = await api.getLowStockProducts(location);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch low stock products');
+      }
+      return response.data;
+    },
+    staleTime: 60 * 1000, // 1 minute
+  });
+}
+
+/**
  * Hook for fetching stock adjustments with filtering
  */
 export function useStockAdjustments(params: StockAdjustmentsQueryParams = {}) {

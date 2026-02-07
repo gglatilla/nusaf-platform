@@ -104,7 +104,7 @@ router.get('/stock', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), asy
  * GET /api/v1/inventory/stock/low
  * Get low stock products
  */
-router.get('/stock/low', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+router.get('/stock/low', authenticate, requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'), async (req, res) => {
   try {
     const location = req.query.location as Warehouse | undefined;
 

@@ -67,6 +67,7 @@ export const inventoryNavigation: NavItem[] = [
   { name: 'Stock Levels', href: '/inventory', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
   { name: 'Adjustments', href: '/inventory/adjustments', icon: ClipboardList, roles: ['ADMIN', 'MANAGER'] },
   { name: 'Movements', href: '/inventory/movements', icon: ArrowRightLeft, roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'] },
+  { name: 'Reorder Report', href: '/inventory/reorder', icon: AlertTriangle, roles: ['ADMIN', 'MANAGER', 'PURCHASER'] },
 ];
 
 /**
