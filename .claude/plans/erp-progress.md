@@ -1,13 +1,78 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 5 — Missing ERP Documents — COMPLETE
-## Current Micro-Task: 5.5 — COMPLETE (Packing List)
-## Status: Phase 5 COMPLETE. All 5 ERP documents built. Next is Phase 6 (Reports & Analytics)
-## Next Micro-Task: 6.1 — Sales reports
+## Current Phase: Phase 6 — Reports & Analytics
+## Current Micro-Task: 6.1 — COMPLETE (Sales Reports)
+## Status: Phase 6.1 COMPLETE. Sales reports page built with Recharts charts. Next: 6.2 (Inventory Reports)
+## Next Micro-Task: 6.2 — Inventory reports
 
 ---
 
 ## Last Session Notes
+### Session 15 — Phase 6 Micro-Task 6.1 (2026-02-08)
+**Micro-task 6.1 — Sales Reports (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**6.1.1 — Backend: Sales Report Service + API Route**
+- Created `sales-report.service.ts` with `getSalesReport(startDate?, endDate?)` function
+- 7 parallel Prisma queries in `Promise.all()`: order aggregate, 5x quote pipeline counts, pending fulfillment, revenue time series, top customers (groupBy), top products (groupBy), revenue by tier
+- Smart time bucketing: day (<=31d), week (<=120d), month (>120d)
+- Top 10 limit for customers and products
+- Created `reports/route.ts` with `GET /sales?startDate=&endDate=` endpoint
+- Auth: requireRole(ADMIN, MANAGER, SALES)
+- Registered route in `index.ts`
+
+**6.1.2 — Frontend: Install Recharts + Types + API + Hook**
+- Installed `recharts@^3.7.0`
+- Added 8 types to `api.ts`: SalesReportSummary, RevenueOverTimeEntry, QuotePipeline, TopCustomerEntry, TopProductEntry, RevenueByTierEntry, SalesReportData
+- Added `getSalesReport()` API method to ApiClient
+- Created `useReports.ts` with `useSalesReport()` hook (no auto-refresh — reports not live)
+
+**6.1.3 — Frontend: Summary Cards + Charts**
+- Created `/reports/sales/page.tsx` with:
+  - Date range dropdown (7d, 30d default, 90d, This month, Last month, This year, All time)
+  - 6 summary metric cards (Total Orders, Revenue, Avg Value, Conversion Rate, Quotes, Pending)
+  - Revenue over time bar chart (Recharts BarChart, teal, responsive)
+  - Revenue by tier donut chart (Recharts PieChart, 3 segments with legend)
+  - Quote pipeline funnel (Created → Accepted → Converted with conversion %)
+
+**6.1.4 — Frontend: Top Customers + Top Products Tables**
+- Top Customers: rank, company, tier badge, orders, revenue, avg value
+- Top Products: rank, SKU (clickable link → /inventory/items/[sku]), description, qty sold, revenue
+- Side-by-side on desktop (grid-cols-2)
+
+**6.1.5 — Navigation + Verification**
+- Added `reportsNavigation` array to `navigation.ts` with BarChart3 icon
+- Added "Reports" section to Sidebar.tsx (between Admin and Secondary)
+- Roles: ADMIN, MANAGER, SALES
+- tsc --noEmit passes on both backend and frontend
+
+**Golden Rules Verification:**
+- Rule 1: N/A (no stock changes)
+- Rule 2: N/A (no documents)
+- Rule 3: N/A (read-only page)
+- Rule 4: PASS — staff only, CUSTOMER cannot access
+- Rule 5: PASS — rich context with revenue, rankings, clickable SKU links
+- Rule 6: N/A (no status changes)
+- Rule 7: PASS — role-based via requireRole + nav roles
+- Rule 8: PASS — Sales/Manager/Admin each see appropriate data
+
+**Files created (4):**
+- `backend/src/services/sales-report.service.ts`
+- `backend/src/api/v1/reports/route.ts`
+- `frontend/src/hooks/useReports.ts`
+- `frontend/src/app/(portal)/reports/sales/page.tsx`
+
+**Files modified (4):**
+- `backend/src/index.ts` — registered reports route
+- `frontend/src/lib/api.ts` — added 8 report types + 1 API method
+- `frontend/src/lib/navigation.ts` — added reportsNavigation (BarChart3 icon)
+- `frontend/src/components/layout/Sidebar.tsx` — added Reports nav group
+
+**Dependencies added:**
+- `recharts@^3.7.0` (frontend)
+
 ### Session 14 — Phase 5 Micro-Task 5.5 (2026-02-08)
 **Micro-task 5.5 — Packing List Generation (all 5 sub-tasks)**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -1145,7 +1210,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 5.5 — Build Packing List generation ✅
 
 ## Phase 6: Reports & Analytics
-- [ ] 6.1 — Sales reports (by customer, product, category, conversion rate)
+- [x] 6.1 — Sales reports (by customer, product, category, conversion rate) ✅
 - [ ] 6.2 — Inventory reports (valuation, aging, dead stock, turnover)
 - [ ] 6.3 — Purchasing reports (by supplier, open POs, lead time performance)
 - [ ] 6.4 — Operations reports (fulfillment rate, picking accuracy, output)

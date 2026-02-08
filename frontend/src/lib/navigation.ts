@@ -22,6 +22,7 @@ import {
   FileOutput,
   FileInput,
   Boxes,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -87,6 +88,13 @@ export const adminNavigation: NavItem[] = [
   { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Suppliers', href: '/admin/suppliers', icon: Factory, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Pricing', href: '/admin/settings', icon: Euro, roles: ['ADMIN', 'MANAGER'] },
+];
+
+/**
+ * Reports navigation items
+ */
+export const reportsNavigation: NavItem[] = [
+  { name: 'Sales', href: '/reports/sales', icon: BarChart3, roles: ['ADMIN', 'MANAGER', 'SALES'] },
 ];
 
 /**

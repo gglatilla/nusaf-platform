@@ -2876,6 +2876,66 @@ export interface FulfillmentDashboardData {
   };
 }
 
+// ============================================
+// SALES REPORT TYPES
+// ============================================
+
+export interface SalesReportSummary {
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  quoteConversionRate: number;
+  totalQuotes: number;
+  pendingFulfillment: number;
+}
+
+export interface RevenueOverTimeEntry {
+  period: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface QuotePipeline {
+  created: number;
+  accepted: number;
+  converted: number;
+  rejected: number;
+  expired: number;
+}
+
+export interface TopCustomerEntry {
+  companyId: string;
+  companyName: string;
+  tier: string;
+  orderCount: number;
+  revenue: number;
+  averageOrderValue: number;
+}
+
+export interface TopProductEntry {
+  productId: string;
+  sku: string;
+  description: string;
+  quantitySold: number;
+  revenue: number;
+}
+
+export interface RevenueByTierEntry {
+  tier: string;
+  revenue: number;
+  orderCount: number;
+  percentage: number;
+}
+
+export interface SalesReportData {
+  summary: SalesReportSummary;
+  revenueOverTime: RevenueOverTimeEntry[];
+  quotePipeline: QuotePipeline;
+  topCustomers: TopCustomerEntry[];
+  topProducts: TopProductEntry[];
+  revenueByTier: RevenueByTierEntry[];
+}
+
 class ApiClient {
   private accessToken: string | null = null;
 
@@ -4780,6 +4840,18 @@ class ApiClient {
 
   async getFulfillmentDashboard(): Promise<ApiResponse<FulfillmentDashboardData>> {
     return this.request<ApiResponse<FulfillmentDashboardData>>('/fulfillment/dashboard');
+  }
+
+  // ============================================
+  // REPORTS
+  // ============================================
+
+  async getSalesReport(params?: { startDate?: string; endDate?: string }): Promise<ApiResponse<SalesReportData>> {
+    const searchParams = new URLSearchParams();
+    if (params?.startDate) searchParams.set('startDate', params.startDate);
+    if (params?.endDate) searchParams.set('endDate', params.endDate);
+    const query = searchParams.toString();
+    return this.request<ApiResponse<SalesReportData>>(`/reports/sales${query ? '?' + query : ''}`);
   }
 }
 

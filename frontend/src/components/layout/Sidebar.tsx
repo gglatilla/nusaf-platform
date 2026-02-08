@@ -9,6 +9,7 @@ import {
   inventoryNavigation,
   procurementNavigation,
   adminNavigation,
+  reportsNavigation,
   secondaryNavigation,
   filterNavByRole,
   type NavItem,
@@ -168,6 +169,23 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
               )}
               <div className="space-y-1">
                 {filterNavByRole(adminNavigation, user.role as UserRole).map((item) => (
+                  <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Reports navigation (role-based) */}
+          {user?.role && filterNavByRole(reportsNavigation, user.role as UserRole).length > 0 && (
+            <>
+              <div className="my-4 mx-4 border-t border-slate-800" />
+              {!isCollapsed && (
+                <p className="px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Reports
+                </p>
+              )}
+              <div className="space-y-1">
+                {filterNavByRole(reportsNavigation, user.role as UserRole).map((item) => (
                   <NavLink key={item.href} item={item} isCollapsed={isCollapsed} />
                 ))}
               </div>

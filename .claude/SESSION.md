@@ -1,69 +1,50 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Phase 5: Missing ERP Documents — **PHASE 5 COMPLETE**
+ERP Remediation — Phase 6: Reports & Analytics
 
 ## Status
-Phase 5.5 (Packing List) COMPLETE | Phase 5 fully done | Next: Phase 6 (Reports & Analytics)
+Phase 6.1 (Sales Reports) COMPLETE | Next: 6.2 (Inventory Reports)
 
-## Completed Micro-tasks (Session 14)
-- [x] 5.5.1 — Schema + Validation + Service (Backend)
-- [x] 5.5.2 — PDF Generation + API Routes
-- [x] 5.5.3 — Frontend Types + API Methods + Hooks
-- [x] 5.5.4 — Frontend Staff Pages (List + Detail + Create + Edit)
-- [x] 5.5.5 — Order Detail Integration + Customer Access
+## Completed Micro-tasks (Session 15)
+- [x] 6.1.1 — Backend: Sales Report Service + API Route
+- [x] 6.1.2 — Frontend: Install Recharts + Types + API + Hook
+- [x] 6.1.3 — Frontend: Summary Cards + Charts
+- [x] 6.1.4 — Frontend: Top Customers + Top Products Tables
+- [x] 6.1.5 — Navigation + Verification
 
-## Files Created (Session 14 — 10 files)
-- `backend/src/utils/validation/packing-lists.ts` — Zod schemas with line→package cross-validation
-- `backend/src/services/packing-list.service.ts` — full service layer (create, update, finalize, cancel)
-- `backend/src/api/v1/packing-lists/route.ts` — 8 endpoints
-- `frontend/src/hooks/usePackingLists.ts` — 8 hooks
-- `frontend/src/components/packing-lists/PackingListStatusBadge.tsx`
-- `frontend/src/components/orders/order-detail/PackingListsSection.tsx`
-- `frontend/src/app/(portal)/packing-lists/page.tsx` — staff list
-- `frontend/src/app/(portal)/packing-lists/[id]/page.tsx` — staff detail
-- `frontend/src/app/(portal)/packing-lists/new/page.tsx` — staff create
-- `frontend/src/app/(portal)/packing-lists/[id]/edit/page.tsx` — staff edit
+## Files Created (Session 15 — 4 files)
+- `backend/src/services/sales-report.service.ts` — service with 7 parallel queries
+- `backend/src/api/v1/reports/route.ts` — GET /sales endpoint
+- `frontend/src/hooks/useReports.ts` — useSalesReport() hook
+- `frontend/src/app/(portal)/reports/sales/page.tsx` — full reports page
 
-## Files Modified (Session 14 — 11 files)
-- `backend/prisma/schema.prisma` — 2 enums (PackingListStatus, PackageType), 4 models
-- `backend/src/index.ts` — registered packing-lists route
-- `backend/src/services/pdf.service.ts` — added generatePackingListPDF()
-- `backend/src/services/order-timeline.service.ts` — added PL event types + queries
-- `frontend/src/lib/api.ts` — ~15 types + 8 API methods
-- `frontend/src/lib/navigation.ts` — added Packing Lists nav item (Boxes icon)
-- `frontend/src/lib/constants/reference-routes.ts` — added PackingList entry
-- `frontend/src/components/orders/order-detail/index.ts` — exported PackingListsSection
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` — PL section + "Packing List" button (cyan)
-- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — PL section (FINALIZED only + PDF download)
-- `.claude/plans/erp-progress.md` — updated progress
+## Files Modified (Session 15 — 4 files)
+- `backend/src/index.ts` — registered reports route
+- `frontend/src/lib/api.ts` — 8 report types + getSalesReport() method
+- `frontend/src/lib/navigation.ts` — reportsNavigation array (BarChart3 icon)
+- `frontend/src/components/layout/Sidebar.tsx` — Reports nav group
+
+## Dependencies Added
+- `recharts@^3.7.0` (frontend)
 
 ## Key Decisions
-- Packing list is informational only (no stock changes, no order status propagation)
-- Status lifecycle: DRAFT → FINALIZED → CANCELLED
-- Package types: BOX, PALLET, CRATE, ENVELOPE, TUBE, OTHER
-- Items assigned to packages via packageNumber
-- Dimensions in cm, weights in kg (Decimal(10,2) in Prisma)
-- Customers only see FINALIZED packing lists; notes/createdBy/finalizedBy/handlingInstructions stripped
-- "Packing List" button appears on orders with status READY_TO_SHIP/PARTIALLY_SHIPPED/SHIPPED
-- Plan file: `.claude/plans/adaptive-tinkering-sunrise.md`
-
-## Phase 5 Complete Summary
-All 5 ERP documents built:
-- 5.1 Delivery Notes ✅
-- 5.2 Proforma Invoices ✅
-- 5.3 Purchase Requisitions ✅
-- 5.4 Return Authorizations ✅
-- 5.5 Packing Lists ✅
+- Recharts for charting (lightweight, composable, good TypeScript)
+- Preset date ranges only (no custom date picker)
+- Revenue grouped by day/week/month based on range span
+- Top 10 limit for customers and products
+- Reports route at /api/v1/reports/sales (shared route file for future 6.2-6.4)
+- reportsNavigation group in sidebar (between Admin and Secondary)
+- Plan file: `.claude/plans/fuzzy-wiggling-balloon.md`
 
 ## Next Steps
-1. Phase 6.1 — Sales reports (by customer, product, category, conversion rate)
-2. Phase 6.2 — Inventory reports (valuation, aging, dead stock, turnover)
-3. Phase 6.3 — Purchasing reports (by supplier, open POs, lead time performance)
-4. Phase 6.4 — Operations reports (fulfillment rate, picking accuracy, output)
+1. Phase 6.2 — Inventory reports (valuation, aging, dead stock, turnover)
+2. Phase 6.3 — Purchasing reports (by supplier, open POs, lead time performance)
+3. Phase 6.4 — Operations reports (fulfillment rate, picking accuracy, output)
 
 ## Context for Next Session
 - Progress tracker: `.claude/plans/erp-progress.md`
-- Phase 5 fully complete — all 5 sub-tasks for all 5 documents done
-- Next: Phase 6 (Reports & Analytics) — needs plan mode for design
+- Phase 6.1 complete — sales reports page with Recharts charts
+- Shared infrastructure in place: reportsNavigation group, useReports.ts hook file, reports route file
+- Next reports (6.2-6.4) follow the same pattern: add service, add endpoint to existing route file, add types/method/hook, add page, add nav item
 - Both backend and frontend compile cleanly

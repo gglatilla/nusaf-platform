@@ -37,6 +37,7 @@ import proformaInvoicesRoutes from './api/v1/proforma-invoices/route';
 import purchaseRequisitionsRoutes from './api/v1/purchase-requisitions/route';
 import returnAuthorizationsRoutes from './api/v1/return-authorizations/route';
 import packingListsRoutes from './api/v1/packing-lists/route';
+import reportsRoutes from './api/v1/reports/route';
 import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 import publicProductsRoutes from './api/v1/public/products/route';
 import publicCategoriesRoutes from './api/v1/public/categories/route';
@@ -94,6 +95,7 @@ app.use('/api/v1/proforma-invoices', proformaInvoicesRoutes);
 app.use('/api/v1/purchase-requisitions', purchaseRequisitionsRoutes);
 app.use('/api/v1/return-authorizations', returnAuthorizationsRoutes);
 app.use('/api/v1/packing-lists', packingListsRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // Public routes (no authentication required)
 app.use('/api/v1/public/quote-requests', publicQuoteRequestsRoutes);
