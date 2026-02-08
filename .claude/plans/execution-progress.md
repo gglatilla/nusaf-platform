@@ -56,3 +56,10 @@
 - Started: 2026-02-08
 - Last updated: 2026-02-08
 - Current phase: Phase 1B
+- Next task: T9 (Tax invoice schema + service + PDF generation)
+
+## Last Session Notes
+- T8 completed: Payment recording UI + fulfillment gate UX
+- Files created: PaymentsSection.tsx, RecordPaymentModal.tsx, usePayments.ts
+- Files modified: api.ts (Payment types + methods, paymentStatus on SalesOrder), orders/[id]/page.tsx (staff), my/orders/[id]/page.tsx (customer), order-detail/index.ts
+- Key decisions: Fulfillment Plan button disabled (grey) when unpaid with tooltip; customer sees "Awaiting Payment"/"Partial Payment"/"Payment Received" badges only (no payment details per Golden Rule 4); staff sees full payment list with void capability
