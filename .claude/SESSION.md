@@ -4,71 +4,72 @@
 ERP Remediation — Execution Plan (38 tasks across 6 phases)
 
 ## Status
-Phase 1A — Quick Wins: T1-T5 COMPLETE, T6 next
+Phase 1A COMPLETE. Phase 1B started — T7 COMPLETE, T8 next.
 
 ## Completed This Session
-- [x] T1: onOrder update on PO send/cancel (2026-02-08)
-- [x] T2: Quote accept → auto-create Sales Order (2026-02-08)
-- [x] T3: Transfer request check in READY_TO_SHIP gate (2026-02-08)
-- [x] T4: PO rejection → DRAFT (not CANCELLED) (2026-02-08)
-- [x] T5: Warehouse workers can create adjustments (2026-02-08)
+- [x] T1-T5: Phase 1A Quick Wins (prior session)
+- [x] T6: Order warehouse auto-selection from company (2026-02-08)
+- [x] T7: Payment recording schema + service + API (2026-02-08)
 
 ## What Was Done
 
-### T1: onOrder update on PO send/cancel
-- Modified `sendToSupplier()` in purchase-order.service.ts — wraps in transaction, increments onOrder for each PO line
-- Modified `cancelPurchaseOrder()` — decrements onOrder for unreceived quantities with Math.min safety
-- Created `backend/src/scripts/fix-onorder.ts` standalone data fix script
+### T6: Order warehouse auto-selection from company
+- Modified `createOrderFromQuote()` in order.service.ts line 288-298
+- Added company lookup for `primaryWarehouse` before defaulting to JHB
+- Priority chain: `options?.warehouse` → `company.primaryWarehouse` → `'JHB'`
+- Minimal change — no UI needed
 
-### T2: Quote accept → auto-create Sales Order
-- Modified `acceptQuote()` in quote.service.ts — auto-calls createOrderFromQuote() after acceptance (error-isolated)
-- Modified `getQuoteById()` — queries converted order via SalesOrder.quoteId
-- Updated API route, frontend types, hooks, customer quote detail, staff quote detail
-- Added convertedOrder field to Quote interface, order-created banners with links
-
-### T3: Transfer request check in READY_TO_SHIP gate
-- Modified `completePicking()` in picking-slip.service.ts — added transfer check to READY_TO_SHIP gate
-- Modified `completeJobCard()` in job-card.service.ts — same transfer check added
-- Modified `receiveTransfer()` in transfer-request.service.ts — added READY_TO_SHIP propagation after receiving
-- Note: Prisma enum only has PENDING|IN_TRANSIT|RECEIVED (no CANCELLED), so only checking for RECEIVED
-
-### T4: PO rejection → DRAFT (not CANCELLED)
-- Changed `rejectPurchaseOrder()` status from CANCELLED to DRAFT
-- Added DRAFT as valid transition from PENDING_APPROVAL in PO_STATUS_TRANSITIONS
-- Frontend rejection banner (po.status=DRAFT && po.rejectionReason) was already built but unreachable — now works
-
-### T5: Warehouse workers can create adjustments
-- Added WAREHOUSE role to POST /adjustments (create), GET /adjustments (list), GET /adjustments/:id (detail)
-- Approve/reject routes remain ADMIN/MANAGER only
-- Added WAREHOUSE to sidebar navigation for Adjustments page
+### T7: Payment recording schema + service + API (LARGE task)
+- **Schema** (prisma/schema.prisma):
+  - Added `Payment` model (paymentNumber PAY-YYYY-NNNNN, orderId, companyId, amount, method, reference, date, status)
+  - Added `PaymentCounter` model for atomic number generation
+  - Added `PaymentMethod` enum (EFT, CREDIT_CARD, CASH, CHEQUE, OTHER)
+  - Added `PaymentStatus` enum (PENDING, CONFIRMED, VOIDED)
+  - Added `OrderPaymentStatus` enum (UNPAID, PARTIALLY_PAID, PAID)
+  - Added `paymentStatus` field to SalesOrder (default UNPAID)
+  - Added `payments` relation to SalesOrder and Company
+- **Service** (backend/src/services/payment.service.ts — NEW):
+  - `generatePaymentNumber()` — atomic PAY-YYYY-NNNNN
+  - `calculatePaymentStatus()` — sums confirmed payments vs order total
+  - `syncOrderPaymentStatus()` — updates cached field on order
+  - `recordPayment()` — validates balance, creates payment, syncs status
+  - `getPaymentsByOrder()`, `getPaymentById()` — queries
+  - `voidPayment()` — voids and recalculates
+- **Validation** (backend/src/utils/validation/payments.ts — NEW):
+  - `recordPaymentSchema` — amount, method, reference, date, notes
+  - `voidPaymentSchema` — reason
+- **API Routes** (added to backend/src/api/v1/orders/route.ts):
+  - `POST /orders/:id/payments` — ADMIN/MANAGER/SALES
+  - `GET /orders/:id/payments` — all auth (customer-safe: strips internal fields)
+  - `GET /orders/payments/:paymentId` — detail with company isolation
+  - `POST /orders/payments/:paymentId/void` — ADMIN/MANAGER only
+- **Fulfillment Gate** (backend/src/services/orchestration.service.ts):
+  - `generateFulfillmentPlan()` now blocks if `order.paymentStatus !== 'PAID'`
+- **Order API updates** (backend/src/services/order.service.ts):
+  - `getOrderById()` now returns `paymentStatus`
+  - `getOrders()` list now returns `paymentStatus`
+- **Database**: Schema pushed, db reset + re-seeded (dev only)
 
 ## Decisions Made
-- T2: Quote stays ACCEPTED if auto order creation fails (for manual retry)
-- T2: Used existing SalesOrder.quoteId relation instead of adding new field to Quote model
-- T3: Removed CANCELLED check from transfer done status since it doesn't exist in Prisma enum yet
+- T7: Payment status defaults to CONFIRMED (not PENDING) since staff are recording already-received payments
+- T7: Balance validation prevents overpayment (amount <= balance remaining)
+- T7: Fulfillment gate is a HARD block — no plan generation without PAID status
+- T7: Customer portal payment list strips voided payments and internal fields (Golden Rule 4)
+- Database was reset with `--force-reset` due to pricing_rules constraint conflict, then re-seeded
 
-## Files Modified
-- `backend/src/services/purchase-order.service.ts` (T1, T4)
-- `backend/src/scripts/fix-onorder.ts` (T1 — new file)
-- `backend/src/services/quote.service.ts` (T2)
-- `backend/src/api/v1/quotes/route.ts` (T2)
-- `frontend/src/lib/api.ts` (T2)
-- `frontend/src/lib/api/types/orders.ts` (T2)
-- `frontend/src/hooks/useQuotes.ts` (T2)
-- `frontend/src/app/(customer)/my/quotes/[id]/page.tsx` (T2)
-- `frontend/src/app/(portal)/quotes/[id]/page.tsx` (T2)
-- `backend/src/services/picking-slip.service.ts` (T3)
-- `backend/src/services/job-card.service.ts` (T3)
-- `backend/src/services/transfer-request.service.ts` (T3)
-- `backend/src/api/v1/inventory/route.ts` (T5)
-- `frontend/src/lib/navigation.ts` (T5)
+## Files Modified This Session
+- `backend/src/services/order.service.ts` (T6 warehouse lookup, T7 paymentStatus in responses)
+- `backend/prisma/schema.prisma` (T7 Payment model, enums, SalesOrder paymentStatus)
+- `backend/src/services/payment.service.ts` (T7 — new file)
+- `backend/src/utils/validation/payments.ts` (T7 — new file)
+- `backend/src/api/v1/orders/route.ts` (T7 payment routes)
+- `backend/src/services/orchestration.service.ts` (T7 fulfillment gate)
 - `.claude/plans/execution-progress.md` (tracking)
 
 ## Next Steps (Exact)
-1. Start T6: Order warehouse auto-selection from company
-2. Read execution-plan.md for T6 full prompt
-3. In `createOrderFromQuote()`, look up company.primaryWarehouse before defaulting to JHB
-4. Priority: options?.warehouse → company.primaryWarehouse → 'JHB'
+1. Start T8: Payment recording UI + fulfillment gate UX
+2. Read execution-plan.md for T8 full prompt
+3. Build: payments section on staff order detail, record payment modal, payment status badge, fulfillment button gating, customer portal payment info, React Query hooks
 
 ## Context for Next Session
 - Execution plan: `.claude/plans/execution-plan.md`
@@ -76,3 +77,4 @@ Phase 1A — Quick Wins: T1-T5 COMPLETE, T6 next
 - Workflow: read progress → find first unchecked → read plan → execute → mark done → commit → push → STOP
 - User says "go" to proceed to next task
 - Git has NUL file issue — use specific file paths in git add, not -A
+- Database was reset this session — if production deployment needed, a proper migration must be created
