@@ -93,7 +93,7 @@ export default function QuoteDetailPage() {
   const isEditable = quote.status === 'DRAFT';
   const canFinalize = quote.status === 'DRAFT' && quote.items.length > 0;
   const canAcceptReject = quote.status === 'CREATED';
-  const canCreateOrder = quote.status === 'ACCEPTED';
+  const canCreateOrder = quote.status === 'ACCEPTED' && !quote.convertedOrder;
   const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
   const handleFinalize = async () => {
@@ -201,6 +201,22 @@ export default function QuoteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Order Created Banner */}
+      {quote.convertedOrder && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
+          <Package className="h-5 w-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Order created from this quote</p>
+          </div>
+          <Link
+            href={`/orders/${quote.convertedOrder.id}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-green-700 hover:text-green-800"
+          >
+            View Order {quote.convertedOrder.orderNumber} &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Validity Banner */}
       {validityInfo && (

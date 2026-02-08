@@ -136,7 +136,11 @@ export default function CustomerQuoteDetailPage() {
 
   const handleAccept = async () => {
     if (confirm('Accept this quote? This will proceed to order creation.')) {
-      await accept.mutateAsync(quoteId);
+      const result = await accept.mutateAsync(quoteId);
+      // Redirect to the created order if available
+      if (result?.orderId) {
+        router.push(`/my/orders/${result.orderId}`);
+      }
     }
   };
 
@@ -228,6 +232,22 @@ export default function CustomerQuoteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Order Created Banner */}
+      {quote.convertedOrder && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
+          <Check className="h-5 w-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Your order has been created</p>
+          </div>
+          <Link
+            href={`/my/orders/${quote.convertedOrder.id}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-green-700 hover:text-green-800"
+          >
+            View Order {quote.convertedOrder.orderNumber} &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Validity Banner */}
       {validityInfo && (

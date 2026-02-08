@@ -40,6 +40,7 @@ export interface Quote {
   finalizedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  convertedOrder?: { id: string; orderNumber: string } | null;
 }
 
 export interface QuoteListItem {

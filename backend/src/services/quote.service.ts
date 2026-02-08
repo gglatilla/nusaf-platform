@@ -3,6 +3,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { calculateCustomerPrice } from './pricing.service';
 import { createSoftReservation, releaseReservationsByReference } from './inventory.service';
+import { createOrderFromQuote } from './order.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -473,12 +474,12 @@ export async function finalizeQuote(
 }
 
 /**
- * Accept quote - change status from CREATED to ACCEPTED
+ * Accept quote - change status from CREATED to ACCEPTED, then auto-create Sales Order
  */
 export async function acceptQuote(
   quoteId: string,
   userId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; orderId?: string; orderNumber?: string }> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
   });
@@ -500,6 +501,7 @@ export async function acceptQuote(
     return { success: false, error: 'Quote has expired' };
   }
 
+  // Set status to ACCEPTED first
   await prisma.quote.update({
     where: { id: quoteId },
     data: {
@@ -509,7 +511,26 @@ export async function acceptQuote(
     },
   });
 
-  return { success: true };
+  // Auto-create Sales Order from the accepted quote
+  try {
+    const orderResult = await createOrderFromQuote(quoteId, userId, quote.companyId);
+
+    if (orderResult.success && orderResult.order) {
+      return {
+        success: true,
+        orderId: orderResult.order.id,
+        orderNumber: orderResult.order.orderNumber,
+      };
+    }
+
+    // Order creation failed — quote stays ACCEPTED for manual retry
+    console.error('Auto order creation failed after quote acceptance:', orderResult.error);
+    return { success: true }; // Quote acceptance still succeeded
+  } catch (error) {
+    // Order creation threw — quote stays ACCEPTED for manual retry
+    console.error('Auto order creation error after quote acceptance:', error);
+    return { success: true }; // Quote acceptance still succeeded
+  }
 }
 
 /**
@@ -639,6 +660,18 @@ export async function getQuoteById(quoteId: string, companyId: string) {
     return null;
   }
 
+  // Find converted order if quote is ACCEPTED or CONVERTED
+  let convertedOrder: { id: string; orderNumber: string } | null = null;
+  if (quote.status === 'ACCEPTED' || quote.status === 'CONVERTED') {
+    const order = await prisma.salesOrder.findFirst({
+      where: { quoteId },
+      select: { id: true, orderNumber: true },
+    });
+    if (order) {
+      convertedOrder = order;
+    }
+  }
+
   return {
     id: quote.id,
     quoteNumber: quote.quoteNumber,
@@ -664,6 +697,7 @@ export async function getQuoteById(quoteId: string, companyId: string) {
     finalizedAt: quote.finalizedAt,
     createdAt: quote.createdAt,
     updatedAt: quote.updatedAt,
+    convertedOrder,
   };
 }
 

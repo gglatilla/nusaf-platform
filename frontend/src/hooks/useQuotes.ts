@@ -288,7 +288,7 @@ export function useFinalizeQuote() {
 }
 
 /**
- * Hook for accepting a quote (CREATED -> ACCEPTED)
+ * Hook for accepting a quote (CREATED -> ACCEPTED -> auto-creates order)
  */
 export function useAcceptQuote() {
   const queryClient = useQueryClient();
@@ -296,11 +296,12 @@ export function useAcceptQuote() {
   return useMutation({
     mutationFn: async (quoteId: string) => {
       const response = await api.acceptQuote(quoteId);
-      return response.data;
+      return response.data as { message: string; orderId?: string; orderNumber?: string };
     },
     onSuccess: (_data, quoteId) => {
       queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
 }

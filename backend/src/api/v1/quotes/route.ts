@@ -514,7 +514,11 @@ router.post('/:id/accept', async (req, res) => {
 
     return res.json({
       success: true,
-      data: { message: 'Quote accepted' },
+      data: {
+        message: 'Quote accepted',
+        orderId: result.orderId,
+        orderNumber: result.orderNumber,
+      },
     });
   } catch (error) {
     console.error('Accept quote error:', error);

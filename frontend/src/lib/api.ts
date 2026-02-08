@@ -1060,6 +1060,7 @@ export interface Quote {
   finalizedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  convertedOrder?: { id: string; orderNumber: string } | null;
 }
 
 export interface QuoteListItem {
@@ -3441,8 +3442,8 @@ class ApiClient {
     });
   }
 
-  async acceptQuote(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}/accept`, {
+  async acceptQuote(id: string): Promise<ApiResponse<{ message: string; orderId?: string; orderNumber?: string }>> {
+    return this.request<ApiResponse<{ message: string; orderId?: string; orderNumber?: string }>>(`/quotes/${id}/accept`, {
       method: 'POST',
       body: JSON.stringify({}),
     });
