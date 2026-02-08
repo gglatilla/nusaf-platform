@@ -10,7 +10,7 @@
 
 ## Phase 1B — Revenue Foundation
 - [x] T7: Payment recording schema + service + API (2026-02-08)
-- [ ] T8: Payment recording UI + fulfillment gate
+- [x] T8: Payment recording UI + fulfillment gate (2026-02-08)
 - [ ] T9: Tax invoice schema + service + PDF generation
 - [ ] T10: Tax invoice API + staff UI
 - [ ] T11: Tax invoice customer portal + order lifecycle completion

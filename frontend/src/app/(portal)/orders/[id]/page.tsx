@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote } from 'lucide-react';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
@@ -12,6 +12,7 @@ import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeli
 import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/useProformaInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
 import { usePackingListsForOrder } from '@/hooks/usePackingLists';
+import { useOrderPayments } from '@/hooks/usePayments';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -26,6 +27,8 @@ import {
   ProformaInvoicesSection,
   ReturnAuthorizationsSection,
   PackingListsSection,
+  PaymentsSection,
+  RecordPaymentModal,
   OrderNotesSection,
   OrderTimelineSection,
 } from '@/components/orders/order-detail';
@@ -81,6 +84,7 @@ export default function OrderDetailPage() {
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
   const { data: packingLists } = usePackingListsForOrder(orderId);
+  const { data: payments } = useOrderPayments(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
@@ -99,6 +103,7 @@ export default function OrderDetailPage() {
   const [showCreateJobCardModal, setShowCreateJobCardModal] = useState(false);
   const [showCreateTransferRequestModal, setShowCreateTransferRequestModal] = useState(false);
   const [showFulfillmentPlanModal, setShowFulfillmentPlanModal] = useState(false);
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -122,7 +127,9 @@ export default function OrderDetailPage() {
   const canGeneratePickingSlips = order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
   const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
-  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
+  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED' && order.paymentStatus === 'PAID';
+  const fulfillmentBlockedByPayment = order.status === 'CONFIRMED' && order.paymentStatus !== 'PAID';
+  const canRecordPayment = order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
@@ -221,6 +228,21 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-slate-900">{order.orderNumber}</h1>
               <OrderStatusBadge status={order.status} />
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  order.paymentStatus === 'PAID'
+                    ? 'bg-green-100 text-green-700'
+                    : order.paymentStatus === 'PARTIALLY_PAID'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-red-100 text-red-700'
+                }`}
+              >
+                {order.paymentStatus === 'PAID'
+                  ? 'Paid'
+                  : order.paymentStatus === 'PARTIALLY_PAID'
+                    ? 'Partially Paid'
+                    : 'Unpaid'}
+              </span>
             </div>
             <p className="text-sm text-slate-600">
               Created on {formatDate(order.createdAt)}
@@ -245,10 +267,29 @@ export default function OrderDetailPage() {
               {createProformaInvoice.isPending ? 'Generating...' : 'Proforma Invoice'}
             </button>
           )}
+          {canRecordPayment && (
+            <button
+              onClick={() => setShowRecordPaymentModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+            >
+              <Banknote className="h-4 w-4" />
+              Record Payment
+            </button>
+          )}
           {canGenerateFulfillmentPlan && (
             <button
               onClick={() => setShowFulfillmentPlanModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
+            >
+              <Boxes className="h-4 w-4" />
+              Fulfillment Plan
+            </button>
+          )}
+          {fulfillmentBlockedByPayment && (
+            <button
+              disabled
+              title="Payment must be received before fulfillment can begin"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-300 text-slate-500 text-sm font-medium rounded-md cursor-not-allowed"
             >
               <Boxes className="h-4 w-4" />
               Fulfillment Plan
@@ -396,6 +437,14 @@ export default function OrderDetailPage() {
           <ProformaInvoicesSection
             proformaInvoices={proformaInvoices ?? []}
             canVoid={true}
+          />
+          <PaymentsSection
+            payments={payments ?? []}
+            orderTotal={order.total}
+            paymentStatus={order.paymentStatus}
+            canRecordPayment={canRecordPayment}
+            canVoid={true}
+            onRecordPayment={() => setShowRecordPaymentModal(true)}
           />
           <ReturnAuthorizationsSection returnAuthorizations={returnAuthorizations ?? []} />
 
@@ -615,6 +664,18 @@ export default function OrderDetailPage() {
         isOpen={showFulfillmentPlanModal}
         onClose={() => setShowFulfillmentPlanModal(false)}
         orderId={orderId}
+      />
+      <RecordPaymentModal
+        isOpen={showRecordPaymentModal}
+        onClose={() => setShowRecordPaymentModal(false)}
+        orderId={orderId}
+        balanceRemaining={Math.max(
+          0,
+          order.total -
+            (payments ?? [])
+              .filter((p) => p.status === 'CONFIRMED')
+              .reduce((sum, p) => sum + Number(p.amount), 0)
+        )}
       />
     </div>
   );

@@ -1145,10 +1145,52 @@ export interface SalesOrderLine {
   notes: string | null;
 }
 
+export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+export type PaymentMethod = 'EFT' | 'CREDIT_CARD' | 'CASH' | 'CHEQUE' | 'OTHER';
+export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'VOIDED';
+
+export interface Payment {
+  id: string;
+  paymentNumber: string;
+  orderId: string;
+  companyId: string;
+  amount: number;
+  currency: string;
+  paymentMethod: PaymentMethod;
+  paymentReference: string;
+  paymentDate: string;
+  receivedBy: string;
+  receivedByName: string;
+  notes: string | null;
+  status: PaymentStatus;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentSummary {
+  id: string;
+  paymentNumber: string;
+  amount: number;
+  paymentDate: string;
+  status: PaymentStatus;
+}
+
+export interface RecordPaymentData {
+  amount: number;
+  paymentMethod: PaymentMethod;
+  paymentReference: string;
+  paymentDate: string;
+  notes?: string;
+}
+
 export interface SalesOrder {
   id: string;
   orderNumber: string;
   status: SalesOrderStatus;
+  paymentStatus: OrderPaymentStatus;
   company: {
     id: string;
     name: string;
@@ -1181,6 +1223,7 @@ export interface SalesOrderListItem {
   id: string;
   orderNumber: string;
   status: SalesOrderStatus;
+  paymentStatus: OrderPaymentStatus;
   quoteNumber: string | null;
   customerPoNumber: string | null;
   lineCount: number;
@@ -4414,6 +4457,28 @@ class ApiClient {
 
   async voidProformaInvoice(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/proforma-invoices/${id}/void`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  // ============================================
+  // PAYMENT METHODS
+  // ============================================
+
+  async getOrderPayments(orderId: string): Promise<ApiResponse<Payment[]>> {
+    return this.request<ApiResponse<Payment[]>>(`/orders/${orderId}/payments`);
+  }
+
+  async recordPayment(orderId: string, data: RecordPaymentData): Promise<ApiResponse<{ id: string; paymentNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; paymentNumber: string }>>(`/orders/${orderId}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async voidPayment(paymentId: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/payments/${paymentId}/void`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });

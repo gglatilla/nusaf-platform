@@ -10,3 +10,5 @@ export { DeliveryNotesSection } from './DeliveryNotesSection';
 export { ProformaInvoicesSection } from './ProformaInvoicesSection';
 export { ReturnAuthorizationsSection } from './ReturnAuthorizationsSection';
 export { PackingListsSection } from './PackingListsSection';
+export { PaymentsSection } from './PaymentsSection';
+export { RecordPaymentModal } from './RecordPaymentModal';

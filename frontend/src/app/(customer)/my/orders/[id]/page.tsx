@@ -97,6 +97,19 @@ export default function CustomerOrderDetailPage() {
                 {order.orderNumber}
               </h1>
               <OrderStatusBadge status={order.status} />
+              {order.paymentStatus === 'PAID' ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  Payment Received
+                </span>
+              ) : order.paymentStatus === 'PARTIALLY_PAID' ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                  Partial Payment
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                  Awaiting Payment
+                </span>
+              )}
             </div>
             <p className="text-sm text-slate-600">
               Placed on {formatDate(order.createdAt)}
