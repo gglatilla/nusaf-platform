@@ -6,7 +6,7 @@
 - [x] T3: Transfer request check in READY_TO_SHIP gate (2026-02-08)
 - [x] T4: PO rejection → DRAFT (not CANCELLED) (2026-02-08)
 - [x] T5: Warehouse workers can create adjustments (2026-02-08)
-- [ ] T6: Order warehouse auto-selection from company
+- [x] T6: Order warehouse auto-selection from company (2026-02-08)
 
 ## Phase 1B — Revenue Foundation
 - [ ] T7: Payment recording schema + service + API
@@ -55,4 +55,4 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-08
-- Current phase: Phase 1A
+- Current phase: Phase 1B

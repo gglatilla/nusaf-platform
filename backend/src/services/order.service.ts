@@ -284,7 +284,18 @@ export async function createOrderFromQuote(
 
   // Generate order number
   const orderNumber = await generateOrderNumber();
-  const warehouse = options?.warehouse ?? 'JHB';
+
+  // Resolve warehouse: explicit override → company primaryWarehouse → JHB fallback
+  let warehouse: Warehouse = options?.warehouse ?? 'JHB';
+  if (!options?.warehouse) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { primaryWarehouse: true },
+    });
+    if (company?.primaryWarehouse) {
+      warehouse = company.primaryWarehouse;
+    }
+  }
 
   // Create order with lines in a transaction
   const order = await prisma.$transaction(async (tx) => {
