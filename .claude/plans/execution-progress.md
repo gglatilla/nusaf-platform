@@ -3,7 +3,7 @@
 ## Phase 1A — Quick Wins
 - [x] T1: onOrder update on PO send/cancel (2026-02-08)
 - [x] T2: Quote accept → auto-create Sales Order (2026-02-08)
-- [ ] T3: Transfer request check in READY_TO_SHIP gate
+- [x] T3: Transfer request check in READY_TO_SHIP gate (2026-02-08)
 - [ ] T4: PO rejection → DRAFT (not CANCELLED)
 - [ ] T5: Warehouse workers can create adjustments
 - [ ] T6: Order warehouse auto-selection from company

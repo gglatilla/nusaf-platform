@@ -565,8 +565,14 @@ export async function completeJobCard(
         select: { status: true },
       });
 
+      const allTransfers = await tx.transferRequest.findMany({
+        where: { orderId: jobCard.orderId },
+        select: { status: true },
+      });
+
       const allJobsComplete = allJobCards.every((jc) => jc.status === 'COMPLETE');
       const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE');
+      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED');
 
       const order = await tx.salesOrder.findUnique({
         where: { id: jobCard.orderId },
@@ -574,7 +580,7 @@ export async function completeJobCard(
       });
 
       if (order) {
-        if (allJobsComplete && allPickingComplete) {
+        if (allJobsComplete && allPickingComplete && allTransfersComplete) {
           if (order.status === 'CONFIRMED' || order.status === 'PROCESSING') {
             await tx.salesOrder.update({
               where: { id: jobCard.orderId },

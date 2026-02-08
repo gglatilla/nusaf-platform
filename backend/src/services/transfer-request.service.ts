@@ -595,6 +595,49 @@ export async function receiveTransfer(
           createdBy: userId,
         });
       }
+
+      // 3. Propagate status to SalesOrder if this transfer is linked to an order
+      if (transferRequest.orderId) {
+        const allTransfers = await tx.transferRequest.findMany({
+          where: { orderId: transferRequest.orderId },
+          select: { status: true },
+        });
+
+        const allPickingSlips = await tx.pickingSlip.findMany({
+          where: { orderId: transferRequest.orderId },
+          select: { status: true },
+        });
+
+        const allJobCards = await tx.jobCard.findMany({
+          where: { orderId: transferRequest.orderId },
+          select: { status: true },
+        });
+
+        const allTransfersComplete = allTransfers.every((tr) => tr.status === 'RECEIVED');
+        const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE');
+        const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE');
+
+        const order = await tx.salesOrder.findUnique({
+          where: { id: transferRequest.orderId },
+          select: { status: true },
+        });
+
+        if (order) {
+          if (allTransfersComplete && allPickingComplete && allJobsComplete) {
+            if (order.status === 'CONFIRMED' || order.status === 'PROCESSING') {
+              await tx.salesOrder.update({
+                where: { id: transferRequest.orderId },
+                data: { status: 'READY_TO_SHIP' },
+              });
+            }
+          } else if (order.status === 'CONFIRMED') {
+            await tx.salesOrder.update({
+              where: { id: transferRequest.orderId },
+              data: { status: 'PROCESSING' },
+            });
+          }
+        }
+      }
     });
 
     return { success: true };

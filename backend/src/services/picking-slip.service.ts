@@ -526,8 +526,14 @@ export async function completePicking(
         select: { status: true },
       });
 
+      const allTransfers = await tx.transferRequest.findMany({
+        where: { orderId: pickingSlip.orderId },
+        select: { status: true },
+      });
+
       const allPickingComplete = allPickingSlips.every((ps) => ps.status === 'COMPLETE');
       const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE');
+      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED');
 
       const order = await tx.salesOrder.findUnique({
         where: { id: pickingSlip.orderId },
@@ -535,7 +541,7 @@ export async function completePicking(
       });
 
       if (order) {
-        if (allPickingComplete && allJobsComplete) {
+        if (allPickingComplete && allJobsComplete && allTransfersComplete) {
           if (order.status === 'CONFIRMED' || order.status === 'PROCESSING') {
             await tx.salesOrder.update({
               where: { id: pickingSlip.orderId },
