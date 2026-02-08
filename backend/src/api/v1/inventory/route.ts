@@ -379,7 +379,7 @@ router.get('/movements/:productId', authenticate, requireRole('ADMIN', 'MANAGER'
  * POST /api/v1/inventory/adjustments
  * Create a new stock adjustment (pending approval)
  */
-router.post('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.post('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
 
@@ -424,7 +424,7 @@ router.post('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async
  * GET /api/v1/inventory/adjustments
  * List stock adjustments with filtering and pagination
  */
-router.get('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.get('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
     const queryResult = stockAdjustmentListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -460,7 +460,7 @@ router.get('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async 
  * GET /api/v1/inventory/adjustments/:id
  * Get stock adjustment details
  */
-router.get('/adjustments/:id', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+router.get('/adjustments/:id', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
     const { id } = req.params;
 

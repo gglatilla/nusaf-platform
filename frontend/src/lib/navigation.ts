@@ -75,7 +75,7 @@ export const procurementNavigation: NavItem[] = [
 export const inventoryNavigation: NavItem[] = [
   { name: 'Items', href: '/inventory/items', icon: Package, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'] },
   { name: 'Dashboard', href: '/inventory', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'] },
-  { name: 'Adjustments', href: '/inventory/adjustments', icon: ClipboardList, roles: ['ADMIN', 'MANAGER'] },
+  { name: 'Adjustments', href: '/inventory/adjustments', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'] },
   { name: 'Cycle Counts', href: '/inventory/cycle-counts', icon: ClipboardCheck, roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'] },
   { name: 'Movements', href: '/inventory/movements', icon: ArrowRightLeft, roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'] },
   { name: 'Reorder Report', href: '/inventory/reorder', icon: AlertTriangle, roles: ['ADMIN', 'MANAGER', 'PURCHASER'] },

@@ -5,7 +5,7 @@
 - [x] T2: Quote accept → auto-create Sales Order (2026-02-08)
 - [x] T3: Transfer request check in READY_TO_SHIP gate (2026-02-08)
 - [x] T4: PO rejection → DRAFT (not CANCELLED) (2026-02-08)
-- [ ] T5: Warehouse workers can create adjustments
+- [x] T5: Warehouse workers can create adjustments (2026-02-08)
 - [ ] T6: Order warehouse auto-selection from company
 
 ## Phase 1B — Revenue Foundation
