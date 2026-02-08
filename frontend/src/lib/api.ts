@@ -2504,6 +2504,57 @@ export interface UpdateContactData {
 }
 
 // ============================================
+// COMPANY TYPES
+// ============================================
+
+export type PaymentTermsType = 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+
+export interface CompanyListItem {
+  id: string;
+  name: string;
+  tradingName: string | null;
+  registrationNumber: string | null;
+  vatNumber: string | null;
+  tier: string;
+  isActive: boolean;
+  primaryWarehouse: string | null;
+  fulfillmentPolicy: string;
+  paymentTerms: PaymentTermsType;
+  createdAt: string;
+  _count: {
+    users: number;
+    orders: number;
+  };
+}
+
+export interface CompanyDetail {
+  id: string;
+  name: string;
+  tradingName: string | null;
+  registrationNumber: string | null;
+  vatNumber: string | null;
+  tier: string;
+  isActive: boolean;
+  primaryWarehouse: string | null;
+  fulfillmentPolicy: string;
+  paymentTerms: PaymentTermsType;
+  createdAt: string;
+  updatedAt: string;
+  users: Array<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isActive: boolean;
+  }>;
+  _count: {
+    orders: number;
+    quotes: number;
+  };
+}
+
+// ============================================
 // PURCHASE ORDER TYPES
 // ============================================
 
@@ -5051,6 +5102,46 @@ class ApiClient {
     if (params?.endDate) searchParams.set('endDate', params.endDate);
     const query = searchParams.toString();
     return this.request<ApiResponse<SalesReportData>>(`/reports/sales${query ? '?' + query : ''}`);
+  }
+
+  // ============================================
+  // COMPANIES (Admin)
+  // ============================================
+
+  async getCompanies(params?: {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<{
+    companies: CompanyListItem[];
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+    const query = searchParams.toString();
+    return this.request(`/admin/companies${query ? '?' + query : ''}`);
+  }
+
+  async getCompany(id: string): Promise<ApiResponse<CompanyDetail>> {
+    return this.request(`/admin/companies/${id}`);
+  }
+
+  async updateCompany(
+    id: string,
+    data: {
+      paymentTerms?: 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+      tier?: string;
+      isActive?: boolean;
+      primaryWarehouse?: 'JHB' | 'CT' | null;
+      fulfillmentPolicy?: string;
+    }
+  ): Promise<ApiResponse<CompanyDetail>> {
+    return this.request(`/admin/companies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 }
 

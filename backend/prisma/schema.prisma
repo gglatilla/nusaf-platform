@@ -96,6 +96,9 @@ model Company {
   // Fulfillment policy for orders from this company
   fulfillmentPolicy FulfillmentPolicy @default(SHIP_COMPLETE) @map("fulfillment_policy")
 
+  // Payment terms — determines fulfillment flow (account vs prepay)
+  paymentTerms PaymentTerms @default(NET_30) @map("payment_terms")
+
   users      User[]
   addresses  CompanyAddress[]
   contacts   CompanyContact[]
@@ -575,6 +578,15 @@ enum OrderPaymentStatus {
   UNPAID
   PARTIALLY_PAID
   PAID
+  NOT_REQUIRED
+}
+
+enum PaymentTerms {
+  PREPAY
+  COD
+  NET_30
+  NET_60
+  NET_90
 }
 
 enum PurchaseOrderStatus {
@@ -834,6 +846,7 @@ model SalesOrder {
   customerPoDate   DateTime? @map("customer_po_date")
 
   // Payment
+  paymentTerms  PaymentTerms       @default(NET_30) @map("payment_terms")
   paymentStatus OrderPaymentStatus @default(UNPAID) @map("payment_status")
 
   // Fulfillment

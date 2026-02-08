@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Archive,
   RotateCcw,
+  Building2,
 
   Factory,
   PackageCheck,
@@ -86,6 +87,7 @@ export const inventoryNavigation: NavItem[] = [
  */
 export const adminNavigation: NavItem[] = [
   { name: 'Imports', href: '/imports', icon: Upload, roles: ['ADMIN', 'MANAGER', 'SALES'] },
+  { name: 'Companies', href: '/admin/companies', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
   { name: 'Suppliers', href: '/admin/suppliers', icon: Factory, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Pricing', href: '/admin/settings', icon: Euro, roles: ['ADMIN', 'MANAGER'] },
 ];

@@ -17,6 +17,10 @@ export type SalesOrderStatus =
 
 export type FulfillmentPolicy = 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION';
 
+export type PaymentTerms = 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+
+export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'NOT_REQUIRED';
+
 export type QuoteStatus =
   | 'DRAFT'
   | 'CREATED'
@@ -46,6 +50,8 @@ export interface SalesOrder {
   userId: string;
   quoteId?: string;
   status: SalesOrderStatus;
+  paymentTerms?: PaymentTerms;
+  paymentStatus?: OrderPaymentStatus;
   currency: 'ZAR';
   subtotal: number;
   discount: number;

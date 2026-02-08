@@ -288,17 +288,20 @@ export async function createOrderFromQuote(
   // Generate order number
   const orderNumber = await generateOrderNumber();
 
-  // Resolve warehouse: explicit override → company primaryWarehouse → JHB fallback
+  // Resolve warehouse and payment terms from company
   let warehouse: Warehouse = options?.warehouse ?? 'JHB';
-  if (!options?.warehouse) {
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { primaryWarehouse: true },
-    });
-    if (company?.primaryWarehouse) {
-      warehouse = company.primaryWarehouse;
-    }
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { primaryWarehouse: true, paymentTerms: true },
+  });
+  if (!options?.warehouse && company?.primaryWarehouse) {
+    warehouse = company.primaryWarehouse;
   }
+  const companyPaymentTerms = company?.paymentTerms ?? 'NET_30';
+  const initialPaymentStatus =
+    companyPaymentTerms === 'PREPAY' || companyPaymentTerms === 'COD'
+      ? 'UNPAID'
+      : 'NOT_REQUIRED';
 
   // Create order with lines in a transaction
   const order = await prisma.$transaction(async (tx) => {
@@ -316,6 +319,8 @@ export async function createOrderFromQuote(
         requiredDate: options?.requiredDate,
         customerNotes: options?.customerNotes || quote.customerNotes,
         warehouse,
+        paymentTerms: companyPaymentTerms,
+        paymentStatus: initialPaymentStatus,
         subtotal: quote.subtotal,
         vatRate: quote.vatRate,
         vatAmount: quote.vatAmount,
