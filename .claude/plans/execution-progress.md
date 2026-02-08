@@ -9,7 +9,7 @@
 - [x] T6: Order warehouse auto-selection from company (2026-02-08)
 
 ## Phase 1B — Revenue Foundation
-- [ ] T7: Payment recording schema + service + API
+- [x] T7: Payment recording schema + service + API (2026-02-08)
 - [ ] T8: Payment recording UI + fulfillment gate
 - [ ] T9: Tax invoice schema + service + PDF generation
 - [ ] T10: Tax invoice API + staff UI

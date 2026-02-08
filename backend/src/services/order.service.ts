@@ -116,6 +116,7 @@ export async function getOrders(options: {
     id: string;
     orderNumber: string;
     status: SalesOrderStatus;
+    paymentStatus: string;
     quoteNumber: string | null;
     customerPoNumber: string | null;
     lineCount: number;
@@ -158,6 +159,7 @@ export async function getOrders(options: {
       id: o.id,
       orderNumber: o.orderNumber,
       status: o.status,
+      paymentStatus: o.paymentStatus,
       quoteNumber: o.quoteNumber,
       customerPoNumber: o.customerPoNumber,
       lineCount: o._count.lines,
@@ -206,6 +208,7 @@ export async function getOrderById(orderId: string, companyId: string) {
     quoteNumber: order.quoteNumber,
     customerPoNumber: order.customerPoNumber,
     customerPoDate: order.customerPoDate,
+    paymentStatus: order.paymentStatus,
     fulfillmentType: order.fulfillmentType,
     warehouse: order.warehouse,
     requiredDate: order.requiredDate,

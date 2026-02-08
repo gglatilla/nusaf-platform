@@ -101,6 +101,7 @@ model Company {
   contacts   CompanyContact[]
   quotes     Quote[]
   orders     SalesOrder[]
+  payments   Payment[]
   issueFlags IssueFlag[]
   documents  Document[]
 
@@ -556,6 +557,26 @@ enum SalesOrderStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  EFT
+  CREDIT_CARD
+  CASH
+  CHEQUE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  VOIDED
+}
+
+enum OrderPaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
 enum PurchaseOrderStatus {
   DRAFT
   PENDING_APPROVAL
@@ -812,6 +833,9 @@ model SalesOrder {
   customerPoNumber String?   @map("customer_po_number")
   customerPoDate   DateTime? @map("customer_po_date")
 
+  // Payment
+  paymentStatus OrderPaymentStatus @default(UNPAID) @map("payment_status")
+
   // Fulfillment
   fulfillmentType           FulfillmentType    @default(STOCK_ONLY) @map("fulfillment_type")
   warehouse                 Warehouse          @default(JHB)
@@ -838,6 +862,7 @@ model SalesOrder {
   // Relations
   lines     SalesOrderLine[]
   documents Document[]
+  payments  Payment[]
 
   // Audit
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -896,6 +921,50 @@ model SalesOrderCounter {
   count Int    @default(0)
 
   @@map("sales_order_counter")
+}
+
+// ============================================
+// PAYMENT ENTITIES
+// ============================================
+
+model Payment {
+  id              String        @id @default(cuid())
+  paymentNumber   String        @unique @map("payment_number") // PAY-YYYY-NNNNN
+  orderId         String        @map("order_id")
+  order           SalesOrder    @relation(fields: [orderId], references: [id])
+  companyId       String        @map("company_id")
+  company         Company       @relation(fields: [companyId], references: [id])
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        String        @default("ZAR")
+  paymentMethod   PaymentMethod @map("payment_method")
+  paymentReference String       @map("payment_reference") // Bank reference, transaction ID
+  paymentDate     DateTime      @map("payment_date")
+  receivedBy      String        @map("received_by")
+  receivedByName  String        @map("received_by_name")
+  notes           String?
+  status          PaymentStatus @default(CONFIRMED)
+
+  // Void tracking
+  voidedAt DateTime? @map("voided_at")
+  voidedBy String?   @map("voided_by")
+  voidReason String? @map("void_reason")
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([companyId])
+  @@index([paymentNumber])
+  @@map("payments")
+}
+
+model PaymentCounter {
+  id    String @id @default("payment_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("payment_counter")
 }
 
 // ============================================

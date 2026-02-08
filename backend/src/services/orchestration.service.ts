@@ -392,6 +392,11 @@ export async function generateFulfillmentPlan(
       return { success: false, error: 'Order must be CONFIRMED to generate fulfillment plan' };
     }
 
+    // Payment gate: order must be paid before fulfillment
+    if (order.paymentStatus !== 'PAID') {
+      return { success: false, error: 'Cannot generate fulfillment plan — payment not received. Order payment status: ' + order.paymentStatus };
+    }
+
     if (order.lines.length === 0) {
       return { success: false, error: 'Order has no lines' };
     }

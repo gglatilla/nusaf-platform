@@ -12,6 +12,7 @@ import {
   executePlanSchema,
   updatePolicySchema,
 } from '../../../utils/validation/orchestration';
+import { recordPaymentSchema, voidPaymentSchema } from '../../../utils/validation/payments';
 import {
   getOrders,
   getOrderById,
@@ -29,6 +30,12 @@ import {
   executeFulfillmentPlan,
   type OrchestrationPlan,
 } from '../../../services/orchestration.service';
+import {
+  recordPayment,
+  getPaymentsByOrder,
+  getPaymentById,
+  voidPayment,
+} from '../../../services/payment.service';
 
 const router = Router();
 
@@ -678,6 +685,209 @@ router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
       error: {
         code: 'UPDATE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to update fulfillment policy',
+      },
+    });
+  }
+});
+
+// ============================================
+// PAYMENT ENDPOINTS
+// ============================================
+
+/**
+ * POST /api/v1/orders/:id/payments
+ * Record a payment against an order
+ */
+router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const bodyResult = recordPaymentSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Verify order belongs to company
+    const order = await getOrderById(id, authReq.user.companyId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Order not found' },
+      });
+    }
+
+    const result = await recordPayment(
+      id,
+      bodyResult.data,
+      authReq.user.id,
+      authReq.user.email
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'PAYMENT_FAILED', message: result.error },
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: result.payment,
+    });
+  } catch (error) {
+    console.error('Record payment error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PAYMENT_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to record payment',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/orders/:id/payments
+ * List payments for an order
+ */
+router.get('/:id/payments', async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { id } = req.params;
+
+    // Verify order belongs to company
+    const order = await getOrderById(id, authReq.user.companyId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Order not found' },
+      });
+    }
+
+    const payments = await getPaymentsByOrder(id);
+
+    // Golden Rule 4: Strip internal data for CUSTOMER role
+    const isCustomer = authReq.user.role === 'CUSTOMER';
+    const responseData = isCustomer
+      ? payments
+          .filter((p) => p.status !== 'VOIDED')
+          .map((p) => ({
+            id: p.id,
+            paymentNumber: p.paymentNumber,
+            amount: p.amount,
+            paymentDate: p.paymentDate,
+            status: p.status,
+          }))
+      : payments;
+
+    return res.json({
+      success: true,
+      data: responseData,
+    });
+  } catch (error) {
+    console.error('List payments error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PAYMENTS_LIST_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch payments',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/orders/payments/:paymentId
+ * Get payment detail
+ */
+router.get('/payments/:paymentId', async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { paymentId } = req.params;
+
+    const payment = await getPaymentById(paymentId);
+
+    if (!payment || payment.companyId !== authReq.user.companyId) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Payment not found' },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: payment,
+    });
+  } catch (error) {
+    console.error('Get payment error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'PAYMENT_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch payment',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/orders/payments/:paymentId/void
+ * Void a payment (ADMIN/MANAGER only)
+ */
+router.post('/payments/:paymentId/void', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { paymentId } = req.params;
+
+    const bodyResult = voidPaymentSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    // Verify payment belongs to company
+    const payment = await getPaymentById(paymentId);
+    if (!payment || payment.companyId !== authReq.user.companyId) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Payment not found' },
+      });
+    }
+
+    const result = await voidPayment(paymentId, bodyResult.data.reason, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VOID_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Payment voided' },
+    });
+  } catch (error) {
+    console.error('Void payment error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'VOID_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to void payment',
       },
     });
   }
