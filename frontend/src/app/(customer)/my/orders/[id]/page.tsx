@@ -97,17 +97,28 @@ export default function CustomerOrderDetailPage() {
                 {order.orderNumber}
               </h1>
               <OrderStatusBadge status={order.status} />
-              {order.paymentStatus === 'PAID' ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  Payment Received
-                </span>
-              ) : order.paymentStatus === 'PARTIALLY_PAID' ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                  Partial Payment
-                </span>
+              {/* Payment terms info for customers */}
+              {(order.paymentTerms === 'PREPAY' || order.paymentTerms === 'COD') ? (
+                // Prepay customers see payment status
+                order.paymentStatus === 'PAID' ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    Payment Received
+                  </span>
+                ) : order.paymentStatus === 'PARTIALLY_PAID' ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                    Partial Payment
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                    Awaiting Payment
+                  </span>
+                )
               ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                  Awaiting Payment
+                // Account customers see their payment terms
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  {order.paymentTerms === 'NET_60' ? 'Net 60 days'
+                    : order.paymentTerms === 'NET_90' ? 'Net 90 days'
+                    : 'Net 30 days'}
                 </span>
               )}
             </div>
@@ -324,6 +335,27 @@ export default function CustomerOrderDetailPage() {
                   </div>
                 </div>
               )}
+
+              {/* Payment Terms */}
+              <div className="flex items-start gap-3">
+                <FileText className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                <div>
+                  <dt className="text-xs text-slate-500 uppercase">
+                    Payment Terms
+                  </dt>
+                  <dd className="text-sm text-slate-900">
+                    {order.paymentTerms === 'PREPAY'
+                      ? 'Prepay — please arrange payment to proceed'
+                      : order.paymentTerms === 'COD'
+                        ? 'Cash on delivery'
+                        : order.paymentTerms === 'NET_60'
+                          ? 'Net 60 days from invoice date'
+                          : order.paymentTerms === 'NET_90'
+                            ? 'Net 90 days from invoice date'
+                            : 'Net 30 days from invoice date'}
+                  </dd>
+                </div>
+              </div>
 
               {order.shippedDate && (
                 <div className="flex items-start gap-3">

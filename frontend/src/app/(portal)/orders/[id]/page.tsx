@@ -131,9 +131,10 @@ export default function OrderDetailPage() {
   const canGeneratePickingSlips = order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
   const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
-  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED' && order.paymentStatus === 'PAID';
-  const fulfillmentBlockedByPayment = order.status === 'CONFIRMED' && order.paymentStatus !== 'PAID';
-  const canRecordPayment = order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID';
+  const isPrepay = order.paymentTerms === 'PREPAY' || order.paymentTerms === 'COD';
+  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED' && (!isPrepay || order.paymentStatus === 'PAID');
+  const fulfillmentBlockedByPayment = order.status === 'CONFIRMED' && isPrepay && order.paymentStatus !== 'PAID';
+  const canRecordPayment = order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'NOT_REQUIRED';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
@@ -240,20 +241,39 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-slate-900">{order.orderNumber}</h1>
               <OrderStatusBadge status={order.status} />
+              {/* Payment Terms Badge */}
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  isPrepay
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {order.paymentTerms === 'PREPAY' ? 'Prepay'
+                  : order.paymentTerms === 'COD' ? 'COD'
+                  : order.paymentTerms === 'NET_60' ? 'Net 60'
+                  : order.paymentTerms === 'NET_90' ? 'Net 90'
+                  : 'Net 30'}
+              </span>
+              {/* Payment Status Badge */}
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   order.paymentStatus === 'PAID'
                     ? 'bg-green-100 text-green-700'
                     : order.paymentStatus === 'PARTIALLY_PAID'
                       ? 'bg-amber-100 text-amber-700'
-                      : 'bg-red-100 text-red-700'
+                      : order.paymentStatus === 'NOT_REQUIRED'
+                        ? 'bg-slate-100 text-slate-600'
+                        : 'bg-red-100 text-red-700'
                 }`}
               >
                 {order.paymentStatus === 'PAID'
                   ? 'Paid'
                   : order.paymentStatus === 'PARTIALLY_PAID'
                     ? 'Partially Paid'
-                    : 'Unpaid'}
+                    : order.paymentStatus === 'NOT_REQUIRED'
+                      ? 'On Account'
+                      : 'Unpaid'}
               </span>
             </div>
             <p className="text-sm text-slate-600">
@@ -300,7 +320,7 @@ export default function OrderDetailPage() {
           {fulfillmentBlockedByPayment && (
             <button
               disabled
-              title="Payment must be received before fulfillment can begin"
+              title="Payment must be received before fulfillment can begin for this prepay order"
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-300 text-slate-500 text-sm font-medium rounded-md cursor-not-allowed"
             >
               <Boxes className="h-4 w-4" />
@@ -467,6 +487,7 @@ export default function OrderDetailPage() {
           <PaymentsSection
             payments={payments ?? []}
             orderTotal={order.total}
+            paymentTerms={order.paymentTerms}
             paymentStatus={order.paymentStatus}
             canRecordPayment={canRecordPayment}
             canVoid={true}

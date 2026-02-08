@@ -116,6 +116,7 @@ export async function getOrders(options: {
     id: string;
     orderNumber: string;
     status: SalesOrderStatus;
+    paymentTerms: string;
     paymentStatus: string;
     quoteNumber: string | null;
     customerPoNumber: string | null;
@@ -159,6 +160,7 @@ export async function getOrders(options: {
       id: o.id,
       orderNumber: o.orderNumber,
       status: o.status,
+      paymentTerms: o.paymentTerms,
       paymentStatus: o.paymentStatus,
       quoteNumber: o.quoteNumber,
       customerPoNumber: o.customerPoNumber,
@@ -208,6 +210,7 @@ export async function getOrderById(orderId: string, companyId: string) {
     quoteNumber: order.quoteNumber,
     customerPoNumber: order.customerPoNumber,
     customerPoDate: order.customerPoDate,
+    paymentTerms: order.paymentTerms,
     paymentStatus: order.paymentStatus,
     fulfillmentType: order.fulfillmentType,
     warehouse: order.warehouse,

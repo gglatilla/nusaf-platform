@@ -1145,7 +1145,7 @@ export interface SalesOrderLine {
   notes: string | null;
 }
 
-export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'NOT_REQUIRED';
 export type PaymentMethod = 'EFT' | 'CREDIT_CARD' | 'CASH' | 'CHEQUE' | 'OTHER';
 export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'VOIDED';
 
@@ -1190,6 +1190,7 @@ export interface SalesOrder {
   id: string;
   orderNumber: string;
   status: SalesOrderStatus;
+  paymentTerms: PaymentTermsType;
   paymentStatus: OrderPaymentStatus;
   company: {
     id: string;
@@ -1223,6 +1224,7 @@ export interface SalesOrderListItem {
   id: string;
   orderNumber: string;
   status: SalesOrderStatus;
+  paymentTerms: PaymentTermsType;
   paymentStatus: OrderPaymentStatus;
   quoteNumber: string | null;
   customerPoNumber: string | null;

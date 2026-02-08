@@ -8,6 +8,7 @@ import type { Payment, OrderPaymentStatus, PaymentMethod } from '@/lib/api';
 interface PaymentsSectionProps {
   payments: Payment[];
   orderTotal: number;
+  paymentTerms?: string;
   paymentStatus: OrderPaymentStatus;
   canRecordPayment?: boolean;
   canVoid?: boolean;
@@ -46,8 +47,9 @@ function PaymentStatusBadge({ status }: { status: OrderPaymentStatus }) {
     UNPAID: { bg: 'bg-red-100', text: 'text-red-700', label: 'Unpaid' },
     PARTIALLY_PAID: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Partially Paid' },
     PAID: { bg: 'bg-green-100', text: 'text-green-700', label: 'Paid' },
+    NOT_REQUIRED: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'On Account' },
   };
-  const c = config[status];
+  const c = config[status] || config.UNPAID;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
       {c.label}
@@ -55,9 +57,18 @@ function PaymentStatusBadge({ status }: { status: OrderPaymentStatus }) {
   );
 }
 
+const PAYMENT_TERMS_LABELS: Record<string, string> = {
+  PREPAY: 'Prepay',
+  COD: 'Cash on Delivery',
+  NET_30: 'Net 30 days',
+  NET_60: 'Net 60 days',
+  NET_90: 'Net 90 days',
+};
+
 export function PaymentsSection({
   payments,
   orderTotal,
+  paymentTerms,
   paymentStatus,
   canRecordPayment = false,
   canVoid = false,
@@ -95,6 +106,18 @@ export function PaymentsSection({
           </button>
         )}
       </div>
+
+      {/* Payment Terms Context Banner */}
+      {paymentTerms && (paymentTerms === 'PREPAY' || paymentTerms === 'COD') && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+          This is a prepay order. Payment must be recorded before fulfillment can begin.
+        </div>
+      )}
+      {paymentTerms && paymentTerms !== 'PREPAY' && paymentTerms !== 'COD' && (
+        <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+          This customer is on <span className="font-medium">{PAYMENT_TERMS_LABELS[paymentTerms] || paymentTerms}</span> terms. Payment is tracked for reconciliation.
+        </div>
+      )}
 
       {/* Payment Summary */}
       <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-slate-50 rounded-lg">

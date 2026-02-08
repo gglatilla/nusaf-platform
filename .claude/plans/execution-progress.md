@@ -14,7 +14,7 @@
 ## Repair Phase — Fix Business Model (account vs prepay)
 - [x] R1: Add paymentTerms to Company + SalesOrder models (2026-02-08)
 - [x] R2: Fix fulfillment gate — conditional on payment terms (2026-02-08)
-- [ ] R3: Fix payment UI — conditional fulfillment gating
+- [x] R3: Fix payment UI — conditional fulfillment gating (2026-02-08)
 - [ ] R4: Fix quote acceptance — auto-fulfillment for account customers
 - [ ] R5: Fix tax invoice — payment terms due date
 
