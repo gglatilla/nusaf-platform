@@ -518,6 +518,8 @@ router.post('/:id/accept', async (req, res) => {
         message: 'Quote accepted',
         orderId: result.orderId,
         orderNumber: result.orderNumber,
+        fulfillmentTriggered: result.fulfillmentTriggered ?? false,
+        proformaGenerated: result.proformaGenerated ?? false,
       },
     });
   } catch (error) {

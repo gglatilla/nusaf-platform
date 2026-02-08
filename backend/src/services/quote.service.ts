@@ -3,7 +3,9 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { calculateCustomerPrice } from './pricing.service';
 import { createSoftReservation, releaseReservationsByReference } from './inventory.service';
-import { createOrderFromQuote } from './order.service';
+import { createOrderFromQuote, confirmOrder } from './order.service';
+import { generateFulfillmentPlan, executeFulfillmentPlan } from './orchestration.service';
+import { createProformaInvoice } from './proforma-invoice.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -474,12 +476,21 @@ export async function finalizeQuote(
 }
 
 /**
- * Accept quote - change status from CREATED to ACCEPTED, then auto-create Sales Order
+ * Accept quote - change status from CREATED to ACCEPTED, then auto-create Sales Order.
+ * For account customers (NET_30/60/90): auto-confirm → generate fulfillment → execute fulfillment
+ * For prepay customers (PREPAY/COD): auto-confirm → generate proforma → STOP (wait for payment)
  */
 export async function acceptQuote(
   quoteId: string,
   userId: string
-): Promise<{ success: boolean; error?: string; orderId?: string; orderNumber?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  orderId?: string;
+  orderNumber?: string;
+  fulfillmentTriggered?: boolean;
+  proformaGenerated?: boolean;
+}> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
   });
@@ -512,25 +523,104 @@ export async function acceptQuote(
   });
 
   // Auto-create Sales Order from the accepted quote
+  let orderId: string | undefined;
+  let orderNumber: string | undefined;
+
   try {
     const orderResult = await createOrderFromQuote(quoteId, userId, quote.companyId);
 
-    if (orderResult.success && orderResult.order) {
-      return {
-        success: true,
-        orderId: orderResult.order.id,
-        orderNumber: orderResult.order.orderNumber,
-      };
+    if (!orderResult.success || !orderResult.order) {
+      // Order creation failed — quote stays ACCEPTED for manual retry
+      console.error('Auto order creation failed after quote acceptance:', orderResult.error);
+      return { success: true }; // Quote acceptance still succeeded
     }
 
-    // Order creation failed — quote stays ACCEPTED for manual retry
-    console.error('Auto order creation failed after quote acceptance:', orderResult.error);
-    return { success: true }; // Quote acceptance still succeeded
+    orderId = orderResult.order.id;
+    orderNumber = orderResult.order.orderNumber;
   } catch (error) {
     // Order creation threw — quote stays ACCEPTED for manual retry
     console.error('Auto order creation error after quote acceptance:', error);
     return { success: true }; // Quote acceptance still succeeded
   }
+
+  // Order created successfully — now auto-confirm and trigger downstream actions
+  let fulfillmentTriggered = false;
+  let proformaGenerated = false;
+
+  // Step 1: Auto-confirm order (DRAFT → CONFIRMED)
+  try {
+    const confirmResult = await confirmOrder(orderId, userId, quote.companyId);
+    if (!confirmResult.success) {
+      console.error(`Order ${orderNumber}: auto-confirm failed — ${confirmResult.error}. Staff can retry manually.`);
+      return { success: true, orderId, orderNumber, fulfillmentTriggered: false, proformaGenerated: false };
+    }
+  } catch (error) {
+    console.error(`Order ${orderNumber}: auto-confirm error:`, error);
+    return { success: true, orderId, orderNumber, fulfillmentTriggered: false, proformaGenerated: false };
+  }
+
+  // Step 2: Read the order to determine payment terms
+  const order = await prisma.salesOrder.findUnique({
+    where: { id: orderId },
+    select: { paymentTerms: true },
+  });
+
+  const paymentTerms = order?.paymentTerms ?? 'NET_30';
+  const isAccountCustomer = !['PREPAY', 'COD'].includes(paymentTerms);
+
+  if (isAccountCustomer) {
+    // Account customer (NET_30/60/90): auto-trigger fulfillment
+    try {
+      const planResult = await generateFulfillmentPlan({ orderId });
+
+      if (!planResult.success || !planResult.data) {
+        console.error(`Account order ${orderNumber}: fulfillment plan generation failed — ${planResult.error}. Staff can retry manually.`);
+        return { success: true, orderId, orderNumber, fulfillmentTriggered: false, proformaGenerated: false };
+      }
+
+      const execResult = await executeFulfillmentPlan({
+        plan: planResult.data,
+        userId,
+        companyId: quote.companyId,
+      });
+
+      if (execResult.success && execResult.data) {
+        const docs = execResult.data.createdDocuments;
+        console.log(
+          `Account order ${orderNumber}: auto-fulfillment triggered — ` +
+          `${docs.pickingSlips.length} picking slips, ${docs.jobCards.length} job cards, ${docs.transferRequests.length} transfers`
+        );
+        fulfillmentTriggered = true;
+      } else {
+        console.error(`Account order ${orderNumber}: fulfillment execution failed — ${execResult.error}. Staff can retry manually.`);
+      }
+    } catch (error) {
+      console.error(`Account order ${orderNumber}: fulfillment error:`, error);
+      // Order stays CONFIRMED, staff can manually trigger fulfillment
+    }
+  } else {
+    // Prepay/COD customer: auto-generate proforma invoice
+    try {
+      const proformaResult = await createProformaInvoice(
+        orderId,
+        { paymentTerms: paymentTerms === 'COD' ? 'Cash on Delivery' : 'Prepay — payment required before fulfillment' },
+        userId,
+        quote.companyId
+      );
+
+      if (proformaResult.success && proformaResult.proformaInvoice) {
+        console.log(`Prepay order ${orderNumber}: proforma ${proformaResult.proformaInvoice.proformaNumber} generated`);
+        proformaGenerated = true;
+      } else {
+        console.error(`Prepay order ${orderNumber}: proforma generation failed — ${proformaResult.error}. Staff can generate manually.`);
+      }
+    } catch (error) {
+      console.error(`Prepay order ${orderNumber}: proforma generation error:`, error);
+      // Order stays CONFIRMED, staff can manually generate proforma
+    }
+  }
+
+  return { success: true, orderId, orderNumber, fulfillmentTriggered, proformaGenerated };
 }
 
 /**

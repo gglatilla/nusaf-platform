@@ -15,7 +15,7 @@
 - [x] R1: Add paymentTerms to Company + SalesOrder models (2026-02-08)
 - [x] R2: Fix fulfillment gate — conditional on payment terms (2026-02-08)
 - [x] R3: Fix payment UI — conditional fulfillment gating (2026-02-08)
-- [ ] R4: Fix quote acceptance — auto-fulfillment for account customers
+- [x] R4: Fix quote acceptance — auto-fulfillment for account customers (2026-02-08)
 - [ ] R5: Fix tax invoice — payment terms due date
 
 ## Phase 1B continued — Revenue Foundation
@@ -66,7 +66,7 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-08
-- Current phase: Repair Phase (R1-R3 complete, next R4)
+- Current phase: Repair Phase (R1-R4 complete, next R5)
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
@@ -74,4 +74,5 @@
 - Completed R1: Added PaymentTerms enum, paymentTerms on Company + SalesOrder, NOT_REQUIRED on OrderPaymentStatus, createOrderFromQuote copies terms, company admin API + UI, data fix script
 - Completed R2: Changed fulfillment gate to only block PREPAY/COD (one conditional change in orchestration.service.ts)
 - Completed R3: Fixed payment UI — paymentTerms in API responses, fulfillment button gating conditional, payment status badges handle NOT_REQUIRED, context banners in PaymentsSection, customer portal shows terms not payment status for account customers
-- Next: R4 — Auto-fulfillment for account customers on quote acceptance
+- Completed R4: Enhanced acceptQuote() to auto-confirm order + auto-trigger fulfillment (account) or auto-generate proforma (prepay/COD). Updated API response with fulfillmentTriggered/proformaGenerated booleans. Frontend types/hooks updated.
+- Next: R5 — Fix tax invoice due date from payment terms

@@ -3619,8 +3619,8 @@ class ApiClient {
     });
   }
 
-  async acceptQuote(id: string): Promise<ApiResponse<{ message: string; orderId?: string; orderNumber?: string }>> {
-    return this.request<ApiResponse<{ message: string; orderId?: string; orderNumber?: string }>>(`/quotes/${id}/accept`, {
+  async acceptQuote(id: string): Promise<ApiResponse<{ message: string; orderId?: string; orderNumber?: string; fulfillmentTriggered?: boolean; proformaGenerated?: boolean }>> {
+    return this.request<ApiResponse<{ message: string; orderId?: string; orderNumber?: string; fulfillmentTriggered?: boolean; proformaGenerated?: boolean }>>(`/quotes/${id}/accept`, {
       method: 'POST',
       body: JSON.stringify({}),
     });
