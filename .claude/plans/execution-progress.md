@@ -66,6 +66,12 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-08
-- Current phase: Repair Phase
+- Current phase: Repair Phase (R1-R3 complete, next R4)
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
+
+## Last Session Notes (2026-02-08)
+- Completed R1: Added PaymentTerms enum, paymentTerms on Company + SalesOrder, NOT_REQUIRED on OrderPaymentStatus, createOrderFromQuote copies terms, company admin API + UI, data fix script
+- Completed R2: Changed fulfillment gate to only block PREPAY/COD (one conditional change in orchestration.service.ts)
+- Completed R3: Fixed payment UI — paymentTerms in API responses, fulfillment button gating conditional, payment status badges handle NOT_REQUIRED, context banners in PaymentsSection, customer portal shows terms not payment status for account customers
+- Next: R4 — Auto-fulfillment for account customers on quote acceptance
