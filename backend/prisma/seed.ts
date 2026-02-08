@@ -308,7 +308,7 @@ async function main() {
 
   const testUser = await prisma.user.upsert({
     where: { email: 'test@example.com' },
-    update: {},
+    update: { password: testPassword, isActive: true },
     create: {
       email: 'test@example.com',
       password: testPassword,
@@ -338,7 +338,7 @@ async function main() {
 
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@nusaf.co.za' },
-    update: {},
+    update: { password: adminPassword, isActive: true },
     create: {
       email: 'admin@nusaf.co.za',
       password: adminPassword,
@@ -355,7 +355,7 @@ async function main() {
 
   const salesUser = await prisma.user.upsert({
     where: { email: 'sales@nusaf.co.za' },
-    update: {},
+    update: { password: salesPassword, isActive: true },
     create: {
       email: 'sales@nusaf.co.za',
       password: salesPassword,
@@ -368,9 +368,28 @@ async function main() {
     },
   });
 
+  // Create warehouse user (stores/operations — receives job cards, picking slips, transfers, dispatch)
+  const warehousePassword = await bcrypt.hash('warehouse123', BCRYPT_ROUNDS);
+
+  const warehouseUser = await prisma.user.upsert({
+    where: { email: 'warehouse@nusaf.co.za' },
+    update: { password: warehousePassword, isActive: true },
+    create: {
+      email: 'warehouse@nusaf.co.za',
+      password: warehousePassword,
+      firstName: 'Stores',
+      lastName: 'Operator',
+      role: 'WAREHOUSE',
+      companyId: adminCompany.id,
+      primaryWarehouse: 'JHB',
+      isActive: true,
+    },
+  });
+
   console.log(`Created test user: ${testUser.email} (password: password123)`);
   console.log(`Created sales user: ${salesUser.email} (password: sales123)`);
   console.log(`Created admin user: ${adminUser.email} (password: admin123)`);
+  console.log(`Created warehouse user: ${warehouseUser.email} (password: warehouse123)`);
 
   // ============================================
   // GLOBAL SETTINGS (EUR/ZAR Rate)
