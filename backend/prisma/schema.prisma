@@ -860,9 +860,10 @@ model SalesOrder {
   cancelReason  String? @map("cancel_reason")
 
   // Relations
-  lines     SalesOrderLine[]
-  documents Document[]
-  payments  Payment[]
+  lines       SalesOrderLine[]
+  documents   Document[]
+  payments    Payment[]
+  taxInvoices TaxInvoice[]
 
   // Audit
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -1932,6 +1933,96 @@ model ProformaInvoiceCounter {
   count Int    @default(0)
 
   @@map("proforma_invoice_counter")
+}
+
+// ============================================
+// TAX INVOICE
+// ============================================
+
+enum TaxInvoiceStatus {
+  DRAFT
+  ISSUED
+  VOIDED
+}
+
+model TaxInvoice {
+  id              String           @id @default(cuid())
+  invoiceNumber   String           @unique @map("invoice_number") // INV-2026-00001
+  companyId       String           @map("company_id")
+  orderId         String           @map("order_id")
+  order           SalesOrder       @relation(fields: [orderId], references: [id])
+  orderNumber     String           @map("order_number") // Snapshot
+  customerName    String           @map("customer_name") // Snapshot
+  customerVatNumber String?        @map("customer_vat_number") // Snapshot
+  customerRegNumber String?        @map("customer_reg_number") // Snapshot
+  billingAddress  String?          @map("billing_address") // Snapshot from company address
+  status          TaxInvoiceStatus @default(DRAFT)
+
+  // Dates
+  issueDate DateTime  @map("issue_date")
+  dueDate   DateTime? @map("due_date")
+
+  // Totals (ZAR, snapshot from order)
+  subtotal  Decimal @default(0) @db.Decimal(12, 2)
+  vatRate   Decimal @default(15) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount Decimal @default(0) @map("vat_amount") @db.Decimal(12, 2)
+  total     Decimal @default(0) @db.Decimal(12, 2)
+
+  // PDF
+  pdfUrl String? @map("pdf_url")
+
+  // Voiding
+  voidedAt   DateTime? @map("voided_at")
+  voidedBy   String?   @map("voided_by")
+  voidReason String?   @map("void_reason")
+
+  notes String?
+
+  // Issuer
+  issuedBy     String @map("issued_by")
+  issuedByName String @map("issued_by_name")
+
+  // Relations
+  lines TaxInvoiceLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([status])
+  @@map("tax_invoices")
+}
+
+model TaxInvoiceLine {
+  id            String     @id @default(cuid())
+  taxInvoiceId  String     @map("tax_invoice_id")
+  taxInvoice    TaxInvoice @relation(fields: [taxInvoiceId], references: [id], onDelete: Cascade)
+  orderLineId   String     @map("order_line_id")
+  lineNumber    Int        @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Pricing (ZAR, snapshot from order line)
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
+  lineTotal Decimal @map("line_total") @db.Decimal(12, 2)
+
+  @@index([taxInvoiceId])
+  @@map("tax_invoice_lines")
+}
+
+model TaxInvoiceCounter {
+  id    String @id @default("ti_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("tax_invoice_counter")
 }
 
 // ============================================

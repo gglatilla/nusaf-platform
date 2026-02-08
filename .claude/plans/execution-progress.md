@@ -11,7 +11,7 @@
 ## Phase 1B — Revenue Foundation
 - [x] T7: Payment recording schema + service + API (2026-02-08)
 - [x] T8: Payment recording UI + fulfillment gate (2026-02-08)
-- [ ] T9: Tax invoice schema + service + PDF generation
+- [x] T9: Tax invoice schema + service + PDF generation (2026-02-08)
 - [ ] T10: Tax invoice API + staff UI
 - [ ] T11: Tax invoice customer portal + order lifecycle completion
 
@@ -56,10 +56,10 @@
 - Started: 2026-02-08
 - Last updated: 2026-02-08
 - Current phase: Phase 1B
-- Next task: T9 (Tax invoice schema + service + PDF generation)
+- Next task: T10 (Tax invoice API + staff UI)
 
 ## Last Session Notes
-- T8 completed: Payment recording UI + fulfillment gate UX
-- Files created: PaymentsSection.tsx, RecordPaymentModal.tsx, usePayments.ts
-- Files modified: api.ts (Payment types + methods, paymentStatus on SalesOrder), orders/[id]/page.tsx (staff), my/orders/[id]/page.tsx (customer), order-detail/index.ts
-- Key decisions: Fulfillment Plan button disabled (grey) when unpaid with tooltip; customer sees "Awaiting Payment"/"Partial Payment"/"Payment Received" badges only (no payment details per Golden Rule 4); staff sees full payment list with void capability
+- T9 completed: Tax invoice schema + service + PDF generation
+- Files created: tax-invoice.service.ts, validation/tax-invoices.ts
+- Files modified: schema.prisma (TaxInvoice, TaxInvoiceLine, TaxInvoiceCounter models + enum + SalesOrder relation), pdf.service.ts (generateTaxInvoicePDF with SARS-compliant layout), delivery-note.service.ts (auto-trigger tax invoice on DELIVERED)
+- Key decisions: Auto-generate tax invoice when order transitions to DELIVERED via delivery note confirmation; done outside transaction so failure doesn't block delivery; tax invoice creation also transitions order DELIVERED→INVOICED; one active (ISSUED) invoice per order — void first to reissue; INV-YYYY-NNNNN format; VAT at 15%; PDF shows both seller and buyer VAT numbers

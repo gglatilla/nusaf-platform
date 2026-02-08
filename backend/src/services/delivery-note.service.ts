@@ -1,5 +1,7 @@
 import { Prisma, Warehouse, DeliveryNoteStatus } from '@prisma/client';
 import { prisma } from '../config/database';
+import { logger } from '../utils/logger';
+import { createTaxInvoice } from './tax-invoice.service';
 import type {
   CreateDeliveryNoteInput,
   ConfirmDeliveryInput,
@@ -442,7 +444,7 @@ export async function confirmDelivery(
     }
   }
 
-  await prisma.$transaction(async (tx) => {
+  const orderTransitionedToDelivered = await prisma.$transaction(async (tx) => {
     // Update each line with received/damaged quantities
     for (const inputLine of input.lines) {
       await tx.deliveryNoteLine.update({
@@ -485,9 +487,24 @@ export async function confirmDelivery(
           where: { id: dn.orderId },
           data: { status: 'DELIVERED', deliveredDate: new Date() },
         });
+        return true;
       }
     }
+
+    return false;
   });
+
+  // Auto-generate tax invoice when order transitions to DELIVERED
+  // Done outside the transaction to not block delivery confirmation if invoice generation fails
+  if (orderTransitionedToDelivered) {
+    try {
+      await createTaxInvoice(dn.orderId, _userId, companyId);
+      logger.info(`Auto-generated tax invoice for order ${dn.orderId} after delivery confirmation`);
+    } catch (error) {
+      // Log but don't fail — staff can manually generate the tax invoice later
+      logger.error(`Failed to auto-generate tax invoice for order ${dn.orderId}:`, error);
+    }
+  }
 
   return { success: true };
 }
