@@ -3,6 +3,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { generatePurchaseOrderPDF } from './pdf.service';
 import { sendEmail, generatePurchaseOrderEmail } from './email.service';
+import { updateStockLevel } from './inventory.service';
 import type {
   CreatePurchaseOrderInput,
   UpdatePurchaseOrderInput,
@@ -377,6 +378,7 @@ export async function cancelPurchaseOrder(
 ): Promise<ServiceResult<void>> {
   const po = await prisma.purchaseOrder.findUnique({
     where: { id },
+    include: { lines: true },
   });
 
   if (!po) {
@@ -387,12 +389,41 @@ export async function cancelPurchaseOrder(
     return { success: false, error: `Cannot cancel purchase order with status ${po.status}` };
   }
 
-  await prisma.purchaseOrder.update({
-    where: { id },
-    data: {
-      status: 'CANCELLED',
-      updatedBy: userId,
-    },
+  // If PO was SENT or ACKNOWLEDGED, onOrder was incremented — decrement unreceived quantities
+  const needsOnOrderRollback = po.status === 'SENT' || po.status === 'ACKNOWLEDGED';
+
+  await prisma.$transaction(async (tx) => {
+    await tx.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        updatedBy: userId,
+      },
+    });
+
+    if (needsOnOrderRollback) {
+      for (const line of po.lines) {
+        const unreceived = line.quantityOrdered - line.quantityReceived;
+        if (unreceived > 0) {
+          // Use Math.max logic via a safe decrement: read current, compute safe delta
+          const stockLevel = await tx.stockLevel.findUnique({
+            where: { productId_location: { productId: line.productId, location: po.deliveryLocation } },
+          });
+          if (stockLevel) {
+            const safeDecrement = Math.min(unreceived, stockLevel.onOrder);
+            if (safeDecrement > 0) {
+              await updateStockLevel(
+                tx,
+                line.productId,
+                po.deliveryLocation,
+                { onOrder: -safeDecrement },
+                userId
+              );
+            }
+          }
+        }
+      }
+    }
   });
 
   return { success: true };
@@ -767,15 +798,28 @@ export async function sendToSupplier(
     ],
   });
 
-  // Update PO status regardless of email result (we attempted to send)
-  await prisma.purchaseOrder.update({
-    where: { id },
-    data: {
-      status: 'SENT',
-      sentAt: new Date(),
-      sentBy: userId,
-      updatedBy: userId,
-    },
+  // Update PO status and increment onOrder for each line — all in one transaction
+  await prisma.$transaction(async (tx) => {
+    await tx.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: 'SENT',
+        sentAt: new Date(),
+        sentBy: userId,
+        updatedBy: userId,
+      },
+    });
+
+    // Increment onOrder for each PO line at the delivery location
+    for (const line of po.lines) {
+      await updateStockLevel(
+        tx,
+        line.productId,
+        po.deliveryLocation,
+        { onOrder: line.quantityOrdered },
+        userId
+      );
+    }
   });
 
   return {

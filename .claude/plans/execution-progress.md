@@ -1,7 +1,7 @@
 # NUSAF ERP Execution Progress
 
 ## Phase 1A — Quick Wins
-- [ ] T1: onOrder update on PO send/cancel
+- [x] T1: onOrder update on PO send/cancel (2026-02-08)
 - [ ] T2: Quote accept → auto-create Sales Order
 - [ ] T3: Transfer request check in READY_TO_SHIP gate
 - [ ] T4: PO rejection → DRAFT (not CANCELLED)
