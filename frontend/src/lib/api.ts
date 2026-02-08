@@ -1772,6 +1772,131 @@ export interface OrderReturnAuthorizationSummary {
   createdAt: string;
 }
 
+// ============================================
+// PACKING LIST TYPES
+// ============================================
+
+export type PackingListStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
+export type PackageType = 'BOX' | 'PALLET' | 'CRATE' | 'ENVELOPE' | 'TUBE' | 'OTHER';
+
+export interface PackingListLine {
+  id: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantity: number;
+  packageNumber: number;
+}
+
+export interface PackingListPackage {
+  id: string;
+  packageNumber: number;
+  packageType: PackageType;
+  length: number | null;
+  width: number | null;
+  height: number | null;
+  grossWeight: number | null;
+  netWeight: number | null;
+  notes: string | null;
+}
+
+export interface PackingList {
+  id: string;
+  packingListNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  deliveryNoteId: string | null;
+  deliveryNoteNumber: string | null;
+  customerName: string;
+  location: Warehouse;
+  status: PackingListStatus;
+  finalizedAt: string | null;
+  finalizedBy: string | null;
+  finalizedByName: string | null;
+  handlingInstructions: string | null;
+  notes: string | null;
+  lines: PackingListLine[];
+  packages: PackingListPackage[];
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface PackingListListItem {
+  id: string;
+  packingListNumber: string;
+  orderNumber: string;
+  orderId: string;
+  customerName: string;
+  location: Warehouse;
+  status: PackingListStatus;
+  packageCount: number;
+  lineCount: number;
+  createdAt: string;
+}
+
+export interface PackingListsListResponse {
+  packingLists: PackingListListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface PackingListsQueryParams {
+  orderId?: string;
+  deliveryNoteId?: string;
+  status?: PackingListStatus;
+  location?: Warehouse;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreatePackingListLineInput {
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantity: number;
+  packageNumber: number;
+}
+
+export interface CreatePackingListPackageInput {
+  packageNumber: number;
+  packageType: PackageType;
+  length?: number;
+  width?: number;
+  height?: number;
+  grossWeight?: number;
+  netWeight?: number;
+  notes?: string;
+}
+
+export interface CreatePackingListData {
+  deliveryNoteId?: string;
+  location?: Warehouse;
+  handlingInstructions?: string;
+  notes?: string;
+  lines: CreatePackingListLineInput[];
+  packages: CreatePackingListPackageInput[];
+}
+
+export interface OrderPackingListSummary {
+  id: string;
+  packingListNumber: string;
+  status: PackingListStatus;
+  packageCount: number;
+  lineCount: number;
+  location: Warehouse;
+  createdAt: string;
+}
+
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
@@ -4340,6 +4465,70 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/cancel`, {
       method: 'POST',
     });
+  }
+
+  // ============================================
+  // PACKING LIST METHODS
+  // ============================================
+
+  async getPackingLists(params: PackingListsQueryParams = {}): Promise<ApiResponse<PackingListsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.deliveryNoteId) searchParams.set('deliveryNoteId', params.deliveryNoteId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+    const qs = searchParams.toString();
+    return this.request<ApiResponse<PackingListsListResponse>>(`/packing-lists${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPackingListById(id: string): Promise<ApiResponse<PackingList>> {
+    return this.request<ApiResponse<PackingList>>(`/packing-lists/${id}`);
+  }
+
+  async getPackingListsForOrder(orderId: string): Promise<ApiResponse<OrderPackingListSummary[]>> {
+    return this.request<ApiResponse<OrderPackingListSummary[]>>(`/packing-lists/order/${orderId}`);
+  }
+
+  async createPackingListFromOrder(orderId: string, data: CreatePackingListData): Promise<ApiResponse<{ id: string; packingListNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; packingListNumber: string }>>(`/packing-lists/from-order/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePackingList(id: string, data: CreatePackingListData): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/packing-lists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async finalizePackingList(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/packing-lists/${id}/finalize`, {
+      method: 'POST',
+    });
+  }
+
+  async cancelPackingList(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/packing-lists/${id}/cancel`, {
+      method: 'POST',
+    });
+  }
+
+  async downloadPackingListPDF(id: string): Promise<Blob> {
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/packing-lists/${id}/pdf`;
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new ApiError('Failed to download PDF', 'PDF_DOWNLOAD_ERROR', response.status);
+    }
+    return response.blob();
   }
 
   // ============================================

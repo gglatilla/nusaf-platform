@@ -9,3 +9,4 @@ export { OrderTimelineSection } from './OrderTimelineSection';
 export { DeliveryNotesSection } from './DeliveryNotesSection';
 export { ProformaInvoicesSection } from './ProformaInvoicesSection';
 export { ReturnAuthorizationsSection } from './ReturnAuthorizationsSection';
+export { PackingListsSection } from './PackingListsSection';

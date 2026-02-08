@@ -21,6 +21,7 @@ import {
   ArrowRightLeft,
   FileOutput,
   FileInput,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -49,6 +50,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Picking Slips', href: '/picking-slips', icon: ClipboardList },
   { name: 'Job Cards', href: '/job-cards', icon: Wrench },
   { name: 'Delivery Notes', href: '/delivery-notes', icon: FileOutput },
+  { name: 'Packing Lists', href: '/packing-lists', icon: Boxes, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
   { name: 'Returns', href: '/return-authorizations', icon: RotateCcw, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
   { name: 'Transfers', href: '/transfer-requests', icon: Truck },
   { name: 'Issues', href: '/issues', icon: AlertTriangle },

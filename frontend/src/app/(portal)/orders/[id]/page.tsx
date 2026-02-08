@@ -11,6 +11,7 @@ import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks
 import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/useProformaInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
+import { usePackingListsForOrder } from '@/hooks/usePackingLists';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -24,6 +25,7 @@ import {
   DeliveryNotesSection,
   ProformaInvoicesSection,
   ReturnAuthorizationsSection,
+  PackingListsSection,
   OrderNotesSection,
   OrderTimelineSection,
 } from '@/components/orders/order-detail';
@@ -78,6 +80,7 @@ export default function OrderDetailPage() {
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
+  const { data: packingLists } = usePackingListsForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
@@ -121,6 +124,7 @@ export default function OrderDetailPage() {
   const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
   const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
+  const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
   const canRequestReturn = ['SHIPPED', 'DELIVERED'].includes(order.status);
 
@@ -287,6 +291,15 @@ export default function OrderDetailPage() {
               {createDeliveryNote.isPending ? 'Creating...' : 'Delivery Note'}
             </button>
           )}
+          {canCreatePackingList && (
+            <Link
+              href={`/packing-lists/new?orderId=${orderId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700"
+            >
+              <Boxes className="h-4 w-4" />
+              Packing List
+            </Link>
+          )}
           {canRequestReturn && (
             <Link
               href={`/return-authorizations/new?orderId=${orderId}`}
@@ -379,6 +392,7 @@ export default function OrderDetailPage() {
           <JobCardsSection jobCards={jobCards ?? []} />
           <TransferRequestsSection transferRequests={transferRequests ?? []} />
           <DeliveryNotesSection deliveryNotes={deliveryNotes ?? []} />
+          <PackingListsSection packingLists={packingLists ?? []} />
           <ProformaInvoicesSection
             proformaInvoices={proformaInvoices ?? []}
             canVoid={true}

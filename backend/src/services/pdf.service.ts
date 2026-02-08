@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import type { PurchaseOrderData } from './purchase-order.service';
 import type { ProformaInvoiceData } from './proforma-invoice.service';
+import type { PackingListData } from './packing-list.service';
 
 // ============================================
 // CONSTANTS
@@ -678,6 +679,386 @@ function drawPIPaymentTerms(doc: PDFKit.PDFDocument, pi: ProformaInvoiceData, to
 }
 
 function drawPIFooter(doc: PDFKit.PDFDocument): void {
+  const pageHeight = doc.page.height;
+  const footerY = pageHeight - 60;
+
+  doc.strokeColor(COLORS.mediumGray)
+    .lineWidth(0.5)
+    .moveTo(50, footerY)
+    .lineTo(doc.page.width - 50, footerY)
+    .stroke();
+
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text(
+      'Nusaf Dynamic Technologies (Pty) Ltd | Johannesburg, South Africa | www.nusaf.co.za',
+      50,
+      footerY + 10,
+      { align: 'center', width: doc.page.width - 100 }
+    );
+
+  doc.text(
+    'This is a computer-generated document. No signature required.',
+    50,
+    footerY + 22,
+    { align: 'center', width: doc.page.width - 100 }
+  );
+}
+
+// ============================================
+// PACKING LIST PDF
+// ============================================
+
+/**
+ * Generate a professional PDF for a packing list
+ */
+export async function generatePackingListPDF(pl: PackingListData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        info: {
+          Title: `Packing List ${pl.packingListNumber}`,
+          Author: 'Nusaf Dynamic Technologies',
+          Subject: `Packing List for Order ${pl.orderNumber}`,
+          Creator: 'Nusaf Platform',
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      drawPLHeader(doc, pl);
+      drawPLShipmentInfo(doc, pl);
+      drawPLDetailsBox(doc, pl);
+      const afterPackagesY = drawPLPackageSummary(doc, pl);
+      const afterItemsY = drawPLLineItems(doc, pl, afterPackagesY);
+      drawPLTotals(doc, pl, afterItemsY);
+      drawPLHandlingInstructions(doc, pl);
+      drawPLFooter(doc);
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function drawPLHeader(doc: PDFKit.PDFDocument, pl: PackingListData): void {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Company header bar
+  doc.rect(50, 50, pageWidth, 60).fill(COLORS.primary);
+
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(20)
+    .text('NUSAF DYNAMIC TECHNOLOGIES', 60, 65);
+
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text('Conveyor Components | Power Transmission | Industrial Supplies', 60, 90);
+
+  // PACKING LIST title
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(28)
+    .text('PACKING LIST', 50, 130, { align: 'center', width: pageWidth });
+
+  // PL Number and Date
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(14)
+    .text(pl.packingListNumber, 50, 170, { align: 'center', width: pageWidth });
+
+  const dateStr = pl.createdAt.toLocaleDateString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text(`Date: ${dateStr}`, 50, 190, { align: 'center', width: pageWidth });
+}
+
+function drawPLShipmentInfo(doc: PDFKit.PDFDocument, pl: PackingListData): void {
+  const startY = 220;
+  const leftCol = 50;
+  const rightCol = 320;
+
+  // Ship To section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('SHIP TO', leftCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(pl.customerName, leftCol, startY + 18);
+
+  // Shipment Details section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('SHIPMENT DETAILS', rightCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(9);
+
+  let infoY = startY + 18;
+  doc.font(FONTS.bold).text(`Order: ${pl.orderNumber}`, rightCol, infoY);
+  infoY += 14;
+
+  if (pl.deliveryNoteNumber) {
+    doc.font(FONTS.regular).text(`Delivery Note: ${pl.deliveryNoteNumber}`, rightCol, infoY);
+    infoY += 14;
+  }
+
+  const locationLabel = pl.location === 'JHB' ? 'Johannesburg' : 'Cape Town';
+  doc.font(FONTS.regular).text(`Warehouse: ${locationLabel}`, rightCol, infoY);
+}
+
+function drawPLDetailsBox(doc: PDFKit.PDFDocument, pl: PackingListData): void {
+  const startY = 290;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  doc.rect(50, startY, pageWidth, 40)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  const col1 = 60;
+  const col2 = 200;
+  const col3 = 340;
+  const col4 = 440;
+  const textY = startY + 8;
+
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text('PL Number', col1, textY)
+    .text('Order Number', col2, textY)
+    .text('Status', col3, textY)
+    .text('Packages', col4, textY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(pl.packingListNumber, col1, textY + 14)
+    .text(pl.orderNumber, col2, textY + 14)
+    .text(formatStatus(pl.status), col3, textY + 14)
+    .text(pl.packages.length.toString(), col4, textY + 14);
+}
+
+function drawPLPackageSummary(doc: PDFKit.PDFDocument, pl: PackingListData): number {
+  const startY = 350;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Section title
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('PACKAGE SUMMARY', 50, startY);
+
+  // Table header
+  const headerY = startY + 18;
+  doc.rect(50, headerY, pageWidth, 20).fill(COLORS.primary);
+
+  const cols = {
+    pkg: 55,
+    type: 95,
+    dimensions: 180,
+    gross: 360,
+    net: 430,
+    notes: 490,
+  };
+
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(8)
+    .text('Pkg#', cols.pkg, headerY + 5)
+    .text('Type', cols.type, headerY + 5)
+    .text('Dimensions (L x W x H cm)', cols.dimensions, headerY + 5)
+    .text('Gross (kg)', cols.gross, headerY + 5)
+    .text('Net (kg)', cols.net, headerY + 5)
+    .text('Notes', cols.notes, headerY + 5);
+
+  let rowY = headerY + 20;
+  const rowHeight = 20;
+
+  pl.packages.forEach((pkg, index) => {
+    if (index % 2 === 0) {
+      doc.rect(50, rowY, pageWidth, rowHeight).fill(COLORS.lightGray);
+    }
+    doc.rect(50, rowY, pageWidth, rowHeight).stroke(COLORS.mediumGray);
+
+    const dims = (pkg.length != null && pkg.width != null && pkg.height != null)
+      ? `${pkg.length} x ${pkg.width} x ${pkg.height}`
+      : '-';
+
+    doc.fillColor(COLORS.text)
+      .font(FONTS.regular)
+      .fontSize(8)
+      .text(pkg.packageNumber.toString(), cols.pkg, rowY + 5)
+      .text(pkg.packageType, cols.type, rowY + 5)
+      .text(dims, cols.dimensions, rowY + 5)
+      .text(pkg.grossWeight != null ? pkg.grossWeight.toFixed(2) : '-', cols.gross, rowY + 5)
+      .text(pkg.netWeight != null ? pkg.netWeight.toFixed(2) : '-', cols.net, rowY + 5)
+      .text(truncateText(pkg.notes || '', 15), cols.notes, rowY + 5);
+
+    rowY += rowHeight;
+  });
+
+  return rowY + 15;
+}
+
+function drawPLLineItems(doc: PDFKit.PDFDocument, pl: PackingListData, startAfterY: number): number {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Group lines by package number
+  const linesByPackage = new Map<number, typeof pl.lines>();
+  for (const line of pl.lines) {
+    const existing = linesByPackage.get(line.packageNumber) || [];
+    existing.push(line);
+    linesByPackage.set(line.packageNumber, existing);
+  }
+
+  let currentY = startAfterY;
+
+  // Section title
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('ITEMS BY PACKAGE', 50, currentY);
+  currentY += 18;
+
+  const cols = {
+    line: 55,
+    sku: 80,
+    description: 180,
+    qty: 420,
+    uom: 470,
+  };
+
+  // Sort packages by package number
+  const sortedPackageNumbers = [...linesByPackage.keys()].sort((a, b) => a - b);
+
+  for (const pkgNum of sortedPackageNumbers) {
+    const lines = linesByPackage.get(pkgNum) || [];
+    const pkg = pl.packages.find((p) => p.packageNumber === pkgNum);
+
+    // Check for new page
+    if (currentY > doc.page.height - 150) {
+      doc.addPage();
+      currentY = 50;
+    }
+
+    // Package subheader
+    const pkgLabel = pkg ? `Package ${pkgNum} — ${pkg.packageType}` : `Package ${pkgNum}`;
+    doc.rect(50, currentY, pageWidth, 20).fill('#e0f2fe');
+    doc.fillColor(COLORS.primary)
+      .font(FONTS.bold)
+      .fontSize(9)
+      .text(pkgLabel, 55, currentY + 5);
+    currentY += 20;
+
+    // Column headers
+    doc.rect(50, currentY, pageWidth, 18).fill(COLORS.primary);
+    doc.fillColor('white')
+      .font(FONTS.bold)
+      .fontSize(8)
+      .text('#', cols.line, currentY + 4)
+      .text('SKU', cols.sku, currentY + 4)
+      .text('Description', cols.description, currentY + 4)
+      .text('Qty', cols.qty, currentY + 4)
+      .text('UoM', cols.uom, currentY + 4);
+    currentY += 18;
+
+    // Lines
+    lines.forEach((line, index) => {
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      if (index % 2 === 0) {
+        doc.rect(50, currentY, pageWidth, 20).fill(COLORS.lightGray);
+      }
+      doc.rect(50, currentY, pageWidth, 20).stroke(COLORS.mediumGray);
+
+      doc.fillColor(COLORS.text)
+        .font(FONTS.regular)
+        .fontSize(8)
+        .text(line.lineNumber.toString(), cols.line, currentY + 5)
+        .text(truncateText(line.productSku, 15), cols.sku, currentY + 5)
+        .text(truncateText(line.productDescription, 38), cols.description, currentY + 5)
+        .text(line.quantity.toString(), cols.qty, currentY + 5)
+        .text(line.unitOfMeasure, cols.uom, currentY + 5);
+
+      currentY += 20;
+    });
+
+    currentY += 8;
+  }
+
+  return currentY;
+}
+
+function drawPLTotals(doc: PDFKit.PDFDocument, pl: PackingListData, afterItemsY: number): void {
+  let startY = afterItemsY + 5;
+
+  if (startY > doc.page.height - 120) {
+    doc.addPage();
+    startY = 50;
+  }
+
+  const totalGross = pl.packages.reduce((sum, p) => sum + (p.grossWeight ?? 0), 0);
+  const totalNet = pl.packages.reduce((sum, p) => sum + (p.netWeight ?? 0), 0);
+  const totalItems = pl.lines.reduce((sum, l) => sum + l.quantity, 0);
+
+  doc.rect(50, startY, 250, 55)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(9)
+    .text(`Total Packages: ${pl.packages.length}`, 60, startY + 8)
+    .text(`Total Items: ${totalItems}`, 60, startY + 22)
+    .text(`Total Gross Weight: ${totalGross.toFixed(2)} kg`, 60, startY + 36);
+
+  doc.text(`Total Net Weight: ${totalNet.toFixed(2)} kg`, 180, startY + 36);
+}
+
+function drawPLHandlingInstructions(doc: PDFKit.PDFDocument, pl: PackingListData): void {
+  if (!pl.handlingInstructions) return;
+
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const startY = doc.y + 20;
+
+  if (startY > doc.page.height - 100) {
+    doc.addPage();
+  }
+
+  const y = startY > doc.page.height - 100 ? 50 : startY;
+
+  doc.rect(50, y, pageWidth, 40)
+    .fillAndStroke('#fff8e1', '#e6c200');
+
+  doc.fillColor('#856404')
+    .font(FONTS.bold)
+    .fontSize(9)
+    .text('HANDLING INSTRUCTIONS', 60, y + 5);
+
+  doc.font(FONTS.regular)
+    .fontSize(8)
+    .text(pl.handlingInstructions, 60, y + 18, { width: pageWidth - 20 });
+}
+
+function drawPLFooter(doc: PDFKit.PDFDocument): void {
   const pageHeight = doc.page.height;
   const footerY = pageHeight - 60;
 

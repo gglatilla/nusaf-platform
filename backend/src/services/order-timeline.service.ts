@@ -27,6 +27,8 @@ export type TimelineEventType =
   | 'DELIVERY_NOTE_DISPATCHED'
   | 'DELIVERY_NOTE_DELIVERED'
   | 'PROFORMA_INVOICE_CREATED'
+  | 'PACKING_LIST_CREATED'
+  | 'PACKING_LIST_FINALIZED'
   | 'FULFILLMENT_PLAN_EXECUTED';
 
 export interface TimelineEvent {
@@ -75,7 +77,7 @@ export async function getOrderTimeline(
   }
 
   // Phase 1: Fetch all related documents in parallel
-  const [pickingSlips, jobCards, transferRequests, deliveryNotes, proformaInvoices] = await Promise.all([
+  const [pickingSlips, jobCards, transferRequests, deliveryNotes, proformaInvoices, packingLists] = await Promise.all([
     prisma.pickingSlip.findMany({
       where: { orderId, companyId },
       select: {
@@ -154,6 +156,19 @@ export async function getOrderTimeline(
       },
       orderBy: { createdAt: 'asc' },
     }),
+    prisma.packingList.findMany({
+      where: { orderId, companyId },
+      select: {
+        id: true,
+        packingListNumber: true,
+        status: true,
+        createdAt: true,
+        createdBy: true,
+        finalizedAt: true,
+        finalizedByName: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
   ]);
 
   // Phase 2: Resolve user names from all createdBy IDs
@@ -166,6 +181,7 @@ export async function getOrderTimeline(
     ...transferRequests.map((tr) => tr.createdBy),
     ...deliveryNotes.map((dn) => dn.createdBy),
     ...proformaInvoices.map((pi) => pi.createdBy),
+    ...packingLists.map((pl) => pl.createdBy),
   ].filter((id): id is string => id !== null && id !== undefined);
 
   const uniqueUserIds = [...new Set(allUserIds)];
@@ -485,6 +501,35 @@ export async function getOrderTimeline(
       documentId: pi.id,
       documentNumber: pi.proformaNumber,
     });
+  }
+
+  // --- Packing list events ---
+  for (const pl of packingLists) {
+    events.push({
+      id: `pl-created-${pl.id}`,
+      timestamp: pl.createdAt.toISOString(),
+      type: 'PACKING_LIST_CREATED',
+      title: `Packing list created`,
+      description: pl.packingListNumber,
+      actor: getUserName(pl.createdBy),
+      documentType: 'PackingList',
+      documentId: pl.id,
+      documentNumber: pl.packingListNumber,
+    });
+
+    if (pl.finalizedAt) {
+      events.push({
+        id: `pl-finalized-${pl.id}`,
+        timestamp: pl.finalizedAt.toISOString(),
+        type: 'PACKING_LIST_FINALIZED',
+        title: `Packing list finalized`,
+        description: pl.packingListNumber,
+        actor: pl.finalizedByName,
+        documentType: 'PackingList',
+        documentId: pl.id,
+        documentNumber: pl.packingListNumber,
+      });
+    }
   }
 
   // Sort all events chronologically (newest first for display)

@@ -16,7 +16,8 @@ import { useOrder } from '@/hooks/useOrders';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
-import { ProformaInvoicesSection, ReturnAuthorizationsSection } from '@/components/orders/order-detail';
+import { usePackingListsForOrder } from '@/hooks/usePackingLists';
+import { ProformaInvoicesSection, ReturnAuthorizationsSection, PackingListsSection } from '@/components/orders/order-detail';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -59,6 +60,7 @@ export default function CustomerOrderDetailPage() {
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
+  const { data: packingLists } = usePackingListsForOrder(orderId);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -193,6 +195,12 @@ export default function CustomerOrderDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Packing Lists (finalized only for customers) */}
+          <PackingListsSection
+            packingLists={packingLists ?? []}
+            isCustomer={true}
+          />
 
           {/* Proforma Invoices */}
           <ProformaInvoicesSection

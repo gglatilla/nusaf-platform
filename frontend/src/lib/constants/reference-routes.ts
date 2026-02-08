@@ -14,6 +14,7 @@ export const REFERENCE_TYPE_ROUTES: Record<string, string> = {
   ProformaInvoice: '/orders',
   PurchaseRequisition: '/purchase-requisitions',
   ReturnAuthorization: '/return-authorizations',
+  PackingList: '/packing-lists',
 };
 
 /**

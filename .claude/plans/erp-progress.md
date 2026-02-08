@@ -1,13 +1,86 @@
 # ERP Remediation Progress Tracker
 
-## Current Phase: Phase 5 — Missing ERP Documents
-## Current Micro-Task: 5.4 — COMPLETE (Return Authorization)
-## Status: Phase 5.4 complete, next is 5.5 (Packing List)
-## Next Micro-Task: 5.5 — Packing List generation
+## Current Phase: Phase 5 — Missing ERP Documents — COMPLETE
+## Current Micro-Task: 5.5 — COMPLETE (Packing List)
+## Status: Phase 5 COMPLETE. All 5 ERP documents built. Next is Phase 6 (Reports & Analytics)
+## Next Micro-Task: 6.1 — Sales reports
 
 ---
 
 ## Last Session Notes
+### Session 14 — Phase 5 Micro-Task 5.5 (2026-02-08)
+**Micro-task 5.5 — Packing List Generation (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**5.5.1 — Schema + Validation + Service (Backend)**
+- Added `PackingListStatus` enum (DRAFT, FINALIZED, CANCELLED), `PackageType` enum (BOX, PALLET, CRATE, ENVELOPE, TUBE, OTHER)
+- Added `PackingList`, `PackingListLine`, `PackingListPackage`, `PackingListCounter` models to Prisma schema
+- Created `validation/packing-lists.ts` with Zod schemas (create with line→package cross-validation refinement, list query)
+- Created `packing-list.service.ts` with: generate number (PL-YYYY-NNNNN), create from order, get/list/for-order, update draft, finalize, cancel
+
+**5.5.2 — PDF Generation + API Routes**
+- Added `generatePackingListPDF()` to pdf.service.ts (A4, teal branding, package summary table, items grouped by package, weight totals, handling instructions)
+- Created 8 endpoints in `packing-lists/route.ts` (GET list, GET for-order, GET pdf, GET detail, POST create, PUT update, POST finalize, POST cancel)
+- Customer field stripping on GET /:id (strips notes, createdBy, finalizedBy, handlingInstructions)
+- Registered route in `index.ts`
+- Added PACKING_LIST_CREATED and PACKING_LIST_FINALIZED timeline events to order-timeline.service.ts
+
+**5.5.3 — Frontend Types + API Methods + Hooks**
+- Added ~15 types to api.ts (PackingListStatus, PackageType, PackingList, PackingListLine, PackingListPackage, etc.)
+- Added 8 API methods to ApiClient class (including blob download for PDF)
+- Created `usePackingLists.ts` with 8 hooks
+- Added `PackingList: '/packing-lists'` to reference-routes.ts
+
+**5.5.4 — Frontend Staff Pages (List + Detail + Create + Edit)**
+- Created `PackingListStatusBadge` component (DRAFT slate, FINALIZED green, CANCELLED red)
+- Added "Packing Lists" to `mainNavigation` (Boxes icon, ADMIN/MANAGER/SALES/WAREHOUSE)
+- List page: status tabs, location filter, table (PL#, Order#, Customer, Location, Packages, Items, Status, Created)
+- Detail page: pipeline steps (Draft→Finalized), shipment info grid, package cards (type/dimensions/weight), items grouped by package, handling instructions (amber), notes, sidebar audit trail, action buttons (Edit/Finalize/Download PDF/Cancel)
+- Create page: order selection, package definition (add/remove, type/dimensions/weight), line item assignment (from order, assign to packages), handling instructions, notes, summary sidebar
+- Edit page: pre-populated from existing data, same form as create, DRAFT only guard
+
+**5.5.5 — Order Detail Integration + Customer Access**
+- Created `PackingListsSection` component with PDF download for FINALIZED packing lists
+- Exported from `order-detail/index.ts` barrel
+- Staff order detail: added PackingListsSection + "Packing List" button (cyan, Boxes icon) when READY_TO_SHIP/PARTIALLY_SHIPPED/SHIPPED
+- Customer order detail: shows only FINALIZED packing lists with PDF download
+
+**Golden Rules Verification:**
+- Rule 1: N/A (informational document, no stock changes)
+- Rule 2: PASS (orderId + optional deliveryNoteId linked)
+- Rule 3: PASS (detail at /[id], create at /new, edit at /[id]/edit)
+- Rule 4: PASS (customers only see FINALIZED; notes, createdBy, finalizedBy, handlingInstructions stripped)
+- Rule 5: PASS (staff sees all fields, linked docs, packages, weights, audit)
+- Rule 6: N/A (no order status change)
+- Rule 7: PASS (forms load data, refs clickable, timeline events)
+- Rule 8: PASS (warehouse creates, sales views, customer downloads PDF, manager cancels)
+
+**Files created (10):**
+- `backend/src/utils/validation/packing-lists.ts`
+- `backend/src/services/packing-list.service.ts`
+- `backend/src/api/v1/packing-lists/route.ts`
+- `frontend/src/hooks/usePackingLists.ts`
+- `frontend/src/components/packing-lists/PackingListStatusBadge.tsx`
+- `frontend/src/components/orders/order-detail/PackingListsSection.tsx`
+- `frontend/src/app/(portal)/packing-lists/page.tsx`
+- `frontend/src/app/(portal)/packing-lists/[id]/page.tsx`
+- `frontend/src/app/(portal)/packing-lists/new/page.tsx`
+- `frontend/src/app/(portal)/packing-lists/[id]/edit/page.tsx`
+
+**Files modified (10):**
+- `backend/prisma/schema.prisma` — added 2 enums, 4 models
+- `backend/src/index.ts` — registered packing-lists route
+- `backend/src/services/pdf.service.ts` — added generatePackingListPDF()
+- `backend/src/services/order-timeline.service.ts` — added PL event types + queries
+- `frontend/src/lib/api.ts` — added ~15 types + 8 API methods
+- `frontend/src/lib/navigation.ts` — added Packing Lists nav item
+- `frontend/src/lib/constants/reference-routes.ts` — added PackingList entry
+- `frontend/src/components/orders/order-detail/index.ts` — exported PackingListsSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — added PL section + "Packing List" button
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — added PL section (customer view)
+
 ### Session 13 — Phase 5 Micro-Task 5.4 (2026-02-07)
 **Micro-task 5.4 — Return Authorization Process (all 5 sub-tasks)**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -1069,7 +1142,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 5.2 — Build Proforma Invoice generation from Sales Order ✅
 - [x] 5.3 — Build Purchase Requisition workflow ✅
 - [x] 5.4 — Build Return Authorization process ✅
-- [ ] 5.5 — Build Packing List generation
+- [x] 5.5 — Build Packing List generation ✅
 
 ## Phase 6: Reports & Analytics
 - [ ] 6.1 — Sales reports (by customer, product, category, conversion rate)

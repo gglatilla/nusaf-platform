@@ -2084,3 +2084,110 @@ model ReturnAuthorizationCounter {
 
   @@map("return_authorization_counter")
 }
+
+// ============================================
+// PACKING LIST
+// ============================================
+
+enum PackingListStatus {
+  DRAFT
+  FINALIZED
+  CANCELLED
+}
+
+enum PackageType {
+  BOX
+  PALLET
+  CRATE
+  ENVELOPE
+  TUBE
+  OTHER
+}
+
+model PackingList {
+  id                 String            @id @default(cuid())
+  packingListNumber  String            @unique @map("packing_list_number")
+  companyId          String            @map("company_id")
+  orderId            String            @map("order_id")
+  orderNumber        String            @map("order_number")
+  deliveryNoteId     String?           @map("delivery_note_id")
+  deliveryNoteNumber String?           @map("delivery_note_number")
+  customerName       String            @map("customer_name")
+  location           Warehouse
+  status             PackingListStatus @default(DRAFT)
+
+  // Finalization
+  finalizedAt     DateTime? @map("finalized_at")
+  finalizedBy     String?   @map("finalized_by")
+  finalizedByName String?   @map("finalized_by_name")
+
+  // Special handling
+  handlingInstructions String? @map("handling_instructions")
+  notes                String?
+
+  // Relations
+  lines    PackingListLine[]
+  packages PackingListPackage[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([deliveryNoteId])
+  @@index([status])
+  @@map("packing_lists")
+}
+
+model PackingListLine {
+  id            String      @id @default(cuid())
+  packingListId String      @map("packing_list_id")
+  packingList   PackingList @relation(fields: [packingListId], references: [id], onDelete: Cascade)
+  lineNumber    Int         @map("line_number")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Quantity + package assignment
+  quantity      Int
+  packageNumber Int @map("package_number")
+
+  @@index([packingListId])
+  @@map("packing_list_lines")
+}
+
+model PackingListPackage {
+  id            String      @id @default(cuid())
+  packingListId String      @map("packing_list_id")
+  packingList   PackingList @relation(fields: [packingListId], references: [id], onDelete: Cascade)
+  packageNumber Int         @map("package_number")
+  packageType   PackageType @default(BOX) @map("package_type")
+
+  // Dimensions (cm)
+  length Decimal? @db.Decimal(10, 2)
+  width  Decimal? @db.Decimal(10, 2)
+  height Decimal? @db.Decimal(10, 2)
+
+  // Weight (kg)
+  grossWeight Decimal? @map("gross_weight") @db.Decimal(10, 2)
+  netWeight   Decimal? @map("net_weight") @db.Decimal(10, 2)
+
+  notes String?
+
+  @@unique([packingListId, packageNumber])
+  @@index([packingListId])
+  @@map("packing_list_packages")
+}
+
+model PackingListCounter {
+  id    String @id @default("pl_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("packing_list_counter")
+}
