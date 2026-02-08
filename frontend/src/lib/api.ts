@@ -1628,6 +1628,150 @@ export interface CreatePurchaseRequisitionData {
   lines: CreatePurchaseRequisitionLineInput[];
 }
 
+// ============================================
+// RETURN AUTHORIZATION TYPES
+// ============================================
+
+export type ReturnAuthorizationStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'ITEMS_RECEIVED' | 'COMPLETED' | 'CANCELLED';
+export type ReturnReason = 'DEFECTIVE' | 'DAMAGED_IN_TRANSIT' | 'WRONG_ITEM' | 'NOT_AS_DESCRIBED' | 'NO_LONGER_NEEDED' | 'OTHER';
+export type ReturnResolution = 'RESTOCK' | 'SCRAP' | 'REPLACE';
+
+export interface ReturnAuthorizationLine {
+  id: string;
+  lineNumber: number;
+  orderLineId: string | null;
+  deliveryNoteLineId: string | null;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantityReturned: number;
+  quantityReceived: number;
+  returnReason: ReturnReason;
+  reasonNotes: string | null;
+  resolution: ReturnResolution | null;
+}
+
+export interface ReturnAuthorization {
+  id: string;
+  raNumber: string;
+  companyId: string;
+  status: ReturnAuthorizationStatus;
+  orderId: string | null;
+  orderNumber: string | null;
+  deliveryNoteId: string | null;
+  deliveryNoteNumber: string | null;
+  customerName: string;
+  requestedBy: string;
+  requestedByName: string;
+  requestedByRole: string;
+  warehouse: string;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  approvedByName: string | null;
+  rejectedAt: string | null;
+  rejectedBy: string | null;
+  rejectionReason: string | null;
+  itemsReceivedAt: string | null;
+  itemsReceivedBy: string | null;
+  itemsReceivedByName: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  completedByName: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  notes: string | null;
+  lines: ReturnAuthorizationLine[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReturnAuthorizationListItem {
+  id: string;
+  raNumber: string;
+  orderNumber: string | null;
+  orderId: string | null;
+  deliveryNoteNumber: string | null;
+  deliveryNoteId: string | null;
+  customerName: string;
+  status: ReturnAuthorizationStatus;
+  requestedByName: string;
+  requestedByRole: string;
+  lineCount: number;
+  totalQuantityReturned: number;
+  warehouse: string;
+  createdAt: string;
+}
+
+export interface ReturnAuthorizationsListResponse {
+  returnAuthorizations: ReturnAuthorizationListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export interface ReturnAuthorizationsQueryParams {
+  orderId?: string;
+  deliveryNoteId?: string;
+  status?: ReturnAuthorizationStatus;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateReturnAuthorizationLineInput {
+  orderLineId?: string;
+  deliveryNoteLineId?: string;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantityReturned: number;
+  returnReason: ReturnReason;
+  reasonNotes?: string;
+}
+
+export interface CreateReturnAuthorizationData {
+  orderId?: string;
+  deliveryNoteId?: string;
+  orderNumber?: string;
+  deliveryNoteNumber?: string;
+  customerName?: string;
+  warehouse?: string;
+  notes?: string;
+  lines: CreateReturnAuthorizationLineInput[];
+}
+
+export interface ReceiveReturnItemLineInput {
+  lineId: string;
+  quantityReceived: number;
+}
+
+export interface ReceiveReturnItemsData {
+  lines: ReceiveReturnItemLineInput[];
+}
+
+export interface CompleteReturnLineInput {
+  lineId: string;
+  resolution: ReturnResolution;
+}
+
+export interface CompleteReturnAuthorizationData {
+  lines: CompleteReturnLineInput[];
+}
+
+export interface OrderReturnAuthorizationSummary {
+  id: string;
+  raNumber: string;
+  status: ReturnAuthorizationStatus;
+  lineCount: number;
+  totalQuantityReturned: number;
+  createdAt: string;
+}
+
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
@@ -4130,6 +4274,70 @@ class ApiClient {
 
   async cancelPurchaseRequisition(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/purchase-requisitions/${id}/cancel`, {
+      method: 'POST',
+    });
+  }
+
+  // ============================================
+  // RETURN AUTHORIZATION METHODS
+  // ============================================
+
+  async getReturnAuthorizations(params: ReturnAuthorizationsQueryParams = {}): Promise<ApiResponse<ReturnAuthorizationsListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.orderId) searchParams.set('orderId', params.orderId);
+    if (params.deliveryNoteId) searchParams.set('deliveryNoteId', params.deliveryNoteId);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+    const qs = searchParams.toString();
+    return this.request<ApiResponse<ReturnAuthorizationsListResponse>>(`/return-authorizations${qs ? `?${qs}` : ''}`);
+  }
+
+  async getReturnAuthorizationById(id: string): Promise<ApiResponse<ReturnAuthorization>> {
+    return this.request<ApiResponse<ReturnAuthorization>>(`/return-authorizations/${id}`);
+  }
+
+  async getReturnAuthorizationsForOrder(orderId: string): Promise<ApiResponse<OrderReturnAuthorizationSummary[]>> {
+    return this.request<ApiResponse<OrderReturnAuthorizationSummary[]>>(`/return-authorizations/order/${orderId}`);
+  }
+
+  async createReturnAuthorization(data: CreateReturnAuthorizationData): Promise<ApiResponse<ReturnAuthorization>> {
+    return this.request<ApiResponse<ReturnAuthorization>>('/return-authorizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async approveReturnAuthorization(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/approve`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectReturnAuthorization(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async receiveReturnItems(id: string, data: ReceiveReturnItemsData): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/receive-items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async completeReturnAuthorization(id: string, data: CompleteReturnAuthorizationData): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async cancelReturnAuthorization(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/return-authorizations/${id}/cancel`, {
       method: 'POST',
     });
   }

@@ -3,6 +3,7 @@ import {
   Package,
   FileText,
   ShoppingCart,
+  RotateCcw,
   User,
   type LucideIcon,
 } from 'lucide-react';
@@ -21,5 +22,6 @@ export const customerNavigation: CustomerNavItem[] = [
   { name: 'Products', href: '/my/products', icon: Package },
   { name: 'Quotes', href: '/my/quotes', icon: FileText },
   { name: 'Orders', href: '/my/orders', icon: ShoppingCart },
+  { name: 'Returns', href: '/my/returns', icon: RotateCcw },
   { name: 'Account', href: '/my/account', icon: User },
 ];

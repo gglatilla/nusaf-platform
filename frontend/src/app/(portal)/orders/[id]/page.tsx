@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt } from 'lucide-react';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw } from 'lucide-react';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
 import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/useProformaInvoices';
+import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -22,6 +23,7 @@ import {
   TransferRequestsSection,
   DeliveryNotesSection,
   ProformaInvoicesSection,
+  ReturnAuthorizationsSection,
   OrderNotesSection,
   OrderTimelineSection,
 } from '@/components/orders/order-detail';
@@ -75,6 +77,7 @@ export default function OrderDetailPage() {
   const { data: transferRequests } = useTransferRequestsForOrder(orderId);
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
+  const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
@@ -119,6 +122,7 @@ export default function OrderDetailPage() {
   const canGenerateFulfillmentPlan = order.status === 'CONFIRMED';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
+  const canRequestReturn = ['SHIPPED', 'DELIVERED'].includes(order.status);
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -283,6 +287,15 @@ export default function OrderDetailPage() {
               {createDeliveryNote.isPending ? 'Creating...' : 'Delivery Note'}
             </button>
           )}
+          {canRequestReturn && (
+            <Link
+              href={`/return-authorizations/new?orderId=${orderId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Request Return
+            </Link>
+          )}
           {canConfirm && (
             <button
               onClick={handleConfirm}
@@ -370,6 +383,7 @@ export default function OrderDetailPage() {
             proformaInvoices={proformaInvoices ?? []}
             canVoid={true}
           />
+          <ReturnAuthorizationsSection returnAuthorizations={returnAuthorizations ?? []} />
 
           {/* Notes */}
           <OrderNotesSection

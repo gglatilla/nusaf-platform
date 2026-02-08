@@ -609,6 +609,7 @@ enum StockMovementType {
   ADJUSTMENT_IN     // Manual correction (positive)
   ADJUSTMENT_OUT    // Manual correction (negative)
   SCRAP             // Damaged/scrapped goods
+  RETURN            // Goods returned by customer
 }
 
 enum StockAdjustmentReason {
@@ -1954,4 +1955,132 @@ model PurchaseRequisitionCounter {
   count Int    @default(0)
 
   @@map("purchase_requisition_counter")
+}
+
+// ============================================
+// RETURN AUTHORIZATIONS
+// ============================================
+
+enum ReturnAuthorizationStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  ITEMS_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  DAMAGED_IN_TRANSIT
+  WRONG_ITEM
+  NOT_AS_DESCRIBED
+  NO_LONGER_NEEDED
+  OTHER
+}
+
+enum ReturnResolution {
+  RESTOCK
+  SCRAP
+  REPLACE
+}
+
+model ReturnAuthorization {
+  id        String                    @id @default(cuid())
+  raNumber  String                    @unique @map("ra_number")
+  companyId String                    @map("company_id")
+  status    ReturnAuthorizationStatus @default(REQUESTED)
+
+  // Parent document links (at least one required — enforced in validation)
+  orderId            String?  @map("order_id")
+  orderNumber        String?  @map("order_number")
+  deliveryNoteId     String?  @map("delivery_note_id")
+  deliveryNoteNumber String?  @map("delivery_note_number")
+  customerName       String   @map("customer_name")
+
+  // Requester info
+  requestedBy     String @map("requested_by")
+  requestedByName String @map("requested_by_name")
+  requestedByRole String @map("requested_by_role")
+
+  // Receiving warehouse
+  warehouse Warehouse @default(JHB)
+
+  // Approval
+  approvedAt     DateTime? @map("approved_at")
+  approvedBy     String?   @map("approved_by")
+  approvedByName String?   @map("approved_by_name")
+
+  // Rejection
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectedBy      String?   @map("rejected_by")
+  rejectionReason String?   @map("rejection_reason")
+
+  // Items received
+  itemsReceivedAt     DateTime? @map("items_received_at")
+  itemsReceivedBy     String?   @map("items_received_by")
+  itemsReceivedByName String?   @map("items_received_by_name")
+
+  // Completion
+  completedAt     DateTime? @map("completed_at")
+  completedBy     String?   @map("completed_by")
+  completedByName String?   @map("completed_by_name")
+
+  // Cancellation
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  notes String?
+
+  // Relations
+  lines ReturnAuthorizationLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([deliveryNoteId])
+  @@index([status])
+  @@map("return_authorizations")
+}
+
+model ReturnAuthorizationLine {
+  id                    String              @id @default(cuid())
+  returnAuthorizationId String              @map("return_authorization_id")
+  returnAuthorization   ReturnAuthorization @relation(fields: [returnAuthorizationId], references: [id], onDelete: Cascade)
+  lineNumber            Int                 @map("line_number")
+
+  // Source document line links (optional)
+  orderLineId        String? @map("order_line_id")
+  deliveryNoteLineId String? @map("delivery_note_line_id")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Quantities
+  quantityReturned Int @map("quantity_returned")
+  quantityReceived Int @default(0) @map("quantity_received")
+
+  // Return details
+  returnReason ReturnReason @map("return_reason")
+  reasonNotes  String?      @map("reason_notes")
+
+  // Resolution (set during completion)
+  resolution ReturnResolution?
+
+  @@index([returnAuthorizationId])
+  @@map("return_authorization_lines")
+}
+
+model ReturnAuthorizationCounter {
+  id    String @id @default("ra_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("return_authorization_counter")
 }

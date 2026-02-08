@@ -13,6 +13,7 @@ export const REFERENCE_TYPE_ROUTES: Record<string, string> = {
   DeliveryNote: '/delivery-notes',
   ProformaInvoice: '/orders',
   PurchaseRequisition: '/purchase-requisitions',
+  ReturnAuthorization: '/return-authorizations',
 };
 
 /**

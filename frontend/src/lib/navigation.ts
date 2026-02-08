@@ -14,6 +14,7 @@ import {
   Truck,
   AlertTriangle,
   Archive,
+  RotateCcw,
 
   Factory,
   PackageCheck,
@@ -48,6 +49,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Picking Slips', href: '/picking-slips', icon: ClipboardList },
   { name: 'Job Cards', href: '/job-cards', icon: Wrench },
   { name: 'Delivery Notes', href: '/delivery-notes', icon: FileOutput },
+  { name: 'Returns', href: '/return-authorizations', icon: RotateCcw, roles: ['ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'] },
   { name: 'Transfers', href: '/transfer-requests', icon: Truck },
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
   { name: 'Documents', href: '/documents', icon: Archive },

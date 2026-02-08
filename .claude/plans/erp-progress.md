@@ -1,13 +1,94 @@
 # ERP Remediation Progress Tracker
 
 ## Current Phase: Phase 5 — Missing ERP Documents
-## Current Micro-Task: 5.3 — COMPLETE (Purchase Requisition)
-## Status: Phase 5.3 complete, next is 5.4 (Return Authorization)
-## Next Micro-Task: 5.4 — Return Authorization process
+## Current Micro-Task: 5.4 — COMPLETE (Return Authorization)
+## Status: Phase 5.4 complete, next is 5.5 (Packing List)
+## Next Micro-Task: 5.5 — Packing List generation
 
 ---
 
 ## Last Session Notes
+### Session 13 — Phase 5 Micro-Task 5.4 (2026-02-07)
+**Micro-task 5.4 — Return Authorization Process (all 5 sub-tasks)**
+**Result: COMPLETE — Both backend and frontend compile cleanly**
+
+**What was done:**
+
+**5.4.1 — Schema + Validation + Service (Backend)**
+- Added `RETURN` to `StockMovementType` enum
+- Added `ReturnAuthorizationStatus`, `ReturnReason`, `ReturnResolution` enums to Prisma schema
+- Added `ReturnAuthorization`, `ReturnAuthorizationLine`, `ReturnAuthorizationCounter` models
+- Created `validation/return-authorizations.ts` with Zod schemas (create with orderId/dnId refinement, reject, receive items, complete, list query)
+- Created `return-authorization.service.ts` with: generate RA number, create (auto-approve for staff), get/list/for-order, approve, reject, receive items, complete (with stock impact), cancel
+
+**5.4.2 — API Routes + Backend Registration**
+- Created 9 endpoints in `return-authorizations/route.ts` (GET list, GET for-order, GET detail, POST create, POST approve, POST reject, POST receive-items, POST complete, POST cancel)
+- Customer field stripping on GET /:id (strips notes, warehouse, staff names, rejection details)
+- Registered route in `index.ts`
+
+**5.4.3 — Frontend Types + API Methods + Hooks**
+- Added ~15 types to api.ts (ReturnAuthorizationStatus, ReturnReason, ReturnResolution, ReturnAuthorizationLine, ReturnAuthorization, etc.)
+- Added 9 API methods to ApiClient class
+- Created `useReturnAuthorizations.ts` with 9 hooks (including cache invalidation for stockLevels/stockMovements on complete)
+- Added `ReturnAuthorization: '/return-authorizations'` to reference-routes.ts
+
+**5.4.4 — Frontend Staff Pages (List + Detail + Create)**
+- Created `ReturnAuthorizationStatusBadge` component (6 status colors)
+- Added "Returns" to `mainNavigation` (RotateCcw icon, ADMIN/MANAGER/SALES/WAREHOUSE)
+- List page: status tabs, search, table with RA#/Order#/Customer/Status/Requester/Lines/Qty/Warehouse/Date
+- Detail page: pipeline steps (Requested→Approved→Items Received→Completed), status banners, info grid, lines table, sidebar with notes + audit timeline, 3 action modals (reject reason, receive per-line qty, complete per-line resolution)
+- Create page: parent document selection (order/DN), auto-populate lines, warehouse selector, per-line qty/reason/notes
+
+**5.4.5 — Customer Portal + Navigation + Integration**
+- Customer list page at `/my/returns` with status tabs, simple table
+- Customer detail page at `/my/returns/[id]` with status-specific messaging, cancel button
+- Customer create page at `/my/returns/new` with delivered order selection, item checkboxes, per-line qty/reason
+- Added "Returns" to `customerNavigation` (RotateCcw icon)
+- Created `ReturnAuthorizationsSection` component for order detail integration
+- Integrated into staff order detail: RA section + "Request Return" button (SHIPPED/DELIVERED)
+- Integrated into customer order detail: RA section + "Request Return" button (DELIVERED)
+- Exported `ReturnAuthorizationsSection` from order-detail barrel index
+
+**Stock Impact (completeReturnAuthorization):**
+- RESTOCK: `updateStockLevel(+onHand)` + `createStockMovement(RETURN)` with referenceType='ReturnAuthorization'
+- SCRAP: `createStockMovement(SCRAP)` — audit trail only, no onHand change
+- REPLACE: no movement (new DN created separately)
+
+**Golden Rules Verification:**
+- Rule 1: PASS (RESTOCK creates RETURN movement, SCRAP creates SCRAP movement)
+- Rule 2: PASS (RA links to order and/or delivery note)
+- Rule 3: PASS (detail is read-only view, create is separate form at /new)
+- Rule 4: PASS (customer sees no internal data — no notes, warehouse, staff names, rejection details)
+- Rule 5: PASS (staff sees all fields, linked docs, audit trail)
+- Rule 6: N/A (RA completion updates stock but doesn't change order status)
+- Rule 7: PASS (data loading, role-based visibility, clickable links, audit trail)
+- Rule 8: PASS (customer requests, warehouse receives, manager approves/completes, sales views)
+
+**Files created (12):**
+- `backend/src/utils/validation/return-authorizations.ts`
+- `backend/src/services/return-authorization.service.ts`
+- `backend/src/api/v1/return-authorizations/route.ts`
+- `frontend/src/hooks/useReturnAuthorizations.ts`
+- `frontend/src/components/return-authorizations/ReturnAuthorizationStatusBadge.tsx`
+- `frontend/src/components/orders/order-detail/ReturnAuthorizationsSection.tsx`
+- `frontend/src/app/(portal)/return-authorizations/page.tsx`
+- `frontend/src/app/(portal)/return-authorizations/[id]/page.tsx`
+- `frontend/src/app/(portal)/return-authorizations/new/page.tsx`
+- `frontend/src/app/(customer)/my/returns/page.tsx`
+- `frontend/src/app/(customer)/my/returns/[id]/page.tsx`
+- `frontend/src/app/(customer)/my/returns/new/page.tsx`
+
+**Files modified (9):**
+- `backend/prisma/schema.prisma` — added 3 enums, 3 models, RETURN to StockMovementType
+- `backend/src/index.ts` — registered return-authorizations route
+- `frontend/src/lib/api.ts` — added ~15 types + 9 API methods
+- `frontend/src/lib/navigation.ts` — added Returns nav item (staff)
+- `frontend/src/lib/customer-navigation.ts` — added Returns nav item (customer)
+- `frontend/src/lib/constants/reference-routes.ts` — added ReturnAuthorization entry
+- `frontend/src/components/orders/order-detail/index.ts` — exported ReturnAuthorizationsSection
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — added RA section + "Request Return" button
+- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — added RA section + "Request Return" button
+
 ### Session 12 — Phase 5 Micro-Task 5.3 (2026-02-07)
 **Micro-task 5.3 — Purchase Requisition Workflow (all 5 sub-tasks)**
 **Result: COMPLETE — Both backend and frontend compile cleanly**
@@ -987,7 +1068,7 @@ Created `tests/integration/stock-flows.test.ts` with Vitest mock-based tests:
 - [x] 5.1 — Build Delivery Note model + create from order ✅
 - [x] 5.2 — Build Proforma Invoice generation from Sales Order ✅
 - [x] 5.3 — Build Purchase Requisition workflow ✅
-- [ ] 5.4 — Build Return Authorization process
+- [x] 5.4 — Build Return Authorization process ✅
 - [ ] 5.5 — Build Packing List generation
 
 ## Phase 6: Reports & Analytics

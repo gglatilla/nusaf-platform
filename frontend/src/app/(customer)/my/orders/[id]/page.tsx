@@ -9,12 +9,14 @@ import {
   FileText,
   Package,
   Pause,
+  RotateCcw,
   X,
 } from 'lucide-react';
 import { useOrder } from '@/hooks/useOrders';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
-import { ProformaInvoicesSection } from '@/components/orders/order-detail';
+import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
+import { ProformaInvoicesSection, ReturnAuthorizationsSection } from '@/components/orders/order-detail';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -56,6 +58,7 @@ export default function CustomerOrderDetailPage() {
   const { data: order, isLoading, error } = useOrder(orderId);
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
+  const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -98,6 +101,16 @@ export default function CustomerOrderDetailPage() {
             </p>
           </div>
         </div>
+
+        {order.status === 'DELIVERED' && (
+          <Link
+            href={`/my/returns/new?orderId=${orderId}`}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-orange-300 text-orange-600 rounded-md hover:bg-orange-50"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Request Return
+          </Link>
+        )}
       </div>
 
       {/* Hold / Cancel Banners */}
@@ -184,6 +197,11 @@ export default function CustomerOrderDetailPage() {
           {/* Proforma Invoices */}
           <ProformaInvoicesSection
             proformaInvoices={proformaInvoices ?? []}
+            isCustomer={true}
+          />
+
+          <ReturnAuthorizationsSection
+            returnAuthorizations={returnAuthorizations ?? []}
             isCustomer={true}
           />
 
