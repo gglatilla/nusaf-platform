@@ -100,7 +100,7 @@ export interface PaginatedResult<T> {
  */
 export const PO_STATUS_TRANSITIONS: Record<PurchaseOrderStatus, PurchaseOrderStatus[]> = {
   DRAFT: ['PENDING_APPROVAL', 'SENT', 'CANCELLED'],
-  PENDING_APPROVAL: ['SENT', 'CANCELLED'], // After approval
+  PENDING_APPROVAL: ['SENT', 'DRAFT', 'CANCELLED'], // After approval or rejection (DRAFT = rejected for revision)
   SENT: ['ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
   ACKNOWLEDGED: ['PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
   PARTIALLY_RECEIVED: ['RECEIVED', 'CANCELLED'],
@@ -690,7 +690,7 @@ export async function rejectPurchaseOrder(
   await prisma.purchaseOrder.update({
     where: { id },
     data: {
-      status: 'CANCELLED',
+      status: 'DRAFT',
       rejectedAt: new Date(),
       rejectedBy: userId,
       rejectionReason: reason,
