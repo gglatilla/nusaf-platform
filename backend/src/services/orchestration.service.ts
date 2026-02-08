@@ -392,9 +392,11 @@ export async function generateFulfillmentPlan(
       return { success: false, error: 'Order must be CONFIRMED to generate fulfillment plan' };
     }
 
-    // Payment gate: order must be paid before fulfillment
-    if (order.paymentStatus !== 'PAID') {
-      return { success: false, error: 'Cannot generate fulfillment plan — payment not received. Order payment status: ' + order.paymentStatus };
+    // Payment gate: only block PREPAY/COD customers who haven't paid
+    // Account customers (NET_30/60/90) pass through — no payment check
+    const orderTerms = order.paymentTerms ?? 'NET_30';
+    if ((orderTerms === 'PREPAY' || orderTerms === 'COD') && order.paymentStatus !== 'PAID') {
+      return { success: false, error: 'Cannot generate fulfillment plan — payment not yet received for this prepay order. Payment status: ' + order.paymentStatus };
     }
 
     if (order.lines.length === 0) {
