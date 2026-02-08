@@ -57,9 +57,12 @@
 - Last updated: 2026-02-08
 - Current phase: Phase 1B
 - Next task: T10 (Tax invoice API + staff UI)
+- Last updated: 2026-02-08
 
 ## Last Session Notes
+- T1-T9 completed in single session
 - T9 completed: Tax invoice schema + service + PDF generation
-- Files created: tax-invoice.service.ts, validation/tax-invoices.ts
-- Files modified: schema.prisma (TaxInvoice, TaxInvoiceLine, TaxInvoiceCounter models + enum + SalesOrder relation), pdf.service.ts (generateTaxInvoicePDF with SARS-compliant layout), delivery-note.service.ts (auto-trigger tax invoice on DELIVERED)
+- Files created: backend/src/services/tax-invoice.service.ts, backend/src/utils/validation/tax-invoices.ts
+- Files modified: backend/prisma/schema.prisma (TaxInvoice, TaxInvoiceLine, TaxInvoiceCounter models + enum + SalesOrder relation), backend/src/services/pdf.service.ts (generateTaxInvoicePDF with SARS-compliant layout), backend/src/services/delivery-note.service.ts (auto-trigger tax invoice on DELIVERED)
 - Key decisions: Auto-generate tax invoice when order transitions to DELIVERED via delivery note confirmation; done outside transaction so failure doesn't block delivery; tax invoice creation also transitions order DELIVERED→INVOICED; one active (ISSUED) invoice per order — void first to reissue; INV-YYYY-NNNNN format; VAT at 15%; PDF shows both seller and buyer VAT numbers
+- Next session starts at T10: Tax invoice API routes + staff UI (list page, detail page, order detail section)
