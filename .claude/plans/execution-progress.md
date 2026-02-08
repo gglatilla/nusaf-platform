@@ -12,7 +12,7 @@
 - [x] T7: Payment recording schema + service + API (2026-02-08)
 - [x] T8: Payment recording UI + fulfillment gate (2026-02-08)
 - [x] T9: Tax invoice schema + service + PDF generation (2026-02-08)
-- [ ] T10: Tax invoice API + staff UI
+- [x] T10: Tax invoice API + staff UI (2026-02-08)
 - [ ] T11: Tax invoice customer portal + order lifecycle completion
 
 ## Phase 2A — Manufacturing
@@ -56,13 +56,24 @@
 - Started: 2026-02-08
 - Last updated: 2026-02-08
 - Current phase: Phase 1B
-- Next task: T10 (Tax invoice API + staff UI)
+- Next task: T11 (Tax invoice customer portal + order lifecycle completion)
 - Last updated: 2026-02-08
 
 ## Last Session Notes
-- T1-T9 completed in single session
-- T9 completed: Tax invoice schema + service + PDF generation
-- Files created: backend/src/services/tax-invoice.service.ts, backend/src/utils/validation/tax-invoices.ts
-- Files modified: backend/prisma/schema.prisma (TaxInvoice, TaxInvoiceLine, TaxInvoiceCounter models + enum + SalesOrder relation), backend/src/services/pdf.service.ts (generateTaxInvoicePDF with SARS-compliant layout), backend/src/services/delivery-note.service.ts (auto-trigger tax invoice on DELIVERED)
-- Key decisions: Auto-generate tax invoice when order transitions to DELIVERED via delivery note confirmation; done outside transaction so failure doesn't block delivery; tax invoice creation also transitions order DELIVERED→INVOICED; one active (ISSUED) invoice per order — void first to reissue; INV-YYYY-NNNNN format; VAT at 15%; PDF shows both seller and buyer VAT numbers
-- Next session starts at T10: Tax invoice API routes + staff UI (list page, detail page, order detail section)
+- T1-T10 completed
+- T10 completed: Tax invoice API routes + staff UI
+- Files created:
+  - backend/src/api/v1/tax-invoices/route.ts (API routes: list, get by order, get by ID, PDF download, create, void)
+  - frontend/src/hooks/useTaxInvoices.ts (React Query hooks)
+  - frontend/src/components/orders/order-detail/TaxInvoicesSection.tsx (order detail section)
+  - frontend/src/app/(portal)/tax-invoices/page.tsx (list page with status/search filters)
+  - frontend/src/app/(portal)/tax-invoices/[id]/page.tsx (detail page with line items, totals, void)
+- Files modified:
+  - backend/src/services/tax-invoice.service.ts (added getTaxInvoices list function with pagination/filters)
+  - backend/src/index.ts (registered tax-invoices routes)
+  - frontend/src/lib/api.ts (added TaxInvoice types + API methods)
+  - frontend/src/lib/navigation.ts (changed Invoices → Tax Invoices at /tax-invoices, staff-only)
+  - frontend/src/components/orders/order-detail/index.ts (export TaxInvoicesSection)
+  - frontend/src/app/(portal)/orders/[id]/page.tsx (added TaxInvoicesSection + Generate Tax Invoice button)
+- Key decisions: Staff list page at /tax-invoices with status/search filters; detail page shows seller+buyer info, line items, totals; void is ADMIN-only; Generate Tax Invoice button on order detail visible for DELIVERED+ orders with no active invoice; customers can see ISSUED invoices only; Golden Rule 4 applied (no internal notes/issuer info for customers)
+- Next session starts at T11: Tax invoice customer portal + order lifecycle completion

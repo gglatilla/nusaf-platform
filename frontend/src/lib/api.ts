@@ -1572,6 +1572,87 @@ export interface CreateProformaInvoiceData {
 }
 
 // ============================================
+// TAX INVOICE TYPES
+// ============================================
+
+export type TaxInvoiceStatus = 'DRAFT' | 'ISSUED' | 'VOIDED';
+
+export interface TaxInvoiceLine {
+  id: string;
+  orderLineId: string;
+  lineNumber: number;
+  productId: string;
+  productSku: string;
+  productDescription: string;
+  unitOfMeasure: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface TaxInvoice {
+  id: string;
+  invoiceNumber: string;
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerVatNumber: string | null;
+  customerRegNumber: string | null;
+  billingAddress: string | null;
+  status: TaxInvoiceStatus;
+  issueDate: string;
+  dueDate: string | null;
+  subtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  total: number;
+  pdfUrl: string | null;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  notes: string | null;
+  issuedBy: string;
+  issuedByName: string;
+  lines: TaxInvoiceLine[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaxInvoiceSummary {
+  id: string;
+  invoiceNumber: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  status: TaxInvoiceStatus;
+  issueDate: string;
+  total: number;
+  createdAt: string;
+}
+
+export interface TaxInvoicesListResponse {
+  data: TaxInvoiceSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface TaxInvoicesQueryParams {
+  status?: TaxInvoiceStatus;
+  companyId?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateTaxInvoiceData {
+  notes?: string;
+}
+
+// ============================================
 // PURCHASE REQUISITION TYPES
 // ============================================
 
@@ -4457,6 +4538,58 @@ class ApiClient {
 
   async voidProformaInvoice(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/proforma-invoices/${id}/void`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  // ============================================
+  // TAX INVOICE METHODS
+  // ============================================
+
+  async getTaxInvoices(params: TaxInvoicesQueryParams = {}): Promise<ApiResponse<TaxInvoicesListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.companyId) searchParams.set('companyId', params.companyId);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.dateFrom) searchParams.set('dateFrom', params.dateFrom);
+    if (params.dateTo) searchParams.set('dateTo', params.dateTo);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+    const qs = searchParams.toString();
+    return this.request<ApiResponse<TaxInvoicesListResponse>>(`/tax-invoices${qs ? `?${qs}` : ''}`);
+  }
+
+  async getTaxInvoicesForOrder(orderId: string): Promise<ApiResponse<TaxInvoiceSummary[]>> {
+    return this.request<ApiResponse<TaxInvoiceSummary[]>>(`/tax-invoices/order/${orderId}`);
+  }
+
+  async getTaxInvoiceById(id: string): Promise<ApiResponse<TaxInvoice>> {
+    return this.request<ApiResponse<TaxInvoice>>(`/tax-invoices/${id}`);
+  }
+
+  async createTaxInvoice(orderId: string, data: CreateTaxInvoiceData = {}): Promise<ApiResponse<{ id: string; invoiceNumber: string }>> {
+    return this.request<ApiResponse<{ id: string; invoiceNumber: string }>>(`/tax-invoices/from-order/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async downloadTaxInvoicePDF(id: string): Promise<Blob> {
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/tax-invoices/${id}/pdf`;
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new ApiError('Failed to download PDF', 'PDF_DOWNLOAD_ERROR', response.status);
+    }
+    return response.blob();
+  }
+
+  async voidTaxInvoice(id: string, reason: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/tax-invoices/${id}/void`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });

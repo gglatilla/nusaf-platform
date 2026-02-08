@@ -382,6 +382,78 @@ export async function voidTaxInvoice(
   return { success: true };
 }
 
+/**
+ * List all tax invoices with filtering and pagination
+ */
+export async function getTaxInvoices(params: {
+  status?: TaxInvoiceStatus;
+  companyId?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: TaxInvoiceSummary[]; total: number; page: number; pageSize: number }> {
+  const page = params.page || 1;
+  const pageSize = Math.min(params.pageSize || 20, 100);
+  const skip = (page - 1) * pageSize;
+
+  const where: Record<string, unknown> = {};
+
+  if (params.status) {
+    where.status = params.status;
+  }
+
+  if (params.companyId) {
+    where.companyId = params.companyId;
+  }
+
+  if (params.search) {
+    where.OR = [
+      { invoiceNumber: { contains: params.search, mode: 'insensitive' } },
+      { orderNumber: { contains: params.search, mode: 'insensitive' } },
+      { customerName: { contains: params.search, mode: 'insensitive' } },
+    ];
+  }
+
+  if (params.dateFrom || params.dateTo) {
+    where.issueDate = {};
+    if (params.dateFrom) {
+      (where.issueDate as Record<string, unknown>).gte = new Date(params.dateFrom);
+    }
+    if (params.dateTo) {
+      (where.issueDate as Record<string, unknown>).lte = new Date(params.dateTo);
+    }
+  }
+
+  const [invoices, total] = await Promise.all([
+    prisma.taxInvoice.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize,
+    }),
+    prisma.taxInvoice.count({ where }),
+  ]);
+
+  return {
+    data: invoices.map((ti) => ({
+      id: ti.id,
+      invoiceNumber: ti.invoiceNumber,
+      orderId: ti.orderId,
+      orderNumber: ti.orderNumber,
+      customerName: ti.customerName,
+      status: ti.status,
+      issueDate: ti.issueDate,
+      total: ti.total,
+      createdAt: ti.createdAt,
+    })),
+    total,
+    page,
+    pageSize,
+  };
+}
+
 // ============================================
 // HELPERS
 // ============================================

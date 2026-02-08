@@ -8,6 +8,7 @@ export { OrderNotesSection } from './OrderNotesSection';
 export { OrderTimelineSection } from './OrderTimelineSection';
 export { DeliveryNotesSection } from './DeliveryNotesSection';
 export { ProformaInvoicesSection } from './ProformaInvoicesSection';
+export { TaxInvoicesSection } from './TaxInvoicesSection';
 export { ReturnAuthorizationsSection } from './ReturnAuthorizationsSection';
 export { PackingListsSection } from './PackingListsSection';
 export { PaymentsSection } from './PaymentsSection';

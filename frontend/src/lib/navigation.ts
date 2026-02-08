@@ -56,7 +56,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Transfers', href: '/transfer-requests', icon: Truck },
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
   { name: 'Documents', href: '/documents', icon: Archive },
-  { name: 'Invoices', href: '/invoices', icon: Receipt },
+  { name: 'Tax Invoices', href: '/tax-invoices', icon: Receipt, roles: ['ADMIN', 'MANAGER', 'SALES'] },
 ];
 
 /**

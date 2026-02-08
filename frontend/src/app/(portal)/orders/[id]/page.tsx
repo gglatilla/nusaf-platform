@@ -10,6 +10,7 @@ import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
 import { useDeliveryNotesForOrder, useCreateDeliveryNote } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/useProformaInvoices';
+import { useTaxInvoicesForOrder, useCreateTaxInvoice } from '@/hooks/useTaxInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
 import { usePackingListsForOrder } from '@/hooks/usePackingLists';
 import { useOrderPayments } from '@/hooks/usePayments';
@@ -25,6 +26,7 @@ import {
   TransferRequestsSection,
   DeliveryNotesSection,
   ProformaInvoicesSection,
+  TaxInvoicesSection,
   ReturnAuthorizationsSection,
   PackingListsSection,
   PaymentsSection,
@@ -82,6 +84,7 @@ export default function OrderDetailPage() {
   const { data: transferRequests } = useTransferRequestsForOrder(orderId);
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
+  const { data: taxInvoices } = useTaxInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
   const { data: packingLists } = usePackingListsForOrder(orderId);
   const { data: payments } = useOrderPayments(orderId);
@@ -94,6 +97,7 @@ export default function OrderDetailPage() {
   const generateTransferRequest = useGenerateTransferRequest();
   const createDeliveryNote = useCreateDeliveryNote();
   const createProformaInvoice = useCreateProformaInvoice();
+  const createTaxInvoice = useCreateTaxInvoice();
 
   const [holdReason, setHoldReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -133,6 +137,8 @@ export default function OrderDetailPage() {
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
+  const hasActiveTaxInvoice = taxInvoices?.some((ti) => ti.status === 'ISSUED');
+  const canCreateTaxInvoice = ['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && !hasActiveTaxInvoice;
   const canRequestReturn = ['SHIPPED', 'DELIVERED'].includes(order.status);
 
   const handleConfirm = async () => {
@@ -213,6 +219,12 @@ export default function OrderDetailPage() {
       : 'Generate a proforma invoice for this order?';
     if (window.confirm(message)) {
       await createProformaInvoice.mutateAsync({ orderId });
+    }
+  };
+
+  const handleCreateTaxInvoice = async () => {
+    if (window.confirm('Generate a tax invoice for this order? This will transition the order to INVOICED status.')) {
+      await createTaxInvoice.mutateAsync({ orderId });
     }
   };
 
@@ -350,6 +362,16 @@ export default function OrderDetailPage() {
               Request Return
             </Link>
           )}
+          {canCreateTaxInvoice && (
+            <button
+              onClick={handleCreateTaxInvoice}
+              disabled={createTaxInvoice.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Receipt className="h-4 w-4" />
+              {createTaxInvoice.isPending ? 'Generating...' : 'Tax Invoice'}
+            </button>
+          )}
           {canConfirm && (
             <button
               onClick={handleConfirm}
@@ -436,6 +458,10 @@ export default function OrderDetailPage() {
           <PackingListsSection packingLists={packingLists ?? []} />
           <ProformaInvoicesSection
             proformaInvoices={proformaInvoices ?? []}
+            canVoid={true}
+          />
+          <TaxInvoicesSection
+            taxInvoices={taxInvoices ?? []}
             canVoid={true}
           />
           <PaymentsSection
