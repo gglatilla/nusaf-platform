@@ -1221,20 +1221,32 @@ function drawTIPartyInfo(doc: PDFKit.PDFDocument, ti: TaxInvoiceData): void {
   }
 }
 
+function formatPaymentTermsLabel(terms: string): string {
+  switch (terms) {
+    case 'NET_30': return 'Net 30 Days';
+    case 'NET_60': return 'Net 60 Days';
+    case 'NET_90': return 'Net 90 Days';
+    case 'PREPAY': return 'Prepaid';
+    case 'COD': return 'Cash on Delivery';
+    default: return 'Net 30 Days';
+  }
+}
+
 function drawTIInvoiceDetails(doc: PDFKit.PDFDocument, ti: TaxInvoiceData): void {
   const startY = 310;
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-  // Details box
-  doc.rect(50, startY, pageWidth, 40)
+  // Details box — two rows
+  doc.rect(50, startY, pageWidth, 68)
     .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
 
   const col1 = 60;
   const col2 = 180;
   const col3 = 310;
   const col4 = 440;
-  const textY = startY + 8;
+  const textY = startY + 6;
 
+  // Row 1: Invoice Number, Order Number, Issue Date, Currency
   doc.fillColor(COLORS.darkGray)
     .font(FONTS.regular)
     .fontSize(8)
@@ -1243,19 +1255,37 @@ function drawTIInvoiceDetails(doc: PDFKit.PDFDocument, ti: TaxInvoiceData): void
     .text('Issue Date', col3, textY)
     .text('Currency', col4, textY);
 
-  const dateStr = ti.issueDate.toLocaleDateString('en-ZA');
+  const issueDateStr = ti.issueDate.toLocaleDateString('en-ZA');
 
   doc.fillColor(COLORS.text)
     .font(FONTS.bold)
     .fontSize(10)
-    .text(ti.invoiceNumber, col1, textY + 14)
-    .text(ti.orderNumber, col2, textY + 14)
-    .text(dateStr, col3, textY + 14)
-    .text('ZAR', col4, textY + 14);
+    .text(ti.invoiceNumber, col1, textY + 12)
+    .text(ti.orderNumber, col2, textY + 12)
+    .text(issueDateStr, col3, textY + 12)
+    .text('ZAR', col4, textY + 12);
+
+  // Row 2: Payment Terms, Due Date
+  const row2Y = textY + 32;
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text('Payment Terms', col1, row2Y)
+    .text('Due Date', col2, row2Y);
+
+  const dueDateStr = ti.dueDate
+    ? ti.dueDate.toLocaleDateString('en-ZA')
+    : issueDateStr;
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(formatPaymentTermsLabel(ti.paymentTerms), col1, row2Y + 12)
+    .text(dueDateStr, col2, row2Y + 12);
 }
 
 function drawTILineItems(doc: PDFKit.PDFDocument, ti: TaxInvoiceData): number {
-  const startY = 370;
+  const startY = 398;
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
   // Table header
@@ -1369,7 +1399,7 @@ function drawTIBankingDetails(doc: PDFKit.PDFDocument, ti: TaxInvoiceData, total
     .text('Account Number: [Account Number]', 60, startY + 51)
     .text('Branch Code: [Branch Code]', 300, startY + 25)
     .text('Swift: [Swift Code]', 300, startY + 38)
-    .text(`Reference: ${ti.orderNumber}`, 300, startY + 51);
+    .text(`Reference: ${ti.invoiceNumber}`, 300, startY + 51);
 
   // Notes
   let afterBankY = startY + 85;

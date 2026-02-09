@@ -19,6 +19,7 @@ export interface TaxInvoiceData {
   status: TaxInvoiceStatus;
   issueDate: Date;
   dueDate: Date | null;
+  paymentTerms: string;
   subtotal: Prisma.Decimal;
   vatRate: Prisma.Decimal;
   vatAmount: Prisma.Decimal;
@@ -205,9 +206,26 @@ export async function createTaxInvoice(
 
   const invoiceNumber = await generateInvoiceNumber();
   const issueDate = new Date();
-  // Due date 30 days from issue
+
+  // Calculate due date from order's payment terms
+  const paymentTerms = order.paymentTerms ?? 'NET_30';
   const dueDate = new Date(issueDate);
-  dueDate.setDate(dueDate.getDate() + 30);
+  switch (paymentTerms) {
+    case 'NET_60':
+      dueDate.setDate(dueDate.getDate() + 60);
+      break;
+    case 'NET_90':
+      dueDate.setDate(dueDate.getDate() + 90);
+      break;
+    case 'PREPAY':
+    case 'COD':
+      // Already paid / due immediately
+      break;
+    case 'NET_30':
+    default:
+      dueDate.setDate(dueDate.getDate() + 30);
+      break;
+  }
 
   const taxInvoice = await prisma.$transaction(async (tx) => {
     // Create the tax invoice
@@ -221,6 +239,7 @@ export async function createTaxInvoice(
         customerVatNumber: order.company.vatNumber,
         customerRegNumber: order.company.registrationNumber,
         billingAddress,
+        paymentTerms,
         status: 'ISSUED',
         issueDate,
         dueDate,
@@ -468,6 +487,7 @@ function mapToTaxInvoiceData(ti: {
   customerVatNumber: string | null;
   customerRegNumber: string | null;
   billingAddress: string | null;
+  paymentTerms: string;
   status: TaxInvoiceStatus;
   issueDate: Date;
   dueDate: Date | null;
@@ -507,6 +527,7 @@ function mapToTaxInvoiceData(ti: {
     customerVatNumber: ti.customerVatNumber,
     customerRegNumber: ti.customerRegNumber,
     billingAddress: ti.billingAddress,
+    paymentTerms: ti.paymentTerms,
     status: ti.status,
     issueDate: ti.issueDate,
     dueDate: ti.dueDate,

@@ -1969,6 +1969,7 @@ model TaxInvoice {
   customerVatNumber String?        @map("customer_vat_number") // Snapshot
   customerRegNumber String?        @map("customer_reg_number") // Snapshot
   billingAddress  String?          @map("billing_address") // Snapshot from company address
+  paymentTerms    String           @default("NET_30") @map("payment_terms") // Snapshot from order
   status          TaxInvoiceStatus @default(DRAFT)
 
   // Dates

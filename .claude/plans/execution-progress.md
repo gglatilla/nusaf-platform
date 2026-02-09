@@ -16,7 +16,7 @@
 - [x] R2: Fix fulfillment gate — conditional on payment terms (2026-02-08)
 - [x] R3: Fix payment UI — conditional fulfillment gating (2026-02-08)
 - [x] R4: Fix quote acceptance — auto-fulfillment for account customers (2026-02-08)
-- [ ] R5: Fix tax invoice — payment terms due date
+- [x] R5: Fix tax invoice — payment terms due date (2026-02-09)
 
 ## Phase 1B continued — Revenue Foundation
 - [ ] T10: Tax invoice API + staff UI
@@ -66,13 +66,18 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-08
-- Current phase: Repair Phase (R1-R4 complete, next R5)
+- Current phase: Repair Phase COMPLETE, next T10
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
-## Last Session Notes (2026-02-08)
-- Completed R1: Added PaymentTerms enum, paymentTerms on Company + SalesOrder, NOT_REQUIRED on OrderPaymentStatus, createOrderFromQuote copies terms, company admin API + UI, data fix script
-- Completed R2: Changed fulfillment gate to only block PREPAY/COD (one conditional change in orchestration.service.ts)
-- Completed R3: Fixed payment UI — paymentTerms in API responses, fulfillment button gating conditional, payment status badges handle NOT_REQUIRED, context banners in PaymentsSection, customer portal shows terms not payment status for account customers
-- Completed R4: Enhanced acceptQuote() to auto-confirm order + auto-trigger fulfillment (account) or auto-generate proforma (prepay/COD). Updated API response with fulfillmentTriggered/proformaGenerated booleans. Frontend types/hooks updated.
-- Next: R5 — Fix tax invoice due date from payment terms
+## Last Session Notes (2026-02-09)
+- Completed R5: Fixed tax invoice due date calculation from payment terms
+  - Added `paymentTerms` field to TaxInvoice schema (snapshot from order)
+  - Updated `createTaxInvoice()` to calculate dueDate based on order.paymentTerms (NET_30→+30d, NET_60→+60d, NET_90→+90d, PREPAY/COD→issueDate)
+  - Added `paymentTerms` to TaxInvoiceData interface and mapToTaxInvoiceData
+  - Updated PDF `drawTIInvoiceDetails()` to show Due Date and Payment Terms in a two-row details box
+  - Changed banking details reference from order number to invoice number
+  - Updated frontend TaxInvoice type with paymentTerms field
+  - Ran prisma db push, both backend and frontend compile clean
+- Repair Phase R1-R5 now COMPLETE
+- Next: T10 — Tax invoice API + staff UI

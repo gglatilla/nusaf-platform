@@ -1602,6 +1602,7 @@ export interface TaxInvoice {
   customerVatNumber: string | null;
   customerRegNumber: string | null;
   billingAddress: string | null;
+  paymentTerms: string;
   status: TaxInvoiceStatus;
   issueDate: string;
   dueDate: string | null;
