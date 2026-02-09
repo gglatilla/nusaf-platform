@@ -29,7 +29,7 @@
 - [x] T15: BOM snapshot at job card creation + consume from snapshot (2026-02-09)
 
 ## Phase 2B — Data Integrity
-- [ ] T16: Atomic increments in updateStockLevel
+- [x] T16: Atomic increments in updateStockLevel (2026-02-09)
 - [ ] T17: Reservation cleanup on order cancel (all reference types)
 - [ ] T18: Double reservation deduplication
 - [ ] T19: Soft reservation expiry background job
@@ -66,17 +66,15 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2B, next T16
+- Current phase: Phase 2B, next T17
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T15: BOM snapshot at job card creation + consume from snapshot
-  - Added `JobCardBomLine` model (componentProductId, componentSku, componentName, quantityPerUnit, totalRequired, isOptional, sortOrder)
-  - Added `bomLines` relation on JobCard
-  - Orchestration `createJobCardFromPlan()`: snapshots BOM from plan.components at creation time
-  - Manual `createJobCard()`: calls `explodeBom()` and snapshots at creation time (non-blocking try/catch)
-  - `getJobCardById()`: uses snapshot (bomLines) if available, fetches stock levels for display; falls back to live BOM via `checkBomStock()` for old job cards
-  - `completeJobCard()`: uses snapshot (JobCardBomLine) for consumption; falls back to live BOM (bomItem) for old job cards
-  - Both frontend and backend compile with zero TypeScript errors
-- Next: T16 — Atomic increments in updateStockLevel
+- Completed T16: Atomic increments in updateStockLevel
+  - Switched from read-then-write-absolute to read-validate-then-atomic-increment
+  - Uses Prisma `{ increment: value }` / `{ decrement: value }` for atomicity
+  - Preserved negative stock prevention: read current, validate current + delta >= 0, then atomic increment
+  - Function signature unchanged — all 16+ callers work without modification
+  - Backend compiles with zero TypeScript errors
+- Next: T17 — Reservation cleanup on order cancel

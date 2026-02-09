@@ -601,7 +601,8 @@ export async function getLowStockProducts(location?: Warehouse) {
 }
 
 /**
- * Internal: Update stock level (creates if doesn't exist)
+ * Internal: Update stock level using atomic increments (creates if doesn't exist)
+ * Reads current values for validation, then uses Prisma increment/decrement for atomicity.
  */
 export async function updateStockLevel(
   tx: Prisma.TransactionClient,
@@ -635,12 +636,12 @@ export async function updateStockLevel(
     });
   }
 
+  // Validate resulting values won't go negative
   const newOnHand = stockLevel.onHand + (delta.onHand ?? 0);
   const newSoftReserved = stockLevel.softReserved + (delta.softReserved ?? 0);
   const newHardReserved = stockLevel.hardReserved + (delta.hardReserved ?? 0);
   const newOnOrder = stockLevel.onOrder + (delta.onOrder ?? 0);
 
-  // Validate no negative values
   if (newOnHand < 0) {
     throw new Error(`Cannot reduce onHand below 0 (current: ${stockLevel.onHand}, delta: ${delta.onHand})`);
   }
@@ -654,15 +655,24 @@ export async function updateStockLevel(
     throw new Error(`Cannot reduce onOrder below 0`);
   }
 
+  // Use atomic increment/decrement operations
+  const updateData: Prisma.StockLevelUpdateInput = { updatedBy: userId };
+  if (delta.onHand && delta.onHand !== 0) {
+    updateData.onHand = delta.onHand > 0 ? { increment: delta.onHand } : { decrement: -delta.onHand };
+  }
+  if (delta.softReserved && delta.softReserved !== 0) {
+    updateData.softReserved = delta.softReserved > 0 ? { increment: delta.softReserved } : { decrement: -delta.softReserved };
+  }
+  if (delta.hardReserved && delta.hardReserved !== 0) {
+    updateData.hardReserved = delta.hardReserved > 0 ? { increment: delta.hardReserved } : { decrement: -delta.hardReserved };
+  }
+  if (delta.onOrder && delta.onOrder !== 0) {
+    updateData.onOrder = delta.onOrder > 0 ? { increment: delta.onOrder } : { decrement: -delta.onOrder };
+  }
+
   await tx.stockLevel.update({
     where: { id: stockLevel.id },
-    data: {
-      onHand: newOnHand,
-      softReserved: newSoftReserved,
-      hardReserved: newHardReserved,
-      onOrder: newOnOrder,
-      updatedBy: userId,
-    },
+    data: updateData,
   });
 
   return {
