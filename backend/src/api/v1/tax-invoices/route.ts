@@ -24,7 +24,7 @@ router.use(authenticate);
  */
 router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
   try {
-    const { status, companyId, search, dateFrom, dateTo, page, pageSize } = req.query;
+    const { status, companyId, search, dateFrom, dateTo, paymentTerms, overdue, page, pageSize } = req.query;
 
     const result = await getTaxInvoices({
       status: status as string | undefined as 'ISSUED' | 'VOIDED' | 'DRAFT' | undefined,
@@ -32,6 +32,8 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
       search: search as string | undefined,
       dateFrom: dateFrom as string | undefined,
       dateTo: dateTo as string | undefined,
+      paymentTerms: paymentTerms as string | undefined,
+      overdue: overdue === 'true',
       page: page ? parseInt(page as string, 10) : undefined,
       pageSize: pageSize ? parseInt(pageSize as string, 10) : undefined,
     });

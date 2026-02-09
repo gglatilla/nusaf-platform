@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Receipt, Search, Download } from 'lucide-react';
-import { useTaxInvoices } from '@/hooks/useTaxInvoices';
-import { useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
+import { Receipt, Search, Download, AlertTriangle, Filter, X } from 'lucide-react';
+import { useTaxInvoices, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
 import { Pagination } from '@/components/products/Pagination';
 import type { TaxInvoiceStatus } from '@/lib/api';
 
@@ -15,7 +14,17 @@ const STATUS_OPTIONS: Array<{ value: TaxInvoiceStatus | 'ALL'; label: string }> 
   { value: 'VOIDED', label: 'Voided' },
 ];
 
-function formatShortDate(dateString: string): string {
+const PAYMENT_TERMS_OPTIONS = [
+  { value: '', label: 'All Terms' },
+  { value: 'PREPAY', label: 'Prepay' },
+  { value: 'COD', label: 'COD' },
+  { value: 'NET_30', label: 'Net 30' },
+  { value: 'NET_60', label: 'Net 60' },
+  { value: 'NET_90', label: 'Net 90' },
+];
+
+function formatShortDate(dateString: string | null): string {
+  if (!dateString) return '\u2014';
   return new Intl.DateTimeFormat('en-ZA', {
     year: 'numeric',
     month: 'short',
@@ -31,6 +40,22 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+function formatPaymentTerms(terms: string): string {
+  switch (terms) {
+    case 'PREPAY': return 'Prepay';
+    case 'COD': return 'COD';
+    case 'NET_30': return 'Net 30';
+    case 'NET_60': return 'Net 60';
+    case 'NET_90': return 'Net 90';
+    default: return terms;
+  }
+}
+
+function isOverdue(dueDate: string | null, status: string): boolean {
+  if (!dueDate || status !== 'ISSUED') return false;
+  return new Date(dueDate) < new Date();
+}
+
 export default function TaxInvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,13 +63,28 @@ export default function TaxInvoicesPage() {
   const statusParam = searchParams.get('status') as TaxInvoiceStatus | null;
   const searchParam = searchParams.get('search');
   const pageParam = searchParams.get('page');
+  const overdueParam = searchParams.get('overdue');
 
   const [status, setStatus] = useState<TaxInvoiceStatus | undefined>(statusParam || undefined);
   const [search, setSearch] = useState(searchParam || '');
   const [searchInput, setSearchInput] = useState(searchParam || '');
   const [page, setPage] = useState(pageParam ? parseInt(pageParam) : 1);
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [overdue, setOverdue] = useState(overdueParam === 'true');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading } = useTaxInvoices({ status, search: search || undefined, page, pageSize: 20 });
+  const { data, isLoading } = useTaxInvoices({
+    status,
+    search: search || undefined,
+    paymentTerms: paymentTerms || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    overdue: overdue || undefined,
+    page,
+    pageSize: 20,
+  });
   const download = useDownloadTaxInvoicePDF();
 
   const updateUrl = (newStatus?: TaxInvoiceStatus, newSearch?: string, newPage?: number) => {
@@ -52,6 +92,7 @@ export default function TaxInvoicesPage() {
     if (newStatus) params.set('status', newStatus);
     if (newSearch) params.set('search', newSearch);
     if (newPage && newPage > 1) params.set('page', newPage.toString());
+    if (overdue) params.set('overdue', 'true');
     const queryString = params.toString();
     router.push(queryString ? `/tax-invoices?${queryString}` : '/tax-invoices');
   };
@@ -75,6 +116,16 @@ export default function TaxInvoicesPage() {
     updateUrl(status, search || undefined, newPage);
   };
 
+  const handleClearFilters = () => {
+    setPaymentTerms('');
+    setDateFrom('');
+    setDateTo('');
+    setOverdue(false);
+    setShowFilters(false);
+  };
+
+  const hasActiveFilters = !!paymentTerms || !!dateFrom || !!dateTo || overdue;
+
   const invoices = data?.data ?? [];
   const total = data?.total ?? 0;
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 1;
@@ -92,7 +143,7 @@ export default function TaxInvoicesPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters Row */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Status Tabs */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
@@ -130,7 +181,83 @@ export default function TaxInvoicesPage() {
             Search
           </button>
         </form>
+
+        {/* Overdue Toggle */}
+        <button
+          onClick={() => { setOverdue(!overdue); setPage(1); }}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+            overdue
+              ? 'bg-red-50 border-red-200 text-red-700'
+              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Overdue
+        </button>
+
+        {/* More Filters Toggle */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+            hasActiveFilters
+              ? 'bg-primary-50 border-primary-200 text-primary-700'
+              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+          {hasActiveFilters && (
+            <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 rounded-full">!</span>
+          )}
+        </button>
       </div>
+
+      {/* Expanded Filters */}
+      {showFilters && (
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Payment Terms</label>
+              <select
+                value={paymentTerms}
+                onChange={(e) => { setPaymentTerms(e.target.value); setPage(1); }}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {PAYMENT_TERMS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Issue Date From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Issue Date To</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-slate-200">
@@ -138,7 +265,7 @@ export default function TaxInvoicesPage() {
           <div className="p-8 text-center text-slate-500 animate-pulse">Loading tax invoices...</div>
         ) : invoices.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
-            {search || status ? 'No tax invoices match your filters.' : 'No tax invoices have been created yet.'}
+            {search || status || hasActiveFilters ? 'No tax invoices match your filters.' : 'No tax invoices have been created yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -149,61 +276,85 @@ export default function TaxInvoicesPage() {
                   <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Order #</th>
                   <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Customer</th>
                   <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Issue Date</th>
+                  <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Due Date</th>
+                  <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Terms</th>
                   <th className="text-right text-xs font-medium text-slate-500 uppercase px-4 py-3">Total</th>
                   <th className="text-left text-xs font-medium text-slate-500 uppercase px-4 py-3">Status</th>
                   <th className="text-right text-xs font-medium text-slate-500 uppercase px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {invoices.map((ti) => (
-                  <tr key={ti.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/tax-invoices/${ti.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        {ti.invoiceNumber}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/orders/${ti.orderId}`}
-                        className="text-sm text-primary-600 hover:text-primary-700"
-                      >
-                        {ti.orderNumber}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-900">{ti.customerName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatShortDate(ti.issueDate)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900 text-right">
-                      {formatCurrency(ti.total)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          ti.status === 'ISSUED'
-                            ? 'bg-green-100 text-green-700'
-                            : ti.status === 'DRAFT'
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-slate-100 text-slate-500 line-through'
-                        }`}
-                      >
-                        {ti.status === 'ISSUED' ? 'Issued' : ti.status === 'DRAFT' ? 'Draft' : 'Voided'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => download.mutate({ id: ti.id, invoiceNumber: ti.invoiceNumber })}
-                        disabled={download.isPending}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 disabled:opacity-50"
-                        title="Download PDF"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        PDF
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {invoices.map((ti) => {
+                  const overdueFlag = isOverdue(ti.dueDate, ti.status);
+                  return (
+                    <tr key={ti.id} className={`hover:bg-slate-50 ${overdueFlag ? 'bg-red-50/30' : ''}`}>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/tax-invoices/${ti.id}`}
+                          className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          {ti.invoiceNumber}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/orders/${ti.orderId}`}
+                          className="text-sm text-primary-600 hover:text-primary-700"
+                        >
+                          {ti.orderNumber}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-900">{ti.customerName}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{formatShortDate(ti.issueDate)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-sm ${overdueFlag ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
+                          {formatShortDate(ti.dueDate)}
+                        </span>
+                        {overdueFlag && (
+                          <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                            Overdue
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          ti.paymentTerms === 'PREPAY' || ti.paymentTerms === 'COD'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {formatPaymentTerms(ti.paymentTerms)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-900 text-right">
+                        {formatCurrency(ti.total)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            ti.status === 'ISSUED'
+                              ? 'bg-green-100 text-green-700'
+                              : ti.status === 'DRAFT'
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-slate-100 text-slate-500 line-through'
+                          }`}
+                        >
+                          {ti.status === 'ISSUED' ? 'Issued' : ti.status === 'DRAFT' ? 'Draft' : 'Voided'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => download.mutate({ id: ti.id, invoiceNumber: ti.invoiceNumber })}
+                          disabled={download.isPending}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 disabled:opacity-50"
+                          title="Download PDF"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          PDF
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1630,6 +1630,8 @@ export interface TaxInvoiceSummary {
   customerName: string;
   status: TaxInvoiceStatus;
   issueDate: string;
+  dueDate: string | null;
+  paymentTerms: string;
   total: number;
   createdAt: string;
 }
@@ -1647,6 +1649,8 @@ export interface TaxInvoicesQueryParams {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  paymentTerms?: string;
+  overdue?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -4608,6 +4612,8 @@ class ApiClient {
     if (params.search) searchParams.set('search', params.search);
     if (params.dateFrom) searchParams.set('dateFrom', params.dateFrom);
     if (params.dateTo) searchParams.set('dateTo', params.dateTo);
+    if (params.paymentTerms) searchParams.set('paymentTerms', params.paymentTerms);
+    if (params.overdue) searchParams.set('overdue', 'true');
     if (params.page) searchParams.set('page', String(params.page));
     if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
     const qs = searchParams.toString();

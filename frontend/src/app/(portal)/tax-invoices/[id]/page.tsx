@@ -12,8 +12,13 @@ import {
   FileText,
   Receipt,
   User,
+  CreditCard,
+  AlertTriangle,
+  Truck,
 } from 'lucide-react';
 import { useTaxInvoice, useVoidTaxInvoice, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
+import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
+import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '\u2014';
@@ -30,6 +35,22 @@ function formatCurrency(amount: number): string {
     currency: 'ZAR',
     minimumFractionDigits: 2,
   }).format(amount);
+}
+
+function formatPaymentTerms(terms: string): string {
+  switch (terms) {
+    case 'PREPAY': return 'Prepaid';
+    case 'COD': return 'Cash on Delivery';
+    case 'NET_30': return 'Net 30 Days';
+    case 'NET_60': return 'Net 60 Days';
+    case 'NET_90': return 'Net 90 Days';
+    default: return terms;
+  }
+}
+
+function isOverdue(dueDate: string | null, status: string): boolean {
+  if (!dueDate || status !== 'ISSUED') return false;
+  return new Date(dueDate) < new Date();
 }
 
 function LoadingSkeleton() {
@@ -58,6 +79,10 @@ export default function TaxInvoiceDetailPage() {
   const { data: invoice, isLoading, error } = useTaxInvoice(invoiceId);
   const voidInvoice = useVoidTaxInvoice();
   const download = useDownloadTaxInvoicePDF();
+
+  // Fetch related documents once we have the invoice
+  const { data: deliveryNotes } = useDeliveryNotesForOrder(invoice?.orderId ?? null);
+  const { data: proformaInvoices } = useProformaInvoicesForOrder(invoice?.orderId ?? null);
 
   const [showVoidModal, setShowVoidModal] = useState(false);
   const [voidReason, setVoidReason] = useState('');
@@ -89,6 +114,8 @@ export default function TaxInvoiceDetailPage() {
   };
 
   const canVoid = invoice.status === 'ISSUED';
+  const overdueFlag = isOverdue(invoice.dueDate, invoice.status);
+  const isPrepay = invoice.paymentTerms === 'PREPAY' || invoice.paymentTerms === 'COD';
 
   return (
     <div className="space-y-6">
@@ -99,7 +126,7 @@ export default function TaxInvoiceDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-semibold text-slate-900">{invoice.invoiceNumber}</h1>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                 TAX INVOICE
@@ -115,9 +142,30 @@ export default function TaxInvoiceDetailPage() {
               >
                 {invoice.status === 'ISSUED' ? 'Issued' : invoice.status === 'DRAFT' ? 'Draft' : 'Voided'}
               </span>
+              {/* Payment Terms Badge */}
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  isPrepay
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {formatPaymentTerms(invoice.paymentTerms)}
+              </span>
+              {overdueFlag && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                  <AlertTriangle className="h-3 w-3" />
+                  Overdue
+                </span>
+              )}
             </div>
             <p className="text-sm text-slate-600">
               Issued on {formatDate(invoice.issueDate)}
+              {invoice.dueDate && (
+                <span className={overdueFlag ? ' text-red-600 font-medium' : ''}>
+                  {' \u00B7 '}Due {formatDate(invoice.dueDate)}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -151,6 +199,17 @@ export default function TaxInvoiceDetailPage() {
           <div>
             <p className="text-sm font-medium">Invoice Voided</p>
             <p className="text-xs">{invoice.voidReason}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Overdue warning */}
+      {overdueFlag && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-red-50 border-red-200 text-red-700">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Payment Overdue</p>
+            <p className="text-xs">This invoice was due on {formatDate(invoice.dueDate)} and has not been settled.</p>
           </div>
         </div>
       )}
@@ -283,6 +342,20 @@ export default function TaxInvoiceDetailPage() {
               </div>
 
               <div className="flex items-start gap-3">
+                <CreditCard className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                <div>
+                  <dt className="text-xs text-slate-500 uppercase">Payment Terms</dt>
+                  <dd className="text-sm">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      isPrepay ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {formatPaymentTerms(invoice.paymentTerms)}
+                    </span>
+                  </dd>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 text-slate-400 flex-shrink-0" />
                 <div>
                   <dt className="text-xs text-slate-500 uppercase">Issue Date</dt>
@@ -292,10 +365,12 @@ export default function TaxInvoiceDetailPage() {
 
               {invoice.dueDate && (
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                  <Calendar className={`h-5 w-5 flex-shrink-0 ${overdueFlag ? 'text-red-500' : 'text-slate-400'}`} />
                   <div>
                     <dt className="text-xs text-slate-500 uppercase">Due Date</dt>
-                    <dd className="text-sm text-slate-900">{formatDate(invoice.dueDate)}</dd>
+                    <dd className={`text-sm ${overdueFlag ? 'text-red-600 font-medium' : 'text-slate-900'}`}>
+                      {formatDate(invoice.dueDate)}
+                    </dd>
                   </div>
                 </div>
               )}
@@ -329,6 +404,54 @@ export default function TaxInvoiceDetailPage() {
                 <dd className="text-base font-semibold text-slate-900">{formatCurrency(invoice.total)}</dd>
               </div>
             </dl>
+          </div>
+
+          {/* Related Documents */}
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Related Documents</h2>
+            <div className="space-y-2">
+              <Link
+                href={`/orders/${invoice.orderId}`}
+                className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 py-1"
+              >
+                <FileText className="h-4 w-4" />
+                Order {invoice.orderNumber}
+              </Link>
+
+              {deliveryNotes && deliveryNotes.length > 0 && (
+                <>
+                  {deliveryNotes.map((dn) => (
+                    <Link
+                      key={dn.id}
+                      href={`/delivery-notes/${dn.id}`}
+                      className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 py-1"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Delivery Note {dn.deliveryNoteNumber}
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {proformaInvoices && proformaInvoices.length > 0 && isPrepay && (
+                <>
+                  {proformaInvoices.map((pi) => (
+                    <div
+                      key={pi.id}
+                      className="flex items-center gap-2 text-sm text-slate-700 py-1"
+                    >
+                      <Receipt className="h-4 w-4 text-slate-400" />
+                      Proforma {pi.proformaNumber}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        pi.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {pi.status === 'ACTIVE' ? 'Active' : 'Voided'}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

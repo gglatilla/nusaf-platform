@@ -57,6 +57,8 @@ export interface TaxInvoiceSummary {
   customerName: string;
   status: TaxInvoiceStatus;
   issueDate: Date;
+  dueDate: Date | null;
+  paymentTerms: string;
   total: Prisma.Decimal;
   createdAt: Date;
 }
@@ -336,6 +338,8 @@ export async function getTaxInvoicesForOrder(
     customerName: ti.customerName,
     status: ti.status,
     issueDate: ti.issueDate,
+    dueDate: ti.dueDate,
+    paymentTerms: ti.paymentTerms,
     total: ti.total,
     createdAt: ti.createdAt,
   }));
@@ -360,6 +364,8 @@ export async function getTaxInvoicesByCompany(
     customerName: ti.customerName,
     status: ti.status,
     issueDate: ti.issueDate,
+    dueDate: ti.dueDate,
+    paymentTerms: ti.paymentTerms,
     total: ti.total,
     createdAt: ti.createdAt,
   }));
@@ -410,6 +416,8 @@ export async function getTaxInvoices(params: {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  paymentTerms?: string;
+  overdue?: boolean;
   page?: number;
   pageSize?: number;
 }): Promise<{ data: TaxInvoiceSummary[]; total: number; page: number; pageSize: number }> {
@@ -425,6 +433,10 @@ export async function getTaxInvoices(params: {
 
   if (params.companyId) {
     where.companyId = params.companyId;
+  }
+
+  if (params.paymentTerms) {
+    where.paymentTerms = params.paymentTerms;
   }
 
   if (params.search) {
@@ -443,6 +455,12 @@ export async function getTaxInvoices(params: {
     if (params.dateTo) {
       (where.issueDate as Record<string, unknown>).lte = new Date(params.dateTo);
     }
+  }
+
+  // Overdue filter: ISSUED invoices with dueDate in the past
+  if (params.overdue) {
+    where.status = 'ISSUED';
+    where.dueDate = { lt: new Date() };
   }
 
   const [invoices, total] = await Promise.all([
@@ -464,6 +482,8 @@ export async function getTaxInvoices(params: {
       customerName: ti.customerName,
       status: ti.status,
       issueDate: ti.issueDate,
+      dueDate: ti.dueDate,
+      paymentTerms: ti.paymentTerms,
       total: ti.total,
       createdAt: ti.createdAt,
     })),

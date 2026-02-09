@@ -19,7 +19,7 @@
 - [x] R5: Fix tax invoice — payment terms due date (2026-02-09)
 
 ## Phase 1B continued — Revenue Foundation
-- [ ] T10: Tax invoice API + staff UI
+- [x] T10: Tax invoice API + staff UI (2026-02-09)
 - [ ] T11: Tax invoice customer portal + order lifecycle completion
 
 ## Phase 2A — Manufacturing
@@ -65,19 +65,20 @@
 
 ## Notes
 - Started: 2026-02-08
-- Last updated: 2026-02-08
-- Current phase: Repair Phase COMPLETE, next T10
+- Last updated: 2026-02-09
+- Current phase: Phase 1B, next T11
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed R5: Fixed tax invoice due date calculation from payment terms
-  - Added `paymentTerms` field to TaxInvoice schema (snapshot from order)
-  - Updated `createTaxInvoice()` to calculate dueDate based on order.paymentTerms (NET_30→+30d, NET_60→+60d, NET_90→+90d, PREPAY/COD→issueDate)
-  - Added `paymentTerms` to TaxInvoiceData interface and mapToTaxInvoiceData
-  - Updated PDF `drawTIInvoiceDetails()` to show Due Date and Payment Terms in a two-row details box
-  - Changed banking details reference from order number to invoice number
-  - Updated frontend TaxInvoice type with paymentTerms field
-  - Ran prisma db push, both backend and frontend compile clean
-- Repair Phase R1-R5 now COMPLETE
-- Next: T10 — Tax invoice API + staff UI
+- Completed T10: Tax invoice API + staff UI (enhancement of existing implementation)
+  - Backend: Added dueDate and paymentTerms to TaxInvoiceSummary type across all mapping functions
+  - Backend: Added paymentTerms and overdue filter support to getTaxInvoices() list query
+  - Backend: Updated route to accept paymentTerms and overdue query params
+  - Frontend types: Added dueDate, paymentTerms to TaxInvoiceSummary; paymentTerms, overdue to query params
+  - Frontend API client: Added paymentTerms and overdue param passing
+  - List page: Added due date + payment terms columns, overdue flag highlighting, date range filter, payment terms filter, overdue toggle
+  - Detail page: Added payment terms badge in header, overdue warning banner, related documents sidebar (order, delivery notes, proforma), isOverdue detection
+  - Verified: All API routes, Zod schemas, hooks, navigation, order detail section already existed from T9/R5
+  - Both backend and frontend compile clean
+- Next: T11 — Tax invoice customer portal + order lifecycle completion
