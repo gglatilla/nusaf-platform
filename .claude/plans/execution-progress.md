@@ -30,7 +30,7 @@
 
 ## Phase 2B — Data Integrity
 - [x] T16: Atomic increments in updateStockLevel (2026-02-09)
-- [ ] T17: Reservation cleanup on order cancel (all reference types)
+- [x] T17: Reservation cleanup on order cancel (all reference types) (2026-02-09)
 - [ ] T18: Double reservation deduplication
 - [ ] T19: Soft reservation expiry background job
 
@@ -66,15 +66,20 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2B, next T17
+- Current phase: Phase 2B, next T18
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T16: Atomic increments in updateStockLevel
-  - Switched from read-then-write-absolute to read-validate-then-atomic-increment
-  - Uses Prisma `{ increment: value }` / `{ decrement: value }` for atomicity
-  - Preserved negative stock prevention: read current, validate current + delta >= 0, then atomic increment
-  - Function signature unchanged — all 16+ callers work without modification
-  - Backend compiles with zero TypeScript errors
-- Next: T17 — Reservation cleanup on order cancel
+- Completed T17: Reservation cleanup on order cancel (all reference types)
+  - Added CANCELLED status to PickingSlipStatus, JobCardStatus, TransferRequestStatus enums
+  - Created `releaseReservationsInTransaction()` helper in inventory.service.ts for atomic reservation release within existing transactions
+  - Rewrote `cancelOrder()` to use single `prisma.$transaction()` that:
+    - Cancels non-completed picking slips + releases their reservations
+    - Cancels non-completed job cards + releases their reservations
+    - Cancels PENDING transfers (not IN_TRANSIT — goods already moving)
+    - Releases order-level (SalesOrder) reservations
+  - Updated READY_TO_SHIP propagation checks in all 3 services to treat CANCELLED as "done"
+  - Updated status transition maps, shared types, and frontend badge components
+  - Backend + frontend compile with zero TypeScript errors
+- Next: T18 — Double reservation deduplication

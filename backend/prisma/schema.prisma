@@ -629,6 +629,7 @@ enum PickingSlipStatus {
   PENDING
   IN_PROGRESS
   COMPLETE
+  CANCELLED
 }
 
 // Inventory Management Enums
@@ -1061,6 +1062,7 @@ enum JobCardStatus {
   IN_PROGRESS
   ON_HOLD
   COMPLETE
+  CANCELLED
 }
 
 enum JobType {
@@ -1149,6 +1151,7 @@ enum TransferRequestStatus {
   PENDING
   IN_TRANSIT
   RECEIVED
+  CANCELLED
 }
 
 model TransferRequest {

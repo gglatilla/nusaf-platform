@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import {
   createHardReservation,
   releaseReservationsByReference,
+  releaseReservationsInTransaction,
 } from './inventory.service';
 
 /**
@@ -519,7 +520,9 @@ export async function releaseHold(
 
 /**
  * Cancel order
- * Also releases any hard reservations
+ * Atomically cancels all related documents (picking slips, job cards, transfers)
+ * and releases all reservations (SalesOrder, PickingSlip, JobCard reference types).
+ * Only non-completed documents are cancelled; PENDING transfers only (not IN_TRANSIT).
  */
 export async function cancelOrder(
   orderId: string,
@@ -543,17 +546,69 @@ export async function cancelOrder(
     return { success: false, error: `Cannot cancel order with status ${order.status}` };
   }
 
-  await prisma.salesOrder.update({
-    where: { id: orderId },
-    data: {
-      status: 'CANCELLED',
-      cancelReason: reason,
-      updatedBy: userId,
-    },
-  });
+  const cancelReason = `Order cancelled: ${reason}`;
 
-  // Release hard reservations
-  await releaseReservationsByReference('SalesOrder', orderId, `Order cancelled: ${reason}`, userId);
+  await prisma.$transaction(async (tx) => {
+    // 1. Cancel the order
+    await tx.salesOrder.update({
+      where: { id: orderId },
+      data: {
+        status: 'CANCELLED',
+        cancelReason: reason,
+        updatedBy: userId,
+      },
+    });
+
+    // 2. Cancel non-completed picking slips and release their reservations
+    const pickingSlips = await tx.pickingSlip.findMany({
+      where: {
+        orderId,
+        status: { notIn: ['COMPLETE', 'CANCELLED'] },
+      },
+    });
+
+    for (const ps of pickingSlips) {
+      await tx.pickingSlip.update({
+        where: { id: ps.id },
+        data: { status: 'CANCELLED' },
+      });
+      await releaseReservationsInTransaction(
+        tx, 'PickingSlip', ps.id, cancelReason, userId
+      );
+    }
+
+    // 3. Cancel non-completed job cards and release their reservations
+    const jobCards = await tx.jobCard.findMany({
+      where: {
+        orderId,
+        status: { notIn: ['COMPLETE', 'CANCELLED'] },
+      },
+    });
+
+    for (const jc of jobCards) {
+      await tx.jobCard.update({
+        where: { id: jc.id },
+        data: { status: 'CANCELLED' },
+      });
+      await releaseReservationsInTransaction(
+        tx, 'JobCard', jc.id, cancelReason, userId
+      );
+    }
+
+    // 4. Cancel PENDING transfers (don't cancel IN_TRANSIT — goods are already moving)
+    await tx.transferRequest.updateMany({
+      where: {
+        orderId,
+        status: 'PENDING',
+      },
+      data: { status: 'CANCELLED' },
+    });
+
+    // 5. Release order-level reservations (SalesOrder reference type)
+    await releaseReservationsInTransaction(
+      tx, 'SalesOrder', orderId, cancelReason, userId
+    );
+  });
 
   return { success: true };
 }

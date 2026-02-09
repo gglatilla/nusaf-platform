@@ -7,10 +7,11 @@ import { checkBomStock, explodeBom } from './bom.service';
  * Valid status transitions for job cards
  */
 export const JOB_CARD_STATUS_TRANSITIONS: Record<JobCardStatus, JobCardStatus[]> = {
-  PENDING: ['IN_PROGRESS'],
-  IN_PROGRESS: ['ON_HOLD', 'COMPLETE'],
-  ON_HOLD: ['IN_PROGRESS'],
+  PENDING: ['IN_PROGRESS', 'CANCELLED'],
+  IN_PROGRESS: ['ON_HOLD', 'COMPLETE', 'CANCELLED'],
+  ON_HOLD: ['IN_PROGRESS', 'CANCELLED'],
   COMPLETE: [],
+  CANCELLED: [],
 };
 
 /**
@@ -777,9 +778,9 @@ export async function completeJobCard(
         select: { status: true },
       });
 
-      const allJobsComplete = allJobCards.every((jc) => jc.status === 'COMPLETE');
-      const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE');
-      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED');
+      const allJobsComplete = allJobCards.every((jc) => jc.status === 'COMPLETE' || jc.status === 'CANCELLED');
+      const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE' || ps.status === 'CANCELLED');
+      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED' || tr.status === 'CANCELLED');
 
       const order = await tx.salesOrder.findUnique({
         where: { id: jobCard.orderId },

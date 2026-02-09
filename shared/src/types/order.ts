@@ -30,9 +30,9 @@ export type QuoteStatus =
   | 'CANCELLED'
   | 'CONVERTED';
 
-export type PickingSlipStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETE';
+export type PickingSlipStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETE' | 'CANCELLED';
 
-export type JobCardStatus = 'PENDING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETE';
+export type JobCardStatus = 'PENDING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETE' | 'CANCELLED';
 
 export type JobType = 'MACHINING' | 'ASSEMBLY';
 

@@ -6,9 +6,10 @@ import { updateStockLevel, createStockMovement } from './inventory.service';
  * Valid status transitions for picking slips
  */
 export const PICKING_SLIP_STATUS_TRANSITIONS: Record<PickingSlipStatus, PickingSlipStatus[]> = {
-  PENDING: ['IN_PROGRESS'],
-  IN_PROGRESS: ['COMPLETE'],
+  PENDING: ['IN_PROGRESS', 'CANCELLED'],
+  IN_PROGRESS: ['COMPLETE', 'CANCELLED'],
   COMPLETE: [],
+  CANCELLED: [],
 };
 
 /**
@@ -531,9 +532,9 @@ export async function completePicking(
         select: { status: true },
       });
 
-      const allPickingComplete = allPickingSlips.every((ps) => ps.status === 'COMPLETE');
-      const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE');
-      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED');
+      const allPickingComplete = allPickingSlips.every((ps) => ps.status === 'COMPLETE' || ps.status === 'CANCELLED');
+      const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE' || jc.status === 'CANCELLED');
+      const allTransfersComplete = allTransfers.length === 0 || allTransfers.every((tr) => tr.status === 'RECEIVED' || tr.status === 'CANCELLED');
 
       const order = await tx.salesOrder.findUnique({
         where: { id: pickingSlip.orderId },

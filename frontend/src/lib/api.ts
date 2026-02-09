@@ -2140,7 +2140,7 @@ export interface OrderJobCardSummary {
 }
 
 // Transfer Request types
-export type TransferRequestStatus = 'PENDING' | 'IN_TRANSIT' | 'RECEIVED';
+export type TransferRequestStatus = 'PENDING' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELLED';
 
 export interface TransferRequestLine {
   id: string;

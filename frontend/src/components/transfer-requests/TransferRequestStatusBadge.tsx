@@ -19,6 +19,10 @@ const statusConfig: Record<TransferRequestStatus, { label: string; className: st
     label: 'Received',
     className: 'bg-green-100 text-green-700',
   },
+  CANCELLED: {
+    label: 'Cancelled',
+    className: 'bg-red-100 text-red-700',
+  },
 };
 
 export function TransferRequestStatusBadge({ status }: TransferRequestStatusBadgeProps) {

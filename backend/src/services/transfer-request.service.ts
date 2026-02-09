@@ -6,9 +6,10 @@ import { updateStockLevel, createStockMovement } from './inventory.service';
  * Valid status transitions for transfer requests
  */
 export const TRANSFER_REQUEST_STATUS_TRANSITIONS: Record<TransferRequestStatus, TransferRequestStatus[]> = {
-  PENDING: ['IN_TRANSIT'],
+  PENDING: ['IN_TRANSIT', 'CANCELLED'],
   IN_TRANSIT: ['RECEIVED'],
   RECEIVED: [],
+  CANCELLED: [],
 };
 
 /**
@@ -613,9 +614,9 @@ export async function receiveTransfer(
           select: { status: true },
         });
 
-        const allTransfersComplete = allTransfers.every((tr) => tr.status === 'RECEIVED');
-        const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE');
-        const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE');
+        const allTransfersComplete = allTransfers.every((tr) => tr.status === 'RECEIVED' || tr.status === 'CANCELLED');
+        const allPickingComplete = allPickingSlips.length === 0 || allPickingSlips.every((ps) => ps.status === 'COMPLETE' || ps.status === 'CANCELLED');
+        const allJobsComplete = allJobCards.length === 0 || allJobCards.every((jc) => jc.status === 'COMPLETE' || jc.status === 'CANCELLED');
 
         const order = await tx.salesOrder.findUnique({
           where: { id: transferRequest.orderId },

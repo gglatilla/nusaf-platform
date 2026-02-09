@@ -1539,6 +1539,46 @@ export async function releaseReservationsByReference(
 }
 
 /**
+ * Release all active reservations for a reference within an existing transaction.
+ * Used by cancelOrder to atomically release all reservation types.
+ */
+export async function releaseReservationsInTransaction(
+  tx: Prisma.TransactionClient,
+  referenceType: string,
+  referenceId: string,
+  reason: string,
+  userId: string
+): Promise<number> {
+  const reservations = await tx.stockReservation.findMany({
+    where: {
+      referenceType,
+      referenceId,
+      releasedAt: null,
+    },
+  });
+
+  for (const reservation of reservations) {
+    await tx.stockReservation.update({
+      where: { id: reservation.id },
+      data: {
+        releasedAt: new Date(),
+        releasedBy: userId,
+        releaseReason: reason,
+      },
+    });
+
+    const delta =
+      reservation.reservationType === 'SOFT'
+        ? { softReserved: -reservation.quantity }
+        : { hardReserved: -reservation.quantity };
+
+    await updateStockLevel(tx, reservation.productId, reservation.location, delta, userId);
+  }
+
+  return reservations.length;
+}
+
+/**
  * Get active reservations with filtering
  */
 export async function getReservations(options: {
