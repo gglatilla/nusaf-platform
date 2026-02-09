@@ -9,7 +9,7 @@ import { Pagination } from '@/components/products';
 import { useOrders } from '@/hooks/useOrders';
 import type { SalesOrderStatus } from '@nusaf/shared';
 
-type StatusFilter = 'ALL' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+type StatusFilter = 'ALL' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'INVOICED' | 'CLOSED' | 'CANCELLED';
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: 'ALL', label: 'All' },
@@ -17,6 +17,8 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: 'PROCESSING', label: 'In Progress' },
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'DELIVERED', label: 'Delivered' },
+  { value: 'INVOICED', label: 'Invoiced' },
+  { value: 'CLOSED', label: 'Closed' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 

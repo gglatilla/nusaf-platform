@@ -127,6 +127,24 @@ export function useCancelOrder() {
 }
 
 /**
+ * Hook for closing an order (INVOICED -> CLOSED)
+ */
+export function useCloseOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await api.closeOrder(orderId);
+      return response.data;
+    },
+    onSuccess: (_data, orderId) => {
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
+/**
  * Hook for fetching the activity timeline of an order
  */
 export function useOrderTimeline(orderId: string | null) {

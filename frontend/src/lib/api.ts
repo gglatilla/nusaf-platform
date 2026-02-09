@@ -3706,6 +3706,13 @@ class ApiClient {
     });
   }
 
+  async closeOrder(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/orders/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
   // Picking slip endpoints
   async getPickingSlips(params: PickingSlipsQueryParams = {}): Promise<ApiResponse<PickingSlipsListResponse>> {
     const searchParams = new URLSearchParams();

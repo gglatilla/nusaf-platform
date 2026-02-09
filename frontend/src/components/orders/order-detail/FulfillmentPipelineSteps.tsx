@@ -13,6 +13,8 @@ const PIPELINE_STEPS = [
   { key: 'READY_TO_SHIP', label: 'Ready to Ship' },
   { key: 'SHIPPED', label: 'Shipped' },
   { key: 'DELIVERED', label: 'Delivered' },
+  { key: 'INVOICED', label: 'Invoiced' },
+  { key: 'CLOSED', label: 'Closed' },
 ] as const;
 
 function getStepIndex(status: SalesOrderStatus): number {
@@ -30,9 +32,11 @@ function getStepIndex(status: SalesOrderStatus): number {
     case 'SHIPPED':
       return 3;
     case 'DELIVERED':
-    case 'INVOICED':
-    case 'CLOSED':
       return 4;
+    case 'INVOICED':
+      return 5;
+    case 'CLOSED':
+      return 6;
     case 'ON_HOLD':
     case 'CANCELLED':
       return -2; // Special states

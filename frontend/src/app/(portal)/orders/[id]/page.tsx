@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote } from 'lucide-react';
-import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder } from '@/hooks/useOrders';
+import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote, Lock } from 'lucide-react';
+import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder, useCloseOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
 import { useTransferRequestsForOrder, useGenerateTransferRequest } from '@/hooks/useTransferRequests';
@@ -92,6 +92,7 @@ export default function OrderDetailPage() {
   const hold = useHoldOrder();
   const release = useReleaseOrderHold();
   const cancel = useCancelOrder();
+  const close = useCloseOrder();
   const generatePickingSlips = useGeneratePickingSlips();
   const createJobCard = useCreateJobCard();
   const generateTransferRequest = useGenerateTransferRequest();
@@ -140,7 +141,8 @@ export default function OrderDetailPage() {
   const canCreateProformaInvoice = order.status === 'CONFIRMED';
   const hasActiveTaxInvoice = taxInvoices?.some((ti) => ti.status === 'ISSUED');
   const canCreateTaxInvoice = ['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && !hasActiveTaxInvoice;
-  const canRequestReturn = ['SHIPPED', 'DELIVERED'].includes(order.status);
+  const canRequestReturn = ['SHIPPED', 'DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status);
+  const canClose = order.status === 'INVOICED';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -226,6 +228,12 @@ export default function OrderDetailPage() {
   const handleCreateTaxInvoice = async () => {
     if (window.confirm('Generate a tax invoice for this order? This will transition the order to INVOICED status.')) {
       await createTaxInvoice.mutateAsync({ orderId });
+    }
+  };
+
+  const handleClose = async () => {
+    if (window.confirm('Close this order? This marks the order as fully complete. This action cannot be undone.')) {
+      await close.mutateAsync(orderId);
     }
   };
 
@@ -390,6 +398,16 @@ export default function OrderDetailPage() {
             >
               <Receipt className="h-4 w-4" />
               {createTaxInvoice.isPending ? 'Generating...' : 'Tax Invoice'}
+            </button>
+          )}
+          {canClose && (
+            <button
+              onClick={handleClose}
+              disabled={close.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white text-sm font-medium rounded-md hover:bg-slate-700 disabled:opacity-50"
+            >
+              <Lock className="h-4 w-4" />
+              {close.isPending ? 'Closing...' : 'Close Order'}
             </button>
           )}
           {canConfirm && (

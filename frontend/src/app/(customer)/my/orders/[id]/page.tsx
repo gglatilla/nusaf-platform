@@ -15,9 +15,10 @@ import {
 import { useOrder } from '@/hooks/useOrders';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
+import { useTaxInvoicesForOrder } from '@/hooks/useTaxInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
 import { usePackingListsForOrder } from '@/hooks/usePackingLists';
-import { ProformaInvoicesSection, ReturnAuthorizationsSection, PackingListsSection } from '@/components/orders/order-detail';
+import { ProformaInvoicesSection, TaxInvoicesSection, ReturnAuthorizationsSection, PackingListsSection } from '@/components/orders/order-detail';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -60,6 +61,7 @@ export default function CustomerOrderDetailPage() {
   const { data: deliveryNotes } = useDeliveryNotesForOrder(orderId);
   const { data: proformaInvoices } = useProformaInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
+  const { data: taxInvoices } = useTaxInvoicesForOrder(orderId);
   const { data: packingLists } = usePackingListsForOrder(orderId);
 
   if (isLoading) {
@@ -128,7 +130,7 @@ export default function CustomerOrderDetailPage() {
           </div>
         </div>
 
-        {order.status === 'DELIVERED' && (
+        {['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && (
           <Link
             href={`/my/returns/new?orderId=${orderId}`}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-orange-300 text-orange-600 rounded-md hover:bg-orange-50"
@@ -231,6 +233,36 @@ export default function CustomerOrderDetailPage() {
             proformaInvoices={proformaInvoices ?? []}
             isCustomer={true}
           />
+
+          {/* Tax Invoices */}
+          <TaxInvoicesSection
+            taxInvoices={taxInvoices ?? []}
+            isCustomer={true}
+          />
+
+          {/* Due date banner for account customers with issued tax invoices */}
+          {(() => {
+            const issuedInvoice = (taxInvoices ?? []).find((ti) => ti.status === 'ISSUED');
+            if (!issuedInvoice || !issuedInvoice.dueDate) return null;
+            const isAccount = order.paymentTerms !== 'PREPAY' && order.paymentTerms !== 'COD';
+            if (!isAccount) return null;
+            const dueDate = new Date(issuedInvoice.dueDate);
+            const isOverdue = dueDate < new Date();
+            return (
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                <Calendar className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {isOverdue ? 'Payment Overdue' : 'Payment Due'}
+                  </p>
+                  <p className="text-xs">
+                    Payment due by {formatDate(issuedInvoice.dueDate)}
+                    {' '}({order.paymentTerms === 'NET_60' ? 'Net 60 days' : order.paymentTerms === 'NET_90' ? 'Net 90 days' : 'Net 30 days'} from invoice date)
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           <ReturnAuthorizationsSection
             returnAuthorizations={returnAuthorizations ?? []}

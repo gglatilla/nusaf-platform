@@ -559,6 +559,44 @@ export async function cancelOrder(
 }
 
 /**
+ * Close an order (INVOICED -> CLOSED)
+ * Only ADMIN/MANAGER can close orders — this is a manual final step.
+ */
+export async function closeOrder(
+  orderId: string,
+  userId: string,
+  companyId: string
+): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: orderId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  if (!isValidTransition(order.status, 'CLOSED')) {
+    return { success: false, error: `Cannot close order with status ${order.status}. Order must be INVOICED first.` };
+  }
+
+  await prisma.salesOrder.update({
+    where: { id: orderId },
+    data: {
+      status: 'CLOSED',
+      closedAt: new Date(),
+      closedBy: userId,
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
  * Update order status (generic transition)
  */
 export async function updateOrderStatus(
@@ -599,6 +637,9 @@ export async function updateOrderStatus(
     updateData.shippedDate = new Date();
   } else if (newStatus === 'DELIVERED') {
     updateData.deliveredDate = new Date();
+  } else if (newStatus === 'CLOSED') {
+    updateData.closedAt = new Date();
+    updateData.closedBy = userId;
   }
 
   await prisma.salesOrder.update({

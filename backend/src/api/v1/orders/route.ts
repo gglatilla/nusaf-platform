@@ -21,6 +21,7 @@ import {
   holdOrder,
   releaseHold,
   cancelOrder,
+  closeOrder,
   updateOrderNotes,
 } from '../../../services/order.service';
 import { getOrderTimeline } from '../../../services/order-timeline.service';
@@ -483,6 +484,44 @@ router.post('/:id/cancel', staffOnly, async (req, res) => {
       error: {
         code: 'CANCEL_ERROR',
         message: error instanceof Error ? error.message : 'Failed to cancel order',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/orders/:id/close
+ * Close order (INVOICED -> CLOSED) — ADMIN/MANAGER only
+ */
+router.post('/:id/close', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await closeOrder(id, authReq.user.id, authReq.user.companyId);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Order not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: {
+          code: result.error === 'Order not found' ? 'NOT_FOUND' : 'CLOSE_FAILED',
+          message: result.error,
+        },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Order closed' },
+    });
+  } catch (error) {
+    console.error('Close order error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CLOSE_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to close order',
       },
     });
   }

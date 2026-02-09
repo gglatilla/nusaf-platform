@@ -20,7 +20,7 @@
 
 ## Phase 1B continued — Revenue Foundation
 - [x] T10: Tax invoice API + staff UI (2026-02-09)
-- [ ] T11: Tax invoice customer portal + order lifecycle completion
+- [x] T11: Tax invoice customer portal + order lifecycle completion (2026-02-09)
 
 ## Phase 2A — Manufacturing
 - [ ] T12: BOM components display on job card (API)
@@ -66,19 +66,24 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 1B, next T11
+- Current phase: Phase 2A, next T12
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T10: Tax invoice API + staff UI (enhancement of existing implementation)
-  - Backend: Added dueDate and paymentTerms to TaxInvoiceSummary type across all mapping functions
-  - Backend: Added paymentTerms and overdue filter support to getTaxInvoices() list query
-  - Backend: Updated route to accept paymentTerms and overdue query params
-  - Frontend types: Added dueDate, paymentTerms to TaxInvoiceSummary; paymentTerms, overdue to query params
-  - Frontend API client: Added paymentTerms and overdue param passing
-  - List page: Added due date + payment terms columns, overdue flag highlighting, date range filter, payment terms filter, overdue toggle
-  - Detail page: Added payment terms badge in header, overdue warning banner, related documents sidebar (order, delivery notes, proforma), isOverdue detection
-  - Verified: All API routes, Zod schemas, hooks, navigation, order detail section already existed from T9/R5
+- Completed T11: Tax invoice customer portal + order lifecycle completion
+  - Customer portal: Added TaxInvoicesSection to /my/orders/[id] with isCustomer=true (shows ISSUED only)
+  - Customer portal: Added due date banner for account customers showing payment deadline
+  - Customer portal: Extended "Request Return" button to work for INVOICED and CLOSED statuses
+  - Customer portal: Added INVOICED and CLOSED tabs to customer orders list filter
+  - Backend: Added closeOrder() service function (INVOICED → CLOSED with closedAt/closedBy)
+  - Backend: Added closedAt/closedBy fields to SalesOrder Prisma model + db push
+  - Backend: Added POST /orders/:id/close route (ADMIN/MANAGER only)
+  - Backend: Updated updateOrderStatus() to set closedAt/closedBy on CLOSED transitions
+  - Frontend: Added closeOrder() API method, useCloseOrder hook, Close Order button on staff order detail
+  - Frontend: Updated FulfillmentPipelineSteps to show 7 steps (Confirmed→Processing→Ready to Ship→Shipped→Delivered→Invoiced→Closed)
+  - Verified: INVOICED/CLOSED already existed in Prisma schema, shared types, OrderStatusBadge
+  - Verified: createTaxInvoice() already auto-transitions DELIVERED → INVOICED
+  - Verified: Customer API routes for tax invoices already support CUSTOMER role with company isolation
   - Both backend and frontend compile clean
-- Next: T11 — Tax invoice customer portal + order lifecycle completion
+- Next: T12 — BOM components display on job card (API)

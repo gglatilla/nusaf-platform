@@ -885,6 +885,8 @@ model SalesOrder {
   updatedBy   String?   @map("updated_by")
   confirmedAt DateTime? @map("confirmed_at")
   confirmedBy String?   @map("confirmed_by")
+  closedAt    DateTime? @map("closed_at")
+  closedBy    String?   @map("closed_by")
   deletedAt   DateTime? @map("deleted_at")
   deletedBy   String?   @map("deleted_by")
 
