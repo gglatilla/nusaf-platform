@@ -25,7 +25,7 @@
 ## Phase 2A — Manufacturing
 - [x] T12: BOM components display on job card (API) (2026-02-09)
 - [x] T13: BOM components display on job card (UI) (2026-02-09)
-- [ ] T14: Raw material availability check on job start
+- [x] T14: Raw material availability check on job start (2026-02-09)
 - [ ] T15: BOM snapshot at job card creation + consume from snapshot
 
 ## Phase 2B — Data Integrity
@@ -66,22 +66,22 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2A, next T14
+- Current phase: Phase 2A, next T15
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T13: BOM components display on job card (UI)
-  - Added BomComponent and BomStatus types to frontend JobCard interface in api.ts
-  - Built BomComponentsSection component on job card detail page (/job-cards/[id])
-    - Header: "Bill of Materials" with BomStatusBadge (READY/green, PARTIAL/amber, SHORTAGE/red)
-    - Summary: "X of Y required components ready"
-    - Table: Component (SKU linked to /inventory/items/[id] + name), Qty/Unit, Required, Available, Shortfall, Status
-    - Green CheckCircle2 if canFulfill, red XCircle if shortfall, dash for optional
-    - Optional components shown in muted text with "(optional)" label
-    - No BOM: shows "No bill of materials defined for this product"
-  - Shortage warning banner (red) at top when bomStatus === 'SHORTAGE'
-  - Start Job button: shows "Warning: Insufficient raw materials" confirmation when SHORTAGE or PARTIAL
-  - No cost prices shown (Golden Rule 4 compliant)
+- Completed T14: Raw material availability check on job start
+  - Added `materialCheckPerformed` (Boolean) and `materialCheckResult` (Json) fields to JobCard model
+  - Modified `startJobCard()` in job-card.service.ts:
+    - Calls `checkBomStock()` before transitioning to IN_PROGRESS
+    - Stores check result in materialCheckResult field
+    - Returns soft warnings for required components with shortfalls
+    - Optional BOM components don't trigger warnings
+    - BOM check failure is non-blocking (try/catch)
+  - Updated API route to return `warnings` array in response
+  - Updated frontend types (MaterialWarning interface, JobCard fields)
+  - Updated useStartJobCard hook to return typed warnings
+  - Job card detail page shows amber "started with material shortfalls" banner when warnings returned
   - Both frontend and backend compile with zero TypeScript errors
-- Next: T14 — Raw material availability check on job start
+- Next: T15 — BOM snapshot at job card creation + consume from snapshot

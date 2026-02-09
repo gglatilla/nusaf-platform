@@ -3,6 +3,7 @@ import {
   api,
   type JobCardsQueryParams,
   type CreateJobCardData,
+  type MaterialWarning,
 } from '@/lib/api';
 
 /**
@@ -102,9 +103,9 @@ export function useStartJobCard() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (jobCardId: string) => {
+    mutationFn: async (jobCardId: string): Promise<{ message: string; warnings?: MaterialWarning[] }> => {
       const response = await api.startJobCard(jobCardId);
-      return response.data;
+      return response.data ?? { message: 'Job started' };
     },
     onSuccess: (_data, jobCardId) => {
       queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });

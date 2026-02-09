@@ -75,6 +75,7 @@ export default function JobCardDetailPage() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotes, setEditedNotes] = useState('');
   const [showFlagIssueModal, setShowFlagIssueModal] = useState(false);
+  const [materialWarnings, setMaterialWarnings] = useState<Array<{ componentSku: string; required: number; available: number; shortfall: number }>>([]);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -102,7 +103,10 @@ export default function JobCardDetailPage() {
       ? 'Warning: Insufficient raw materials for this job. Continue anyway?'
       : 'Start work on this job card?';
     if (window.confirm(message)) {
-      await startJob.mutateAsync(jobCardId);
+      const result = await startJob.mutateAsync(jobCardId);
+      if (result.warnings && result.warnings.length > 0) {
+        setMaterialWarnings(result.warnings);
+      }
     }
   };
 
@@ -236,6 +240,23 @@ export default function JobCardDetailPage() {
             <p className="text-sm font-medium">Insufficient Raw Materials</p>
             <p className="text-xs">Review the bill of materials below before starting production.</p>
           </div>
+        </div>
+      )}
+
+      {/* Material Check Warnings (shown after starting job with shortfalls) */}
+      {materialWarnings.length > 0 && (
+        <div className="px-4 py-3 rounded-lg border bg-amber-50 border-amber-200 text-amber-700">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <p className="text-sm font-medium">Job started with material shortfalls</p>
+          </div>
+          <ul className="ml-8 text-xs space-y-1">
+            {materialWarnings.map((w) => (
+              <li key={w.componentSku}>
+                {w.componentSku}: need {w.required}, available {w.available} (short {w.shortfall})
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

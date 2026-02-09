@@ -266,7 +266,10 @@ router.post('/:id/start', async (req, res) => {
 
     return res.json({
       success: true,
-      data: { message: 'Job started' },
+      data: {
+        message: 'Job started',
+        warnings: result.warnings,
+      },
     });
   } catch (error) {
     console.error('Start job error:', error);

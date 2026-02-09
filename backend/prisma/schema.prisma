@@ -1092,6 +1092,10 @@ model JobCard {
   assignedTo     String? @map("assigned_to")
   assignedToName String? @map("assigned_to_name")
 
+  // Material check (performed at job start)
+  materialCheckPerformed Boolean @default(false) @map("material_check_performed")
+  materialCheckResult   Json?   @map("material_check_result")
+
   // Timestamps
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")

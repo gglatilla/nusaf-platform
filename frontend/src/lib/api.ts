@@ -2046,6 +2046,13 @@ export interface BomComponent {
 
 export type BomStatus = 'READY' | 'PARTIAL' | 'SHORTAGE';
 
+export interface MaterialWarning {
+  componentSku: string;
+  required: number;
+  available: number;
+  shortfall: number;
+}
+
 export interface JobCard {
   id: string;
   jobCardNumber: string;
@@ -2063,6 +2070,8 @@ export interface JobCard {
   notes: string | null;
   assignedTo: string | null;
   assignedToName: string | null;
+  materialCheckPerformed: boolean;
+  materialCheckResult: Record<string, unknown> | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -3822,8 +3831,8 @@ class ApiClient {
     });
   }
 
-  async startJobCard(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request<ApiResponse<{ message: string }>>(`/job-cards/${id}/start`, {
+  async startJobCard(id: string): Promise<ApiResponse<{ message: string; warnings?: MaterialWarning[] }>> {
+    return this.request<ApiResponse<{ message: string; warnings?: MaterialWarning[] }>>(`/job-cards/${id}/start`, {
       method: 'POST',
       body: JSON.stringify({}),
     });

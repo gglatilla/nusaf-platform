@@ -411,14 +411,22 @@ export async function assignJobCard(
   return { success: true };
 }
 
+export interface MaterialWarning {
+  componentSku: string;
+  required: number;
+  available: number;
+  shortfall: number;
+}
+
 /**
  * Start job - change status from PENDING to IN_PROGRESS
+ * Performs a soft material availability check before starting
  */
 export async function startJobCard(
   id: string,
   _userId: string,
   companyId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warnings?: MaterialWarning[] }> {
   const jobCard = await prisma.jobCard.findFirst({
     where: {
       id,
@@ -434,15 +442,50 @@ export async function startJobCard(
     return { success: false, error: `Cannot start a job card with status ${jobCard.status}` };
   }
 
+  // Perform material availability check (soft warning — does not block)
+  let warnings: MaterialWarning[] = [];
+  let materialCheckResult: Record<string, unknown> | null = null;
+
+  try {
+    const bomCheck = await checkBomStock(jobCard.productId, jobCard.quantity, 'JHB');
+    if (bomCheck.success && bomCheck.data) {
+      materialCheckResult = {
+        canFulfill: bomCheck.data.canFulfill,
+        checkedAt: new Date().toISOString(),
+        components: bomCheck.data.components.map((c) => ({
+          sku: c.nusafSku,
+          required: c.requiredQuantity,
+          available: c.availableQuantity,
+          shortfall: c.shortfall,
+        })),
+      };
+
+      // Build warnings for required components with shortfall (not optional)
+      warnings = bomCheck.data.components
+        .filter((c) => c.shortfall > 0 && !c.isOptional)
+        .map((c) => ({
+          componentSku: c.nusafSku,
+          required: c.requiredQuantity,
+          available: c.availableQuantity,
+          shortfall: c.shortfall,
+        }));
+    }
+  } catch (err) {
+    // BOM check failure should not block job start
+    console.error('Material check failed (non-blocking):', err);
+  }
+
   await prisma.jobCard.update({
     where: { id },
     data: {
       status: 'IN_PROGRESS',
       startedAt: new Date(),
+      materialCheckPerformed: true,
+      materialCheckResult: materialCheckResult ? (materialCheckResult as Prisma.InputJsonValue) : undefined,
     },
   });
 
-  return { success: true };
+  return { success: true, warnings: warnings.length > 0 ? warnings : undefined };
 }
 
 /**
