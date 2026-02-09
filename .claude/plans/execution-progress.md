@@ -24,7 +24,7 @@
 
 ## Phase 2A — Manufacturing
 - [x] T12: BOM components display on job card (API) (2026-02-09)
-- [ ] T13: BOM components display on job card (UI)
+- [x] T13: BOM components display on job card (UI) (2026-02-09)
 - [ ] T14: Raw material availability check on job start
 - [ ] T15: BOM snapshot at job card creation + consume from snapshot
 
@@ -66,18 +66,22 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2A, next T13
+- Current phase: Phase 2A, next T14
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T12: BOM components display on job card (API)
-  - Modified getJobCardById() in job-card.service.ts to include BOM component data
-  - Imports and calls checkBomStock() from bom.service.ts (reuses existing function)
-  - Returns bomComponents array: productId, sku, name, quantityPerUnit, requiredQuantity, availableStock, shortfall, isOptional, canFulfill
-  - Returns bomStatus summary: 'READY' | 'PARTIAL' | 'SHORTAGE'
-  - Stock levels checked at JHB warehouse (only manufacturing location)
-  - Includes both required and optional components
-  - bomStatus based on required components only (optional don't affect status)
-  - Backend compiles clean with no TypeScript errors
-- Next: T13 — BOM components display on job card (UI)
+- Completed T13: BOM components display on job card (UI)
+  - Added BomComponent and BomStatus types to frontend JobCard interface in api.ts
+  - Built BomComponentsSection component on job card detail page (/job-cards/[id])
+    - Header: "Bill of Materials" with BomStatusBadge (READY/green, PARTIAL/amber, SHORTAGE/red)
+    - Summary: "X of Y required components ready"
+    - Table: Component (SKU linked to /inventory/items/[id] + name), Qty/Unit, Required, Available, Shortfall, Status
+    - Green CheckCircle2 if canFulfill, red XCircle if shortfall, dash for optional
+    - Optional components shown in muted text with "(optional)" label
+    - No BOM: shows "No bill of materials defined for this product"
+  - Shortage warning banner (red) at top when bomStatus === 'SHORTAGE'
+  - Start Job button: shows "Warning: Insufficient raw materials" confirmation when SHORTAGE or PARTIAL
+  - No cost prices shown (Golden Rule 4 compliant)
+  - Both frontend and backend compile with zero TypeScript errors
+- Next: T14 — Raw material availability check on job start

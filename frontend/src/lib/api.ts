@@ -2032,6 +2032,20 @@ export interface OrderPackingListSummary {
 // Re-export job card types from shared
 export type { JobCardStatus, JobType } from '@nusaf/shared';
 
+export interface BomComponent {
+  productId: string;
+  sku: string;
+  name: string;
+  quantityPerUnit: number;
+  requiredQuantity: number;
+  availableStock: number;
+  shortfall: number;
+  isOptional: boolean;
+  canFulfill: boolean;
+}
+
+export type BomStatus = 'READY' | 'PARTIAL' | 'SHORTAGE';
+
 export interface JobCard {
   id: string;
   jobCardNumber: string;
@@ -2054,6 +2068,8 @@ export interface JobCard {
   createdAt: string;
   createdBy: string | null;
   updatedAt: string;
+  bomComponents: BomComponent[];
+  bomStatus: BomStatus;
 }
 
 export interface JobCardListItem {

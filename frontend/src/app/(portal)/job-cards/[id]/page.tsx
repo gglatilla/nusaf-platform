@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import type { BomComponent, BomStatus } from '@/lib/api';
 import {
   useJobCard,
   useStartJobCard,
@@ -96,7 +97,11 @@ export default function JobCardDetailPage() {
   const canComplete = jobCard.status === 'IN_PROGRESS';
 
   const handleStartJob = async () => {
-    if (window.confirm('Start work on this job card?')) {
+    const hasShortage = jobCard.bomStatus === 'SHORTAGE' || jobCard.bomStatus === 'PARTIAL';
+    const message = hasShortage
+      ? 'Warning: Insufficient raw materials for this job. Continue anyway?'
+      : 'Start work on this job card?';
+    if (window.confirm(message)) {
       await startJob.mutateAsync(jobCardId);
     }
   };
@@ -223,6 +228,17 @@ export default function JobCardDetailPage() {
         </div>
       )}
 
+      {/* BOM Shortage Warning Banner */}
+      {jobCard.bomStatus === 'SHORTAGE' && jobCard.bomComponents.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-red-50 border-red-200 text-red-700">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Insufficient Raw Materials</p>
+            <p className="text-xs">Review the bill of materials below before starting production.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -244,6 +260,12 @@ export default function JobCardDetailPage() {
               </div>
             </dl>
           </div>
+
+          {/* BOM Components */}
+          <BomComponentsSection
+            bomComponents={jobCard.bomComponents}
+            bomStatus={jobCard.bomStatus}
+          />
 
           {/* Notes */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
@@ -461,6 +483,112 @@ export default function JobCardDetailPage() {
         jobCardId={jobCardId}
         targetLabel={jobCard.jobCardNumber}
       />
+    </div>
+  );
+}
+
+function BomStatusBadge({ status }: { status: BomStatus }) {
+  const config = {
+    READY: { label: 'Ready', className: 'bg-green-100 text-green-700' },
+    PARTIAL: { label: 'Partial', className: 'bg-amber-100 text-amber-700' },
+    SHORTAGE: { label: 'Shortage', className: 'bg-red-100 text-red-700' },
+  }[status];
+
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+      {config.label}
+    </span>
+  );
+}
+
+function BomComponentsSection({
+  bomComponents,
+  bomStatus,
+}: {
+  bomComponents: BomComponent[];
+  bomStatus: BomStatus;
+}) {
+  if (bomComponents.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 mb-2">Bill of Materials</h2>
+        <p className="text-sm text-slate-500">No bill of materials defined for this product.</p>
+      </div>
+    );
+  }
+
+  const requiredComponents = bomComponents.filter((c) => !c.isOptional);
+  const readyCount = requiredComponents.filter((c) => c.canFulfill).length;
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-slate-900">Bill of Materials</h2>
+          <BomStatusBadge status={bomStatus} />
+        </div>
+        <span className="text-sm text-slate-500">
+          {readyCount} of {requiredComponents.length} required components ready
+        </span>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200">
+              <th className="text-left py-2 pr-3 text-xs font-medium text-slate-500 uppercase">Component</th>
+              <th className="text-right py-2 px-3 text-xs font-medium text-slate-500 uppercase">Qty/Unit</th>
+              <th className="text-right py-2 px-3 text-xs font-medium text-slate-500 uppercase">Required</th>
+              <th className="text-right py-2 px-3 text-xs font-medium text-slate-500 uppercase">Available</th>
+              <th className="text-right py-2 px-3 text-xs font-medium text-slate-500 uppercase">Shortfall</th>
+              <th className="text-center py-2 pl-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {bomComponents.map((component) => (
+              <tr key={component.productId} className={component.isOptional ? 'text-slate-400' : ''}>
+                <td className="py-2.5 pr-3">
+                  <Link
+                    href={`/inventory/items/${component.productId}`}
+                    className="text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    {component.sku}
+                  </Link>
+                  <div className={`text-xs ${component.isOptional ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {component.name}
+                    {component.isOptional && (
+                      <span className="ml-1.5 text-xs text-slate-400 italic">(optional)</span>
+                    )}
+                  </div>
+                </td>
+                <td className="text-right py-2.5 px-3 tabular-nums">
+                  {component.quantityPerUnit}
+                </td>
+                <td className="text-right py-2.5 px-3 tabular-nums font-medium">
+                  {component.requiredQuantity}
+                </td>
+                <td className="text-right py-2.5 px-3 tabular-nums">
+                  {component.availableStock}
+                </td>
+                <td className={`text-right py-2.5 px-3 tabular-nums font-medium ${
+                  component.shortfall > 0 && !component.isOptional ? 'text-red-600' : ''
+                }`}>
+                  {component.shortfall > 0 ? component.shortfall : '—'}
+                </td>
+                <td className="text-center py-2.5 pl-3">
+                  {component.isOptional ? (
+                    <span className="text-slate-300">—</span>
+                  ) : component.canFulfill ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 inline-block" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500 inline-block" />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
