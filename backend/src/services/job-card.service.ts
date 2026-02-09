@@ -1,6 +1,7 @@
 import { Prisma, JobCardStatus, JobType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
+import { checkBomStock } from './bom.service';
 
 /**
  * Valid status transitions for job cards
@@ -219,7 +220,7 @@ export async function getJobCards(options: {
 }
 
 /**
- * Get job card by ID
+ * Get job card by ID — includes BOM components with stock availability
  */
 export async function getJobCardById(id: string, companyId: string) {
   const jobCard = await prisma.jobCard.findFirst({
@@ -231,6 +232,65 @@ export async function getJobCardById(id: string, companyId: string) {
 
   if (!jobCard) {
     return null;
+  }
+
+  // Fetch BOM components with stock levels at JHB (only manufacturing location)
+  let bomComponents: Array<{
+    productId: string;
+    sku: string;
+    name: string;
+    quantityPerUnit: number;
+    requiredQuantity: number;
+    availableStock: number;
+    shortfall: number;
+    isOptional: boolean;
+    canFulfill: boolean;
+  }> = [];
+  let bomStatus: 'READY' | 'PARTIAL' | 'SHORTAGE' = 'READY';
+
+  const bomResult = await checkBomStock(jobCard.productId, jobCard.quantity, 'JHB');
+
+  if (bomResult.success && bomResult.data) {
+    const { components, optionalComponents } = bomResult.data;
+
+    // Map required components
+    bomComponents = components.map((c) => ({
+      productId: c.productId,
+      sku: c.nusafSku,
+      name: c.description,
+      quantityPerUnit: jobCard.quantity > 0 ? c.requiredQuantity / jobCard.quantity : 0,
+      requiredQuantity: c.requiredQuantity,
+      availableStock: c.availableQuantity,
+      shortfall: c.shortfall,
+      isOptional: false,
+      canFulfill: c.shortfall === 0,
+    }));
+
+    // Map optional components
+    for (const oc of optionalComponents) {
+      const shortfall = Math.max(0, oc.requiredQuantity - oc.availableQuantity);
+      bomComponents.push({
+        productId: oc.productId,
+        sku: oc.nusafSku,
+        name: oc.description,
+        quantityPerUnit: jobCard.quantity > 0 ? oc.requiredQuantity / jobCard.quantity : 0,
+        requiredQuantity: oc.requiredQuantity,
+        availableStock: oc.availableQuantity,
+        shortfall,
+        isOptional: true,
+        canFulfill: shortfall === 0,
+      });
+    }
+
+    // Determine bomStatus from required components only
+    const requiredWithShortfall = components.filter((c) => c.shortfall > 0);
+    if (requiredWithShortfall.length === 0) {
+      bomStatus = 'READY';
+    } else if (requiredWithShortfall.length === components.length) {
+      bomStatus = 'SHORTAGE';
+    } else {
+      bomStatus = 'PARTIAL';
+    }
   }
 
   return {
@@ -255,6 +315,8 @@ export async function getJobCardById(id: string, companyId: string) {
     createdAt: jobCard.createdAt,
     createdBy: jobCard.createdBy,
     updatedAt: jobCard.updatedAt,
+    bomComponents,
+    bomStatus,
   };
 }
 

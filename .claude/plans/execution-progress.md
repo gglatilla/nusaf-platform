@@ -23,7 +23,7 @@
 - [x] T11: Tax invoice customer portal + order lifecycle completion (2026-02-09)
 
 ## Phase 2A — Manufacturing
-- [ ] T12: BOM components display on job card (API)
+- [x] T12: BOM components display on job card (API) (2026-02-09)
 - [ ] T13: BOM components display on job card (UI)
 - [ ] T14: Raw material availability check on job start
 - [ ] T15: BOM snapshot at job card creation + consume from snapshot
@@ -66,24 +66,18 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2A, next T12
+- Current phase: Phase 2A, next T13
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T11: Tax invoice customer portal + order lifecycle completion
-  - Customer portal: Added TaxInvoicesSection to /my/orders/[id] with isCustomer=true (shows ISSUED only)
-  - Customer portal: Added due date banner for account customers showing payment deadline
-  - Customer portal: Extended "Request Return" button to work for INVOICED and CLOSED statuses
-  - Customer portal: Added INVOICED and CLOSED tabs to customer orders list filter
-  - Backend: Added closeOrder() service function (INVOICED → CLOSED with closedAt/closedBy)
-  - Backend: Added closedAt/closedBy fields to SalesOrder Prisma model + db push
-  - Backend: Added POST /orders/:id/close route (ADMIN/MANAGER only)
-  - Backend: Updated updateOrderStatus() to set closedAt/closedBy on CLOSED transitions
-  - Frontend: Added closeOrder() API method, useCloseOrder hook, Close Order button on staff order detail
-  - Frontend: Updated FulfillmentPipelineSteps to show 7 steps (Confirmed→Processing→Ready to Ship→Shipped→Delivered→Invoiced→Closed)
-  - Verified: INVOICED/CLOSED already existed in Prisma schema, shared types, OrderStatusBadge
-  - Verified: createTaxInvoice() already auto-transitions DELIVERED → INVOICED
-  - Verified: Customer API routes for tax invoices already support CUSTOMER role with company isolation
-  - Both backend and frontend compile clean
-- Next: T12 — BOM components display on job card (API)
+- Completed T12: BOM components display on job card (API)
+  - Modified getJobCardById() in job-card.service.ts to include BOM component data
+  - Imports and calls checkBomStock() from bom.service.ts (reuses existing function)
+  - Returns bomComponents array: productId, sku, name, quantityPerUnit, requiredQuantity, availableStock, shortfall, isOptional, canFulfill
+  - Returns bomStatus summary: 'READY' | 'PARTIAL' | 'SHORTAGE'
+  - Stock levels checked at JHB warehouse (only manufacturing location)
+  - Includes both required and optional components
+  - bomStatus based on required components only (optional don't affect status)
+  - Backend compiles clean with no TypeScript errors
+- Next: T13 — BOM components display on job card (UI)
