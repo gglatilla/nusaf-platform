@@ -1102,6 +1102,7 @@ model JobCard {
 
   // Relations
   issueFlags IssueFlag[]
+  bomLines   JobCardBomLine[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -1112,6 +1113,24 @@ model JobCard {
   @@index([orderId])
   @@index([status])
   @@map("job_cards")
+}
+
+model JobCardBomLine {
+  id                 String  @id @default(cuid())
+  jobCardId          String  @map("job_card_id")
+  componentProductId String  @map("component_product_id")
+  componentSku       String  @map("component_sku")
+  componentName      String  @map("component_name")
+  quantityPerUnit    Decimal @map("quantity_per_unit") @db.Decimal(12, 4)
+  totalRequired      Decimal @map("total_required") @db.Decimal(12, 4)
+  isOptional         Boolean @default(false) @map("is_optional")
+  sortOrder          Int     @default(0) @map("sort_order")
+
+  // Relations
+  jobCard JobCard @relation(fields: [jobCardId], references: [id])
+
+  @@index([jobCardId])
+  @@map("job_card_bom_lines")
 }
 
 model JobCardCounter {

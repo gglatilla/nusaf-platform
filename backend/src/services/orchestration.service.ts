@@ -1401,6 +1401,22 @@ async function createJobCardFromPlan(
     },
   });
 
+  // Snapshot BOM components from the plan (captured at plan generation time)
+  if (plan.components.length > 0) {
+    await tx.jobCardBomLine.createMany({
+      data: plan.components.map((comp, idx) => ({
+        jobCardId: jobCard.id,
+        componentProductId: comp.productId,
+        componentSku: comp.productSku,
+        componentName: comp.productDescription,
+        quantityPerUnit: plan.quantity > 0 ? comp.requiredQuantity / plan.quantity : 0,
+        totalRequired: comp.requiredQuantity,
+        isOptional: false, // orchestration only includes required components
+        sortOrder: idx,
+      })),
+    });
+  }
+
   return {
     id: jobCard.id,
     number: jobCardNumber,

@@ -26,7 +26,7 @@
 - [x] T12: BOM components display on job card (API) (2026-02-09)
 - [x] T13: BOM components display on job card (UI) (2026-02-09)
 - [x] T14: Raw material availability check on job start (2026-02-09)
-- [ ] T15: BOM snapshot at job card creation + consume from snapshot
+- [x] T15: BOM snapshot at job card creation + consume from snapshot (2026-02-09)
 
 ## Phase 2B — Data Integrity
 - [ ] T16: Atomic increments in updateStockLevel
@@ -66,22 +66,17 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-09
-- Current phase: Phase 2A, next T15
+- Current phase: Phase 2B, next T16
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-09)
-- Completed T14: Raw material availability check on job start
-  - Added `materialCheckPerformed` (Boolean) and `materialCheckResult` (Json) fields to JobCard model
-  - Modified `startJobCard()` in job-card.service.ts:
-    - Calls `checkBomStock()` before transitioning to IN_PROGRESS
-    - Stores check result in materialCheckResult field
-    - Returns soft warnings for required components with shortfalls
-    - Optional BOM components don't trigger warnings
-    - BOM check failure is non-blocking (try/catch)
-  - Updated API route to return `warnings` array in response
-  - Updated frontend types (MaterialWarning interface, JobCard fields)
-  - Updated useStartJobCard hook to return typed warnings
-  - Job card detail page shows amber "started with material shortfalls" banner when warnings returned
+- Completed T15: BOM snapshot at job card creation + consume from snapshot
+  - Added `JobCardBomLine` model (componentProductId, componentSku, componentName, quantityPerUnit, totalRequired, isOptional, sortOrder)
+  - Added `bomLines` relation on JobCard
+  - Orchestration `createJobCardFromPlan()`: snapshots BOM from plan.components at creation time
+  - Manual `createJobCard()`: calls `explodeBom()` and snapshots at creation time (non-blocking try/catch)
+  - `getJobCardById()`: uses snapshot (bomLines) if available, fetches stock levels for display; falls back to live BOM via `checkBomStock()` for old job cards
+  - `completeJobCard()`: uses snapshot (JobCardBomLine) for consumption; falls back to live BOM (bomItem) for old job cards
   - Both frontend and backend compile with zero TypeScript errors
-- Next: T15 — BOM snapshot at job card creation + consume from snapshot
+- Next: T16 — Atomic increments in updateStockLevel

@@ -1,7 +1,7 @@
 import { Prisma, JobCardStatus, JobType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
-import { checkBomStock } from './bom.service';
+import { checkBomStock, explodeBom } from './bom.service';
 
 /**
  * Valid status transitions for job cards
@@ -109,7 +109,7 @@ export async function createJobCard(
   // Generate job card number
   const jobCardNumber = await generateJobCardNumber();
 
-  // Create job card
+  // Create job card with BOM snapshot
   const jobCard = await prisma.jobCard.create({
     data: {
       jobCardNumber,
@@ -127,6 +127,28 @@ export async function createJobCard(
       createdBy: userId,
     },
   });
+
+  // Snapshot BOM at creation time
+  try {
+    const bomResult = await explodeBom(orderLine.productId, orderLine.quantityOrdered, { includeOptional: true });
+    if (bomResult.success && bomResult.data && bomResult.data.length > 0) {
+      await prisma.jobCardBomLine.createMany({
+        data: bomResult.data.map((item, idx) => ({
+          jobCardId: jobCard.id,
+          componentProductId: item.productId,
+          componentSku: item.nusafSku,
+          componentName: item.description,
+          quantityPerUnit: orderLine.quantityOrdered > 0 ? item.requiredQuantity / orderLine.quantityOrdered : 0,
+          totalRequired: item.requiredQuantity,
+          isOptional: item.isOptional,
+          sortOrder: idx,
+        })),
+      });
+    }
+  } catch (err) {
+    // BOM snapshot failure should not block job card creation
+    console.error('Failed to snapshot BOM for job card (non-blocking):', err);
+  }
 
   return {
     success: true,
@@ -228,6 +250,11 @@ export async function getJobCardById(id: string, companyId: string) {
       id,
       companyId,
     },
+    include: {
+      bomLines: {
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
   });
 
   if (!jobCard) {
@@ -248,48 +275,87 @@ export async function getJobCardById(id: string, companyId: string) {
   }> = [];
   let bomStatus: 'READY' | 'PARTIAL' | 'SHORTAGE' = 'READY';
 
-  const bomResult = await checkBomStock(jobCard.productId, jobCard.quantity, 'JHB');
+  if (jobCard.bomLines.length > 0) {
+    // Use BOM snapshot — get current stock levels for the snapshotted components
+    const productIds = jobCard.bomLines.map((bl) => bl.componentProductId);
+    const stockLevels = await prisma.stockLevel.findMany({
+      where: {
+        productId: { in: productIds },
+        location: 'JHB',
+      },
+      select: { productId: true, onHand: true, hardReserved: true },
+    });
+    const stockMap = new Map(stockLevels.map((sl) => [sl.productId, sl.onHand - sl.hardReserved]));
 
-  if (bomResult.success && bomResult.data) {
-    const { components, optionalComponents } = bomResult.data;
-
-    // Map required components
-    bomComponents = components.map((c) => ({
-      productId: c.productId,
-      sku: c.nusafSku,
-      name: c.description,
-      quantityPerUnit: jobCard.quantity > 0 ? c.requiredQuantity / jobCard.quantity : 0,
-      requiredQuantity: c.requiredQuantity,
-      availableStock: c.availableQuantity,
-      shortfall: c.shortfall,
-      isOptional: false,
-      canFulfill: c.shortfall === 0,
-    }));
-
-    // Map optional components
-    for (const oc of optionalComponents) {
-      const shortfall = Math.max(0, oc.requiredQuantity - oc.availableQuantity);
-      bomComponents.push({
-        productId: oc.productId,
-        sku: oc.nusafSku,
-        name: oc.description,
-        quantityPerUnit: jobCard.quantity > 0 ? oc.requiredQuantity / jobCard.quantity : 0,
-        requiredQuantity: oc.requiredQuantity,
-        availableStock: oc.availableQuantity,
+    bomComponents = jobCard.bomLines.map((bl) => {
+      const available = stockMap.get(bl.componentProductId) ?? 0;
+      const required = bl.totalRequired.toNumber();
+      const shortfall = Math.max(0, required - available);
+      return {
+        productId: bl.componentProductId,
+        sku: bl.componentSku,
+        name: bl.componentName,
+        quantityPerUnit: bl.quantityPerUnit.toNumber(),
+        requiredQuantity: required,
+        availableStock: available,
         shortfall,
-        isOptional: true,
+        isOptional: bl.isOptional,
         canFulfill: shortfall === 0,
-      });
-    }
+      };
+    });
 
     // Determine bomStatus from required components only
-    const requiredWithShortfall = components.filter((c) => c.shortfall > 0);
-    if (requiredWithShortfall.length === 0) {
+    const requiredComponents = bomComponents.filter((c) => !c.isOptional);
+    const requiredWithShortfall = requiredComponents.filter((c) => c.shortfall > 0);
+    if (requiredComponents.length === 0 || requiredWithShortfall.length === 0) {
       bomStatus = 'READY';
-    } else if (requiredWithShortfall.length === components.length) {
+    } else if (requiredWithShortfall.length === requiredComponents.length) {
       bomStatus = 'SHORTAGE';
     } else {
       bomStatus = 'PARTIAL';
+    }
+  } else {
+    // Fallback: no snapshot exists (old job cards) — use live BOM
+    const bomResult = await checkBomStock(jobCard.productId, jobCard.quantity, 'JHB');
+
+    if (bomResult.success && bomResult.data) {
+      const { components, optionalComponents } = bomResult.data;
+
+      bomComponents = components.map((c) => ({
+        productId: c.productId,
+        sku: c.nusafSku,
+        name: c.description,
+        quantityPerUnit: jobCard.quantity > 0 ? c.requiredQuantity / jobCard.quantity : 0,
+        requiredQuantity: c.requiredQuantity,
+        availableStock: c.availableQuantity,
+        shortfall: c.shortfall,
+        isOptional: false,
+        canFulfill: c.shortfall === 0,
+      }));
+
+      for (const oc of optionalComponents) {
+        const shortfall = Math.max(0, oc.requiredQuantity - oc.availableQuantity);
+        bomComponents.push({
+          productId: oc.productId,
+          sku: oc.nusafSku,
+          name: oc.description,
+          quantityPerUnit: jobCard.quantity > 0 ? oc.requiredQuantity / jobCard.quantity : 0,
+          requiredQuantity: oc.requiredQuantity,
+          availableStock: oc.availableQuantity,
+          shortfall,
+          isOptional: true,
+          canFulfill: shortfall === 0,
+        });
+      }
+
+      const requiredWithShortfall = components.filter((c) => c.shortfall > 0);
+      if (requiredWithShortfall.length === 0) {
+        bomStatus = 'READY';
+      } else if (requiredWithShortfall.length === components.length) {
+        bomStatus = 'SHORTAGE';
+      } else {
+        bomStatus = 'PARTIAL';
+      }
     }
   }
 
@@ -626,37 +692,73 @@ export async function completeJobCard(
       });
 
       // 3. BOM components: decrease onHand + create MANUFACTURE_OUT movements
-      const bomItems = await tx.bomItem.findMany({
-        where: {
-          parentProductId: jobCard.productId,
-          isOptional: false,
-        },
+      // Use snapshot (JobCardBomLine) if available, fall back to live BOM for old job cards
+      const snapshotLines = await tx.jobCardBomLine.findMany({
+        where: { jobCardId: jobCard.id, isOptional: false },
+        orderBy: { sortOrder: 'asc' },
       });
 
-      for (const bom of bomItems) {
-        const consumedQty = Math.ceil(bom.quantity.toNumber() * jobCard.quantity);
-        if (consumedQty <= 0) continue;
+      if (snapshotLines.length > 0) {
+        // Use BOM snapshot for consumption
+        for (const line of snapshotLines) {
+          const consumedQty = Math.ceil(line.totalRequired.toNumber());
+          if (consumedQty <= 0) continue;
 
-        const componentLevel = await updateStockLevel(
-          tx,
-          bom.componentProductId,
-          manufacturingLocation,
-          { onHand: -consumedQty },
-          userId
-        );
+          const componentLevel = await updateStockLevel(
+            tx,
+            line.componentProductId,
+            manufacturingLocation,
+            { onHand: -consumedQty },
+            userId
+          );
 
-        await createStockMovement(tx, {
-          productId: bom.componentProductId,
-          location: manufacturingLocation,
-          movementType: 'MANUFACTURE_OUT',
-          quantity: consumedQty,
-          balanceAfter: componentLevel.onHand,
-          referenceType: 'JobCard',
-          referenceId: jobCard.id,
-          referenceNumber: jobCard.jobCardNumber,
-          notes: `Component consumed for ${jobCard.productSku} (order ${jobCard.orderNumber})`,
-          createdBy: userId,
+          await createStockMovement(tx, {
+            productId: line.componentProductId,
+            location: manufacturingLocation,
+            movementType: 'MANUFACTURE_OUT',
+            quantity: consumedQty,
+            balanceAfter: componentLevel.onHand,
+            referenceType: 'JobCard',
+            referenceId: jobCard.id,
+            referenceNumber: jobCard.jobCardNumber,
+            notes: `Component consumed for ${jobCard.productSku} (order ${jobCard.orderNumber})`,
+            createdBy: userId,
+          });
+        }
+      } else {
+        // Fallback: no snapshot (old job cards) — use live BOM
+        const bomItems = await tx.bomItem.findMany({
+          where: {
+            parentProductId: jobCard.productId,
+            isOptional: false,
+          },
         });
+
+        for (const bom of bomItems) {
+          const consumedQty = Math.ceil(bom.quantity.toNumber() * jobCard.quantity);
+          if (consumedQty <= 0) continue;
+
+          const componentLevel = await updateStockLevel(
+            tx,
+            bom.componentProductId,
+            manufacturingLocation,
+            { onHand: -consumedQty },
+            userId
+          );
+
+          await createStockMovement(tx, {
+            productId: bom.componentProductId,
+            location: manufacturingLocation,
+            movementType: 'MANUFACTURE_OUT',
+            quantity: consumedQty,
+            balanceAfter: componentLevel.onHand,
+            referenceType: 'JobCard',
+            referenceId: jobCard.id,
+            referenceNumber: jobCard.jobCardNumber,
+            notes: `Component consumed for ${jobCard.productSku} (order ${jobCard.orderNumber})`,
+            createdBy: userId,
+          });
+        }
       }
 
       // 4. Propagate status to SalesOrder
