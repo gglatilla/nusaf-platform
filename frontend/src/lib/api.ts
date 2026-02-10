@@ -1237,6 +1237,7 @@ export interface SalesOrderListItem {
   paymentStatus: OrderPaymentStatus;
   quoteNumber: string | null;
   customerPoNumber: string | null;
+  companyName?: string;
   lineCount: number;
   total: number;
   createdAt: string;

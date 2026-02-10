@@ -130,11 +130,11 @@ export function OrderListTable({ orders, isLoading, linkPrefix = '/orders', quot
             <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Status
             </th>
-            <th className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-              Quote #
+            <th className="hidden lg:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              Company
             </th>
             <th className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-              PO #
+              Quote #
             </th>
             <th className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Lines
@@ -164,11 +164,11 @@ export function OrderListTable({ orders, isLoading, linkPrefix = '/orders', quot
               <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                 <OrderStatusBadge status={order.status} />
               </td>
-              <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {order.quoteNumber || '—'}
+              <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                {order.companyName || '—'}
               </td>
               <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {order.customerPoNumber || '—'}
+                {order.quoteNumber || '—'}
               </td>
               <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                 {order.lineCount}

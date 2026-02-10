@@ -148,6 +148,7 @@ export async function getOrders(options: {
     prisma.salesOrder.findMany({
       where,
       include: {
+        company: { select: { name: true } },
         _count: { select: { lines: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -165,6 +166,7 @@ export async function getOrders(options: {
       paymentStatus: o.paymentStatus,
       quoteNumber: o.quoteNumber,
       customerPoNumber: o.customerPoNumber,
+      companyName: o.company.name,
       lineCount: o._count.lines,
       total: Number(o.total),
       createdAt: o.createdAt,

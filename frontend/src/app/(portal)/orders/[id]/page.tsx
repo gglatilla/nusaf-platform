@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote, Lock } from 'lucide-react';
+import { OrderActionMenu } from '@/components/orders/OrderActionMenu';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder, useCloseOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
 import { useJobCardsForOrder, useCreateJobCard } from '@/hooks/useJobCards';
@@ -156,11 +157,13 @@ export default function OrderDetailPage() {
   const canHold = canSeeOrderActions && ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status);
   const canRelease = canSeeOrderActions && order.status === 'ON_HOLD';
   const canCancel = canSeeOrderActions && ['DRAFT', 'CONFIRMED', 'PROCESSING', 'ON_HOLD'].includes(order.status);
-  const canGeneratePickingSlips = canSeeWarehouseActions && order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
-  const canCreateJobCard = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING');
-  const canCreateTransferRequest = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING');
-  const canGenerateFulfillmentPlan = canSeeWarehouseActions && order.status === 'CONFIRMED' && (!isPrepay || order.paymentStatus === 'PAID');
-  const fulfillmentBlockedByPayment = canSeeWarehouseActions && order.status === 'CONFIRMED' && isPrepay && order.paymentStatus !== 'PAID';
+  // When prepay is unpaid, ALL fulfillment/warehouse actions are blocked
+  const prepayBlocked = isPrepay && order.paymentStatus !== 'PAID';
+  const canGeneratePickingSlips = canSeeWarehouseActions && order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0) && !prepayBlocked;
+  const canCreateJobCard = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING') && !prepayBlocked;
+  const canCreateTransferRequest = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING') && !prepayBlocked;
+  const canGenerateFulfillmentPlan = canSeeWarehouseActions && order.status === 'CONFIRMED' && !prepayBlocked;
+  const fulfillmentBlockedByPayment = canSeeWarehouseActions && order.status === 'CONFIRMED' && prepayBlocked;
   const canRecordPayment = canSeeFinancialActions && order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'NOT_REQUIRED';
   const canCreateDeliveryNote = canSeeShippingActions && ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreatePackingList = canSeeShippingActions && ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
@@ -187,8 +190,6 @@ export default function OrderDetailPage() {
   } else if (order.status === 'INVOICED') {
     primaryAction = 'close';
   }
-  const primaryRing = 'ring-2 ring-offset-2';
-
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
       await confirm.mutateAsync(orderId);
@@ -347,160 +348,188 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {canCreateProformaInvoice && (
-            <button
-              onClick={handleCreateProformaInvoice}
-              disabled={createProformaInvoice.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 disabled:opacity-50"
-            >
-              <Receipt className="h-4 w-4" />
-              {createProformaInvoice.isPending ? 'Generating...' : 'Proforma Invoice'}
-            </button>
-          )}
-          {canRecordPayment && (
-            <button
-              onClick={() => setShowRecordPaymentModal(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 ${primaryAction === 'recordPayment' ? `${primaryRing} ring-green-500` : ''}`}
-            >
-              <Banknote className="h-4 w-4" />
-              Record Payment
-            </button>
-          )}
-          {canGenerateFulfillmentPlan && (
-            <button
-              onClick={() => setShowFulfillmentPlanModal(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 ${primaryAction === 'fulfillmentPlan' ? `${primaryRing} ring-primary-500` : ''}`}
-            >
-              <Boxes className="h-4 w-4" />
-              Fulfillment Plan
-            </button>
-          )}
-          {fulfillmentBlockedByPayment && (
-            <button
-              disabled
-              title="Payment must be received before fulfillment can begin for this prepay order"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-300 text-slate-500 text-sm font-medium rounded-md cursor-not-allowed"
-            >
-              <Boxes className="h-4 w-4" />
-              Fulfillment Plan
-            </button>
-          )}
-          {canGeneratePickingSlips && (
-            <button
-              onClick={() => setShowGeneratePickingSlipModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
-            >
-              <ClipboardList className="h-4 w-4" />
-              Picking Slips
-            </button>
-          )}
-          {canCreateJobCard && (
-            <button
-              onClick={() => setShowCreateJobCardModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700"
-            >
-              <Wrench className="h-4 w-4" />
-              Job Card
-            </button>
-          )}
-          {canCreateTransferRequest && (
-            <button
-              onClick={() => setShowCreateTransferRequestModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-            >
-              <Truck className="h-4 w-4" />
-              Transfer
-            </button>
-          )}
-          {canCreateDeliveryNote && (
-            <button
-              onClick={handleCreateDeliveryNote}
-              disabled={createDeliveryNote.isPending}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-50 ${primaryAction === 'deliveryNote' ? `${primaryRing} ring-teal-500` : ''}`}
-            >
-              <FileOutput className="h-4 w-4" />
-              {createDeliveryNote.isPending ? 'Creating...' : 'Delivery Note'}
-            </button>
-          )}
-          {canCreatePackingList && (
-            <Link
-              href={`/packing-lists/new?orderId=${orderId}`}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700"
-            >
-              <Boxes className="h-4 w-4" />
-              Packing List
-            </Link>
-          )}
-          {canRequestReturn && (
-            <Link
-              href={`/return-authorizations/new?orderId=${orderId}`}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Request Return
-            </Link>
-          )}
-          {canCreateTaxInvoice && (
-            <button
-              onClick={handleCreateTaxInvoice}
-              disabled={createTaxInvoice.isPending}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50 ${primaryAction === 'taxInvoice' ? `${primaryRing} ring-emerald-500` : ''}`}
-            >
-              <Receipt className="h-4 w-4" />
-              {createTaxInvoice.isPending ? 'Generating...' : 'Tax Invoice'}
-            </button>
-          )}
-          {canClose && (
-            <button
-              onClick={handleClose}
-              disabled={close.isPending}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white text-sm font-medium rounded-md hover:bg-slate-700 disabled:opacity-50 ${primaryAction === 'close' ? `${primaryRing} ring-slate-500` : ''}`}
-            >
-              <Lock className="h-4 w-4" />
-              {close.isPending ? 'Closing...' : 'Close Order'}
-            </button>
-          )}
-          {canConfirm && (
-            <button
-              onClick={handleConfirm}
-              disabled={confirm.isPending}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50 ${primaryAction === 'confirm' ? `${primaryRing} ring-primary-500` : ''}`}
-            >
-              <Check className="h-4 w-4" />
-              {confirm.isPending ? 'Confirming...' : 'Confirm'}
-            </button>
-          )}
-          {canHold && (
-            <button
-              onClick={() => setShowHoldModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-600 text-sm font-medium rounded-md hover:bg-amber-50"
-            >
-              <Pause className="h-4 w-4" />
-              Hold
-            </button>
-          )}
-          {canRelease && (
-            <button
-              onClick={handleRelease}
-              disabled={release.isPending}
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 ${primaryAction === 'release' ? `${primaryRing} ring-green-500` : ''}`}
-            >
-              <Play className="h-4 w-4" />
-              {release.isPending ? 'Releasing...' : 'Release'}
-            </button>
-          )}
-          {canCancel && (
-            <button
-              onClick={() => setShowCancelModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-md hover:bg-red-50"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </button>
-          )}
-        </div>
+        {/* Actions — Primary action + grouped dropdown */}
+        <OrderActionMenu
+          primaryAction={
+            primaryAction === 'confirm' && canConfirm ? {
+              label: 'Confirm Order',
+              icon: <Check className="h-4 w-4" />,
+              onClick: handleConfirm,
+              loading: confirm.isPending,
+              loadingLabel: 'Confirming...',
+            }
+            : primaryAction === 'release' && canRelease ? {
+              label: 'Release from Hold',
+              icon: <Play className="h-4 w-4" />,
+              onClick: handleRelease,
+              loading: release.isPending,
+              loadingLabel: 'Releasing...',
+            }
+            : primaryAction === 'recordPayment' && canRecordPayment ? {
+              label: 'Record Payment',
+              icon: <Banknote className="h-4 w-4" />,
+              onClick: () => setShowRecordPaymentModal(true),
+            }
+            : primaryAction === 'fulfillmentPlan' && canGenerateFulfillmentPlan ? {
+              label: 'Generate Fulfillment',
+              icon: <Boxes className="h-4 w-4" />,
+              onClick: () => setShowFulfillmentPlanModal(true),
+            }
+            : primaryAction === 'deliveryNote' && canCreateDeliveryNote ? {
+              label: 'Create Delivery Note',
+              icon: <FileOutput className="h-4 w-4" />,
+              onClick: handleCreateDeliveryNote,
+              loading: createDeliveryNote.isPending,
+              loadingLabel: 'Creating...',
+            }
+            : primaryAction === 'taxInvoice' && canCreateTaxInvoice ? {
+              label: 'Create Tax Invoice',
+              icon: <Receipt className="h-4 w-4" />,
+              onClick: handleCreateTaxInvoice,
+              loading: createTaxInvoice.isPending,
+              loadingLabel: 'Generating...',
+            }
+            : primaryAction === 'close' && canClose ? {
+              label: 'Close Order',
+              icon: <Lock className="h-4 w-4" />,
+              onClick: handleClose,
+              loading: close.isPending,
+              loadingLabel: 'Closing...',
+            }
+            : null
+          }
+          nextStepText={
+            primaryAction === 'confirm' ? 'Confirm this order'
+            : primaryAction === 'release' ? 'Release from hold'
+            : primaryAction === 'recordPayment' ? 'Record payment to unblock fulfillment'
+            : primaryAction === 'fulfillmentPlan' ? 'Generate fulfillment plan'
+            : primaryAction === 'deliveryNote' ? 'Create delivery note'
+            : primaryAction === 'taxInvoice' ? 'Generate tax invoice'
+            : primaryAction === 'close' ? 'Close this order'
+            : undefined
+          }
+          groups={[
+            {
+              label: 'Financial',
+              items: [
+                ...(canCreateProformaInvoice ? [{
+                  key: 'proforma',
+                  label: 'Proforma Invoice',
+                  icon: <Receipt className="h-4 w-4" />,
+                  onClick: handleCreateProformaInvoice,
+                }] : []),
+                ...(canRecordPayment && primaryAction !== 'recordPayment' ? [{
+                  key: 'payment',
+                  label: 'Record Payment',
+                  icon: <Banknote className="h-4 w-4" />,
+                  onClick: () => setShowRecordPaymentModal(true),
+                }] : []),
+                ...(canCreateTaxInvoice && primaryAction !== 'taxInvoice' ? [{
+                  key: 'taxInvoice',
+                  label: 'Tax Invoice',
+                  icon: <Receipt className="h-4 w-4" />,
+                  onClick: handleCreateTaxInvoice,
+                }] : []),
+              ],
+            },
+            {
+              label: 'Fulfillment',
+              items: [
+                ...(canGenerateFulfillmentPlan && primaryAction !== 'fulfillmentPlan' ? [{
+                  key: 'fulfillment',
+                  label: 'Fulfillment Plan',
+                  icon: <Boxes className="h-4 w-4" />,
+                  onClick: () => setShowFulfillmentPlanModal(true),
+                }] : []),
+                ...(fulfillmentBlockedByPayment ? [{
+                  key: 'fulfillment-blocked',
+                  label: 'Fulfillment Plan',
+                  icon: <Boxes className="h-4 w-4" />,
+                  disabled: true,
+                  disabledReason: 'Payment required before fulfillment',
+                }] : []),
+                ...(canGeneratePickingSlips ? [{
+                  key: 'picking',
+                  label: 'Generate Picking Slips',
+                  icon: <ClipboardList className="h-4 w-4" />,
+                  onClick: () => setShowGeneratePickingSlipModal(true),
+                }] : []),
+                ...(canCreateJobCard ? [{
+                  key: 'jobCard',
+                  label: 'Create Job Card',
+                  icon: <Wrench className="h-4 w-4" />,
+                  onClick: () => setShowCreateJobCardModal(true),
+                }] : []),
+                ...(canCreateTransferRequest ? [{
+                  key: 'transfer',
+                  label: 'Create Transfer',
+                  icon: <Truck className="h-4 w-4" />,
+                  onClick: () => setShowCreateTransferRequestModal(true),
+                }] : []),
+              ],
+            },
+            {
+              label: 'Shipping',
+              items: [
+                ...(canCreateDeliveryNote && primaryAction !== 'deliveryNote' ? [{
+                  key: 'deliveryNote',
+                  label: 'Create Delivery Note',
+                  icon: <FileOutput className="h-4 w-4" />,
+                  onClick: handleCreateDeliveryNote,
+                }] : []),
+                ...(canCreatePackingList ? [{
+                  key: 'packingList',
+                  label: 'Create Packing List',
+                  icon: <Boxes className="h-4 w-4" />,
+                  href: `/packing-lists/new?orderId=${orderId}`,
+                }] : []),
+              ],
+            },
+            {
+              label: 'Order Management',
+              items: [
+                ...(canConfirm && primaryAction !== 'confirm' ? [{
+                  key: 'confirm',
+                  label: 'Confirm Order',
+                  icon: <Check className="h-4 w-4" />,
+                  onClick: handleConfirm,
+                }] : []),
+                ...(canHold ? [{
+                  key: 'hold',
+                  label: 'Put on Hold',
+                  icon: <Pause className="h-4 w-4" />,
+                  onClick: () => setShowHoldModal(true),
+                  variant: 'warning' as const,
+                }] : []),
+                ...(canRelease && primaryAction !== 'release' ? [{
+                  key: 'release',
+                  label: 'Release from Hold',
+                  icon: <Play className="h-4 w-4" />,
+                  onClick: handleRelease,
+                }] : []),
+                ...(canRequestReturn ? [{
+                  key: 'return',
+                  label: 'Request Return',
+                  icon: <RotateCcw className="h-4 w-4" />,
+                  href: `/return-authorizations/new?orderId=${orderId}`,
+                }] : []),
+                ...(canClose && primaryAction !== 'close' ? [{
+                  key: 'close',
+                  label: 'Close Order',
+                  icon: <Lock className="h-4 w-4" />,
+                  onClick: handleClose,
+                }] : []),
+                ...(canCancel ? [{
+                  key: 'cancel',
+                  label: 'Cancel Order',
+                  icon: <X className="h-4 w-4" />,
+                  onClick: () => setShowCancelModal(true),
+                  variant: 'danger' as const,
+                }] : []),
+              ],
+            },
+          ]}
+        />
       </div>
 
       {/* Hold / Cancel Banners */}
