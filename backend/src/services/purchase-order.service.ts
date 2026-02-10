@@ -44,6 +44,7 @@ export interface PurchaseOrderData {
   sentAt: Date | null;
   sentBy: string | null;
   lines: PurchaseOrderLineData[];
+  version: number;
   createdAt: Date;
   createdBy: string;
   updatedAt: Date;
@@ -344,6 +345,11 @@ export async function updatePurchaseOrder(
     return { success: false, error: `Cannot update purchase order with status ${po.status}` };
   }
 
+  // Optimistic locking: check version if provided
+  if (input.version !== undefined && input.version !== po.version) {
+    return { success: false, error: 'VERSION_CONFLICT: This purchase order was modified by another user. Please refresh and try again.' };
+  }
+
   const updated = await prisma.purchaseOrder.update({
     where: { id },
     data: {
@@ -351,6 +357,7 @@ export async function updatePurchaseOrder(
       ...(input.expectedDate !== undefined && { expectedDate: input.expectedDate }),
       ...(input.internalNotes !== undefined && { internalNotes: input.internalNotes }),
       ...(input.supplierNotes !== undefined && { supplierNotes: input.supplierNotes }),
+      version: { increment: 1 },
       updatedBy: userId,
     },
     include: {
@@ -413,6 +420,7 @@ export async function cancelPurchaseOrder(
       where: { id },
       data: {
         status: 'CANCELLED',
+        version: { increment: 1 },
         updatedBy: userId,
       },
     });
@@ -640,6 +648,7 @@ export async function submitForApproval(
     where: { id },
     data: {
       status: 'PENDING_APPROVAL',
+      version: { increment: 1 },
       updatedBy: userId,
     },
   });
@@ -676,6 +685,7 @@ export async function approvePurchaseOrder(
     data: {
       approvedAt: new Date(),
       approvedBy: userId,
+      version: { increment: 1 },
       updatedBy: userId,
     },
   });
@@ -710,6 +720,7 @@ export async function rejectPurchaseOrder(
       rejectedAt: new Date(),
       rejectedBy: userId,
       rejectionReason: reason,
+      version: { increment: 1 },
       updatedBy: userId,
     },
   });
@@ -822,6 +833,7 @@ export async function sendToSupplier(
         status: 'SENT',
         sentAt: new Date(),
         sentBy: userId,
+        version: { increment: 1 },
         updatedBy: userId,
       },
     });
@@ -902,6 +914,7 @@ export async function acknowledgePurchaseOrder(
     where: { id },
     data: {
       status: 'ACKNOWLEDGED',
+      version: { increment: 1 },
       updatedBy: userId,
     },
   });
@@ -934,6 +947,7 @@ async function recalculatePOTotals(poId: string, userId: string): Promise<void> 
     data: {
       subtotal: roundTo2(subtotal),
       total,
+      version: { increment: 1 },
       updatedBy: userId,
     },
   });
@@ -971,6 +985,7 @@ function mapPurchaseOrderToData(
     sentAt: po.sentAt,
     sentBy: po.sentBy,
     lines: po.lines.map(mapLineToData),
+    version: po.version,
     createdAt: po.createdAt,
     createdBy: po.createdBy,
     updatedAt: po.updatedAt,

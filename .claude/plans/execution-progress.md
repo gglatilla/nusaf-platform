@@ -47,7 +47,7 @@
 - [x] T27: Return order status validation (DELIVERED only) (2026-02-10)
 - [x] T28: Overselling warning on quote line items (2026-02-10)
 - [x] T29: PO cancel with existing GRVs (block or reverse) (2026-02-10)
-- [ ] T30: Concurrent edit protection (version field on PO)
+- [x] T30: Concurrent edit protection (version field on PO) (2026-02-10)
 
 ## Phase 3B — UX Improvements
 - [ ] T31: Order detail role-based action buttons

@@ -39,6 +39,7 @@ export const updatePurchaseOrderSchema = z.object({
   expectedDate: z.coerce.date().optional().nullable(),
   internalNotes: z.string().max(2000, 'Notes must be 2000 characters or less').optional().nullable(),
   supplierNotes: z.string().max(2000, 'Notes must be 2000 characters or less').optional().nullable(),
+  version: z.number().int().positive().optional(),
 });
 
 /**

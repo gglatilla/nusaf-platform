@@ -295,7 +295,7 @@ export async function createGoodsReceipt(
       if (newStatus !== purchaseOrder.status) {
         await tx.purchaseOrder.update({
           where: { id: purchaseOrder.id },
-          data: { status: newStatus, updatedBy: userId },
+          data: { status: newStatus, version: { increment: 1 }, updatedBy: userId },
         });
       }
 

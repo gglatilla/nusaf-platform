@@ -2732,6 +2732,7 @@ export interface PurchaseOrder {
   sentAt: string | null;
   sentBy: string | null;
   lines: PurchaseOrderLine[];
+  version: number;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
@@ -2785,6 +2786,7 @@ export interface UpdatePurchaseOrderData {
   expectedDate?: string | null;
   internalNotes?: string | null;
   supplierNotes?: string | null;
+  version?: number;
 }
 
 export interface AddPurchaseOrderLineData {

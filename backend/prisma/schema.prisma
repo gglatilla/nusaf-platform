@@ -1637,6 +1637,9 @@ model PurchaseOrder {
   lines    PurchaseOrderLine[]
   receipts GoodsReceivedVoucher[]
 
+  // Optimistic locking
+  version Int @default(1)
+
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
   createdBy String   @map("created_by")

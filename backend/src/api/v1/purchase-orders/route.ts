@@ -190,9 +190,11 @@ router.patch(
       const result = await updatePurchaseOrder(id, bodyResult.data, authReq.user.id);
 
       if (!result.success) {
-        return res.status(400).json({
+        const statusCode = result.error?.startsWith('VERSION_CONFLICT') ? 409 : 400;
+        const errorCode = statusCode === 409 ? 'VERSION_CONFLICT' : 'PO_UPDATE_FAILED';
+        return res.status(statusCode).json({
           success: false,
-          error: { code: 'PO_UPDATE_FAILED', message: result.error },
+          error: { code: errorCode, message: result.error?.replace('VERSION_CONFLICT: ', '') },
         });
       }
 

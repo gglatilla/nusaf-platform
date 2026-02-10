@@ -40,6 +40,7 @@ import {
   PONotesSection,
 } from '@/components/purchase-orders/po-detail';
 import { ReceiveGoodsModal } from '@/components/goods-receipts/ReceiveGoodsModal';
+import { ApiError } from '@/lib/api';
 import type { SupplierCurrency } from '@/lib/api';
 
 function formatDate(dateString: string | null): string {
@@ -85,7 +86,7 @@ export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const poId = params.id as string;
 
-  const { data: po, isLoading, error } = usePurchaseOrder(poId);
+  const { data: po, isLoading, error, refetch } = usePurchaseOrder(poId);
   const { data: grvs } = usePurchaseOrderGrvs(poId);
   const { data: receivingSummary } = usePurchaseOrderReceivingSummary(poId);
 
@@ -133,41 +134,74 @@ export default function PurchaseOrderDetailPage() {
   // Show receiving progress for POs that have been sent or beyond
   const showReceivingProgress = ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED'].includes(po.status);
 
+  const handleVersionConflict = (err: unknown) => {
+    if (err instanceof ApiError && err.statusCode === 409) {
+      window.alert('This purchase order was modified by another user. The page will now refresh.');
+      refetch();
+      return true;
+    }
+    return false;
+  };
+
   const handleSubmit = async () => {
     if (window.confirm('Submit this purchase order for approval?')) {
-      await submit.mutateAsync(poId);
+      try {
+        await submit.mutateAsync(poId);
+      } catch (err) {
+        if (!handleVersionConflict(err)) throw err;
+      }
     }
   };
 
   const handleApprove = async () => {
     if (window.confirm('Approve this purchase order?')) {
-      await approve.mutateAsync(poId);
+      try {
+        await approve.mutateAsync(poId);
+      } catch (err) {
+        if (!handleVersionConflict(err)) throw err;
+      }
     }
   };
 
   const handleReject = async () => {
     if (!rejectReason.trim()) return;
-    await reject.mutateAsync({ id: poId, data: { reason: rejectReason } });
-    setShowRejectModal(false);
-    setRejectReason('');
+    try {
+      await reject.mutateAsync({ id: poId, data: { reason: rejectReason } });
+      setShowRejectModal(false);
+      setRejectReason('');
+    } catch (err) {
+      if (!handleVersionConflict(err)) throw err;
+    }
   };
 
   const handleSend = async () => {
     const emailTo = sendEmail.trim() || po.supplier.email || undefined;
-    await send.mutateAsync({ id: poId, data: { emailTo } });
-    setShowSendModal(false);
-    setSendEmail('');
+    try {
+      await send.mutateAsync({ id: poId, data: { emailTo } });
+      setShowSendModal(false);
+      setSendEmail('');
+    } catch (err) {
+      if (!handleVersionConflict(err)) throw err;
+    }
   };
 
   const handleAcknowledge = async () => {
     if (window.confirm('Mark this order as acknowledged by the supplier?')) {
-      await acknowledge.mutateAsync(poId);
+      try {
+        await acknowledge.mutateAsync(poId);
+      } catch (err) {
+        if (!handleVersionConflict(err)) throw err;
+      }
     }
   };
 
   const handleCancel = async () => {
     if (window.confirm('Cancel this purchase order? This cannot be undone.')) {
-      await cancel.mutateAsync(poId);
+      try {
+        await cancel.mutateAsync(poId);
+      } catch (err) {
+        if (!handleVersionConflict(err)) throw err;
+      }
     }
   };
 
