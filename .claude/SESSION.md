@@ -4,58 +4,51 @@
 ERP Remediation — Execution Plan (38 tasks across 6 phases)
 
 ## Status
-Phase 2C COMPLETE. Phase 3A next — T26 (Backend return quantity validation)
+Phase 3A in progress — T26, T27, T28 complete. Next: T29 (PO cancel with existing GRVs)
 
 ## Completed This Session
 - [x] T24: Credit note schema + service + PDF (2026-02-10)
 - [x] T25: Credit note API + UI + auto-generate on RA completion (2026-02-10)
+- [x] T26: Backend return quantity validation (2026-02-10)
+- [x] T27: Return order status validation (2026-02-10)
+- [x] T28: Overselling warning on quote line items (2026-02-10)
 
 ## What Was Done
 
-### T24: Credit Note Schema + Service + PDF
-- Schema: CreditNote, CreditNoteLine, CreditNoteCounter models added to Prisma
-- CreditNote: creditNoteNumber (CN-YYYY-NNNNN), companyId, orderId, returnAuthorizationId, raNumber, customer snapshots, status (DRAFT/ISSUED/VOIDED), issueDate, subtotal/vatRate/vatAmount/total, pdfUrl, voiding fields, notes, issuedBy
-- CreditNoteLine: product snapshot, quantity (quantityReceived), unitPrice (from original order line), lineTotal, resolution
-- Service: createCreditNote(raId, userId), getCreditNoteById, getCreditNotesForRA, getCreditNotesByCompany, voidCreditNote, getCreditNotes (paginated)
-- PDF: generateCreditNotePDF — red-themed, party info, line items with resolution column, totals, compliance statement
-- Auto-generation: completeReturnAuthorization() auto-calls createCreditNote() with try/catch
-- Pricing: quantityReceived × original order line unitPrice, 15% VAT
+### T24-T25: Credit Notes (full stack)
+- Schema, service, PDF generation, API routes, frontend types/hooks/components
+- Auto-generation on RA completion, credit notes sections on RA/order detail pages
+- Staff list + detail pages, portal nav link
 
-### T25: Credit Note API + UI
-- **Backend API routes** (`/api/v1/credit-notes`): list (filtered), detail, by-RA, by-order, PDF download, void (ADMIN only)
-- **Validation**: voidCreditNoteSchema (Zod)
-- **Frontend types**: CreditNoteStatus, CreditNoteLine, CreditNote, CreditNoteSummary, CreditNotesListResponse, CreditNotesQueryParams
-- **API client methods**: getCreditNotes, getCreditNotesForRA, getCreditNotesForOrder, getCreditNoteById, downloadCreditNotePDF, voidCreditNote
-- **React Query hooks**: useCreditNotes, useCreditNote, useCreditNotesForRA, useCreditNotesForOrder, useVoidCreditNote, useDownloadCreditNotePDF
-- **CreditNotesSection** component: integrated into staff RA detail, customer return detail, staff order detail, customer order detail
-- **Staff list page** (`/credit-notes`): status tabs, search, date filters, pagination
-- **Staff detail page** (`/credit-notes/[id]`): company info, line items with resolution column, red credit totals, void modal (ADMIN), PDF download, sidebar with details + related docs
-- **Navigation**: Added "Credit Notes" to portal sidebar
-- **Bug fix**: Added missing useAuthStore import in orders/[id]/page.tsx
+### T26: Backend Return Quantity Validation
+- In `createReturnAuthorization()`, added cumulative check per orderLineId
+- Sums quantityReturned across active RAs (not REJECTED/CANCELLED)
+- Validates existingTotal + newQuantity <= quantityShipped
+- Error: "Cannot return X units of SKU — Y already returned of Z shipped"
+
+### T27: Return Order Status Validation
+- In `createReturnAuthorization()`, checks order.status is DELIVERED/SHIPPED/INVOICED/CLOSED
+- Rejects DRAFT/CONFIRMED/PROCESSING/READY_TO_SHIP/CANCELLED
+
+### T28: Overselling Warning on Quotes
+- Backend `checkStockWarning()` helper: checks available stock (onHand - hardReserved) across all warehouses
+- `addQuoteItem()`: returns stockWarning in response when qty > available
+- `getQuoteById()`: batch-checks stock for DRAFT quotes, includes stockWarning per item
+- Frontend: StockWarning type, amber indicator in QuoteItemsTable
+- Staff sees "X available, Y requested"; customers see "Limited availability"
+- SOFT warning only — does not block
 
 ## Files Modified This Session
-- `backend/prisma/schema.prisma` — CreditNote, CreditNoteLine, CreditNoteCounter models
-- `backend/src/services/credit-note.service.ts` — CREATED, full CRUD + getCreditNotesForOrder
-- `backend/src/services/pdf.service.ts` — generateCreditNotePDF + helpers
-- `backend/src/services/return-authorization.service.ts` — auto-generation hook
-- `backend/src/utils/validation/credit-notes.ts` — CREATED
-- `backend/src/api/v1/credit-notes/route.ts` — CREATED
-- `backend/src/index.ts` — registered credit-notes route
-- `frontend/src/lib/api.ts` — credit note types + methods
-- `frontend/src/hooks/useCreditNotes.ts` — CREATED
-- `frontend/src/components/orders/order-detail/CreditNotesSection.tsx` — CREATED
-- `frontend/src/components/orders/order-detail/index.ts` — added export
-- `frontend/src/app/(portal)/return-authorizations/[id]/page.tsx` — added credit notes section
-- `frontend/src/app/(customer)/my/returns/[id]/page.tsx` — added credit notes section
-- `frontend/src/app/(customer)/my/orders/[id]/page.tsx` — added credit notes section
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` — added credit notes section + useAuthStore fix
-- `frontend/src/app/(portal)/credit-notes/page.tsx` — CREATED (list page)
-- `frontend/src/app/(portal)/credit-notes/[id]/page.tsx` — CREATED (detail page)
-- `frontend/src/lib/navigation.ts` — added Credit Notes nav item
+- `backend/src/services/return-authorization.service.ts` — cumulative return qty validation + order status check
+- `backend/src/services/quote.service.ts` — checkStockWarning helper, addQuoteItem + getQuoteById stock warnings
+- `frontend/src/lib/api.ts` — StockWarning type, stockWarning on QuoteItem + AddQuoteItemResponse
+- `frontend/src/components/quotes/QuoteItemsTable.tsx` — amber stock warning indicator, isCustomer prop
+- `frontend/src/app/(customer)/my/quotes/[id]/page.tsx` — pass isCustomer to QuoteItemsTable
+- Plus all T24-T25 files (credit notes full stack)
 
 ## Next Steps (Exact)
-1. Start T26: Backend return quantity validation (cumulative check)
-2. Read execution-plan.md for T26 full prompt
+1. Start T29: PO cancel with existing GRVs (block cancellation)
+2. Read execution-plan.md for T29 full prompt
 3. User must say "go" to proceed
 
 ## Context for Next Session
@@ -63,5 +56,5 @@ Phase 2C COMPLETE. Phase 3A next — T26 (Backend return quantity validation)
 - Progress tracker: `.claude/plans/execution-progress.md`
 - Workflow: read progress → find first unchecked → read plan → execute → mark done → commit → push → STOP
 - User says "go" to proceed to next task
-- Phase 2C complete, Phase 3A (Safety Nets) starts with T26
+- Phase 3A (Safety Nets) in progress, T29 next
 - Both frontend and backend TypeScript compilation pass clean
