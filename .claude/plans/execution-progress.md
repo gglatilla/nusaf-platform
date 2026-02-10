@@ -31,7 +31,7 @@
 ## Phase 2B — Data Integrity
 - [x] T16: Atomic increments in updateStockLevel (2026-02-09)
 - [x] T17: Reservation cleanup on order cancel (all reference types) (2026-02-09)
-- [ ] T18: Double reservation deduplication
+- [x] T18: Double reservation deduplication (2026-02-10)
 - [ ] T19: Soft reservation expiry background job
 
 ## Phase 2C — Remaining Operations
@@ -65,21 +65,23 @@
 
 ## Notes
 - Started: 2026-02-08
-- Last updated: 2026-02-09
-- Current phase: Phase 2B, next T18
+- Last updated: 2026-02-10
+- Current phase: Phase 2B, next T19
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
-## Last Session Notes (2026-02-09)
-- Completed T17: Reservation cleanup on order cancel (all reference types)
-  - Added CANCELLED status to PickingSlipStatus, JobCardStatus, TransferRequestStatus enums
-  - Created `releaseReservationsInTransaction()` helper in inventory.service.ts for atomic reservation release within existing transactions
-  - Rewrote `cancelOrder()` to use single `prisma.$transaction()` that:
-    - Cancels non-completed picking slips + releases their reservations
-    - Cancels non-completed job cards + releases their reservations
-    - Cancels PENDING transfers (not IN_TRANSIT — goods already moving)
-    - Releases order-level (SalesOrder) reservations
-  - Updated READY_TO_SHIP propagation checks in all 3 services to treat CANCELLED as "done"
-  - Updated status transition maps, shared types, and frontend badge components
+## Last Session Notes (2026-02-10)
+- Completed T18: Double reservation deduplication
+  - In `executeFulfillmentPlan()`, added STEP 4 after creating all fulfillment documents:
+    - Collects orchestrated product IDs from picking slip lines and job card finished products
+    - Finds active SalesOrder-level reservations for those products
+    - Releases them (marks releasedAt, sets releaseReason) and decrements hardReserved
+    - Non-orchestrated lines (e.g. backordered → POs) keep their order-level reservations
+  - Added `updateStockLevel` import from inventory.service.ts
+  - Created `backend/src/scripts/fix-double-reservations.ts` (not run):
+    - Finds orders in PROCESSING+ status with active SalesOrder reservations
+    - Checks if those products also have PickingSlip/JobCard reservations
+    - Releases the duplicate SalesOrder ones and decrements hardReserved
+    - Supports --dry-run flag
   - Backend + frontend compile with zero TypeScript errors
-- Next: T18 — Double reservation deduplication
+- Next: T19 — Soft reservation expiry background job

@@ -4,63 +4,49 @@
 ERP Remediation — Execution Plan (38 tasks across 6 phases)
 
 ## Status
-Phase 2B — Data Integrity. T17 complete. Next: T18 (Double reservation deduplication)
+Phase 2B — Data Integrity. T18 complete. Next: T19 (Soft reservation expiry background job)
 
 ## Completed This Session
-- [x] T17: Reservation cleanup on order cancel (all reference types) (2026-02-09)
+- [x] T18: Double reservation deduplication (2026-02-10)
 
 ## What Was Done
 
-### T17: Reservation Cleanup on Order Cancel
-- **Schema** (`backend/prisma/schema.prisma`):
-  - Added CANCELLED to PickingSlipStatus, JobCardStatus, TransferRequestStatus enums
-- **New helper** (`backend/src/services/inventory.service.ts`):
-  - Created `releaseReservationsInTransaction()` — releases all active reservations for a reference within an existing Prisma transaction
-- **Rewrote cancelOrder()** (`backend/src/services/order.service.ts`):
-  - Single `prisma.$transaction()` wrapping all cleanup:
-    - Cancels non-completed picking slips + releases PickingSlip reservations
-    - Cancels non-completed job cards + releases JobCard reservations
-    - Cancels PENDING transfers (IN_TRANSIT left alone)
-    - Releases SalesOrder-level reservations
-- **Fixed READY_TO_SHIP propagation** in all 3 services:
-  - `picking-slip.service.ts`, `job-card.service.ts`, `transfer-request.service.ts`
-  - CANCELLED documents now treated as "done" (don't block transition)
-- **Updated status transition maps** in all 3 services to allow CANCELLED transitions
-- **Frontend updates**:
-  - PickingSlipStatusBadge, JobCardStatusBadge, TransferRequestStatusBadge — added CANCELLED (red badge)
-  - TransferRequestStatus type in api.ts — added CANCELLED
-  - Shared types (shared/src/types/order.ts) — PickingSlipStatus, JobCardStatus updated
+### T18: Double Reservation Deduplication
+- **Modified `executeFulfillmentPlan()`** (`backend/src/services/orchestration.service.ts`):
+  - Added STEP 4 after creating all fulfillment documents (picking slips, job cards, transfers, POs)
+  - Collects orchestrated productIds from picking slip lines + job card finished products
+  - Finds active SalesOrder reservations for those products (partial orchestration safe — non-orchestrated lines keep their reservations)
+  - Releases each duplicate reservation and decrements hardReserved via atomic updateStockLevel
+  - All within the existing transaction — atomic with document creation
+  - Added `updateStockLevel` import from inventory.service.ts
+- **Created fix script** (`backend/src/scripts/fix-double-reservations.ts`):
+  - Finds orders in PROCESSING/READY_TO_SHIP/SHIPPED/DELIVERED/INVOICED/CLOSED status
+  - For each, finds active SalesOrder reservations where the product also has PickingSlip or JobCard reservations
+  - Releases the duplicate SalesOrder reservation and decrements hardReserved
+  - Supports `--dry-run` flag
+  - NOT auto-run — manual review required
 
 ## Decisions Made
-- CANCELLED is a terminal state (no transitions out)
-- IN_TRANSIT transfers are NOT cancelled (goods already in motion)
-- CANCELLED documents don't block READY_TO_SHIP propagation
-- All cleanup is atomic (single transaction) — partial cleanup is worse than none
+- Selective release: only release SalesOrder reservations for products that have fulfillment-level reservations
+- Non-orchestrated lines (backordered → POs) keep their order-level reservations
+- Release reason: "Transferred to fulfillment document reservation" for audit trail
 
 ## Files Modified This Session
-- `backend/prisma/schema.prisma`
-- `backend/src/services/inventory.service.ts`
-- `backend/src/services/order.service.ts`
-- `backend/src/services/picking-slip.service.ts`
-- `backend/src/services/job-card.service.ts`
-- `backend/src/services/transfer-request.service.ts`
-- `frontend/src/lib/api.ts`
-- `frontend/src/components/picking-slips/PickingSlipStatusBadge.tsx`
-- `frontend/src/components/job-cards/JobCardStatusBadge.tsx`
-- `frontend/src/components/transfer-requests/TransferRequestStatusBadge.tsx`
-- `shared/src/types/order.ts`
-- `.claude/plans/execution-progress.md`
+- `backend/src/services/orchestration.service.ts` — added dedup logic + updateStockLevel import
+- `backend/src/scripts/fix-double-reservations.ts` — NEW fix script
+- `.claude/plans/execution-progress.md` — marked T18 complete
+- `.claude/SESSION.md` — updated session state
 
 ## Next Steps (Exact)
-1. Start T18: Double reservation deduplication
-2. Read execution-plan.md for T18 full prompt
-3. In executeFulfillmentPlan(), after creating picking slip/job card reservations, release corresponding SalesOrder-level reservations for same products
-4. Create fix script for existing double reservations
+1. Start T19: Soft reservation expiry background job
+2. Read execution-plan.md for T19 full prompt
+3. Create `reservation-cleanup.service.ts` with `releaseExpiredSoftReservations()`
+4. Add API endpoint `POST /admin/cleanup/expired-reservations` (ADMIN only)
+5. Verify rejectQuote/cancelQuote already release reservations
 
 ## Context for Next Session
 - Execution plan: `.claude/plans/execution-plan.md`
 - Progress tracker: `.claude/plans/execution-progress.md`
 - Workflow: read progress → find first unchecked → read plan → execute → mark done → commit → push → STOP
 - User says "go" to proceed to next task
-- Phase 2B in progress, T18 next
-- T17 introduced `releaseReservationsInTransaction()` — reusable for T18
+- Phase 2B in progress, T19 next

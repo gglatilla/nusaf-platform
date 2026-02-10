@@ -15,7 +15,7 @@ import { Warehouse, FulfillmentPolicy, JobType, ProductType, Prisma } from '@pri
 import { prisma } from '../config/database';
 import { checkBomStock } from './bom.service';
 import { checkProductAvailability } from './allocation.service';
-import { getStockLevel } from './inventory.service';
+import { getStockLevel, updateStockLevel } from './inventory.service';
 
 // Transaction client type for passing into helper functions
 type TransactionClient = Prisma.TransactionClient;
@@ -1180,6 +1180,53 @@ export async function executeFulfillmentPlan(
 
         if (poResult) {
           result.createdDocuments.purchaseOrders.push(poResult);
+        }
+      }
+
+      // ============================================
+      // STEP 4: Release SalesOrder-level reservations for orchestrated products
+      // Transfers reservation ownership from order → document level
+      // Non-orchestrated lines (e.g. backordered) keep their order-level reservations
+      // ============================================
+      const orchestratedProductIds = new Set<string>();
+
+      for (const psPlan of plan.pickingSlips) {
+        for (const line of psPlan.lines) {
+          orchestratedProductIds.add(line.productId);
+        }
+      }
+
+      for (const jcPlan of plan.jobCards) {
+        orchestratedProductIds.add(jcPlan.productId);
+      }
+
+      if (orchestratedProductIds.size > 0) {
+        const orderReservations = await tx.stockReservation.findMany({
+          where: {
+            referenceType: 'SalesOrder',
+            referenceId: plan.orderId,
+            releasedAt: null,
+            productId: { in: Array.from(orchestratedProductIds) },
+          },
+        });
+
+        for (const reservation of orderReservations) {
+          await tx.stockReservation.update({
+            where: { id: reservation.id },
+            data: {
+              releasedAt: new Date(),
+              releasedBy: userId,
+              releaseReason: 'Transferred to fulfillment document reservation',
+            },
+          });
+
+          await updateStockLevel(
+            tx,
+            reservation.productId,
+            reservation.location,
+            { hardReserved: -reservation.quantity },
+            userId
+          );
         }
       }
 
