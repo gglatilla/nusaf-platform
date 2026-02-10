@@ -27,8 +27,13 @@ See `.claude/plans/ticklish-yawning-pretzel.md` for original 4-phase plan (Phase
 - Contact sub-routes: POST/PATCH/DELETE /companies/:id/contacts/:contactId
 - Default management (isDefault/isPrimary auto-unsets)
 
+### Phase 1.6: Staff User Auto-Assign to Internal Company (f380414)
+- companyId now optional in createUserSchema (backend + frontend API client)
+- When omitted, auto-resolves to Company where isInternal=true
+- Removed company dropdown from staff user create form
+- 4 unit tests (auto-assign, explicit companyId, no internal company error, invalid companyId error)
+
 ## Pending Micro-tasks
-- [ ] Phase 1.6: Backend — Staff user fix (auto-assign to internal company)
 - [ ] Phase 1.7: Frontend — Rename Companies → Customers + list page update
 - [ ] Phase 1.8: Frontend — Customer detail page (overview + financial + sales + logistics)
 - [ ] Phase 1.9: Frontend — Address management on detail page
@@ -44,11 +49,11 @@ See `.claude/plans/ticklish-yawning-pretzel.md` for original 4-phase plan (Phase
 - 85348e8: SESSION.md update
 - 2bdfc7d: Phase 1.4 — DB migration (customer management fields)
 - 649cfd7: Phase 1.5 — Expanded Company CRUD + address/contact routes
+- f380414: Phase 1.6 — Staff user auto-assign to internal company
 
 ## Context for Next Session
 - Plan files: see above
-- Phase 1.6 next: Make companyId optional in staff user create API; auto-assign to internal company (isInternal=true)
-- Phase 1.7: Rename Companies → Customers in frontend nav/routes; update api.ts types
+- Phase 1.7 next: Rename Companies → Customers in frontend nav/routes; update api.ts types
 - Phase 1.8–1.10: Customer detail page with tabs (Overview, Addresses, Contacts, Financial, Sales, Logistics)
 - Backend API paths stay as /admin/companies (no breaking change)
 - CompanyCounter table needs to be created on local DB (migration was applied but counter table itself needs creating via Prisma generate)
