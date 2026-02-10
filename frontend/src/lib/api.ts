@@ -2691,11 +2691,28 @@ export interface CompanyListItem {
   primaryWarehouse: string | null;
   fulfillmentPolicy: string;
   paymentTerms: PaymentTermsType;
+  assignedSalesRepId: string | null;
+  assignedSalesRep: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode: string | null;
+  } | null;
   createdAt: string;
   _count: {
     users: number;
     orders: number;
   };
+}
+
+export interface StaffUserOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  employeeCode: string | null;
+  role: string;
 }
 
 export interface CompanyDetail {
@@ -5409,6 +5426,7 @@ class ApiClient {
       isActive?: boolean;
       primaryWarehouse?: 'JHB' | 'CT' | null;
       fulfillmentPolicy?: string;
+      assignedSalesRepId?: string | null;
     }
   ): Promise<ApiResponse<CompanyDetail>> {
     return this.request(`/admin/companies/${id}`, {
@@ -5431,6 +5449,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getStaffUsersForAssignment(): Promise<ApiResponse<StaffUserOption[]>> {
+    return this.request('/admin/companies/staff-users');
   }
 
   // ============================================

@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogCloseButton,
 } from '@/components/ui/dialog';
-import { api, type CompanyListItem, type PaymentTermsType, ApiError } from '@/lib/api';
+import { api, type CompanyListItem, type StaffUserOption, type PaymentTermsType, ApiError } from '@/lib/api';
 
 const PAYMENT_TERMS_LABELS: Record<PaymentTermsType, string> = {
   PREPAY: 'Prepay',
@@ -29,7 +29,7 @@ const TIER_LABELS: Record<string, string> = {
   DISTRIBUTOR: 'Distributor',
 };
 
-function PaymentTermsBadge({ terms }: { terms: PaymentTermsType }) {
+function PaymentTermsBadge({ terms }: { terms: PaymentTermsType }): JSX.Element {
   const isPrepay = terms === 'PREPAY' || terms === 'COD';
   return (
     <span
@@ -44,7 +44,7 @@ function PaymentTermsBadge({ terms }: { terms: PaymentTermsType }) {
   );
 }
 
-function TierBadge({ tier }: { tier: string }) {
+function TierBadge({ tier }: { tier: string }): JSX.Element {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
       {TIER_LABELS[tier] || tier}
@@ -52,7 +52,9 @@ function TierBadge({ tier }: { tier: string }) {
   );
 }
 
-export default function CompaniesPage() {
+type EditField = 'terms' | 'salesRep';
+
+export default function CompaniesPage(): JSX.Element {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -61,12 +63,20 @@ export default function CompaniesPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTerms, setEditingTerms] = useState<PaymentTermsType | null>(null);
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const fetchCompanies = useCallback(async () => {
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editField, setEditField] = useState<EditField | null>(null);
+  const [editingTerms, setEditingTerms] = useState<PaymentTermsType | null>(null);
+  const [editingSalesRepId, setEditingSalesRepId] = useState<string | null>(null);
+
+  // Staff users for sales rep dropdown
+  const [staffUsers, setStaffUsers] = useState<StaffUserOption[]>([]);
+  const [staffLoaded, setStaffLoaded] = useState(false);
+
+  const fetchCompanies = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -92,23 +102,46 @@ export default function CompaniesPage() {
     fetchCompanies();
   }, [fetchCompanies]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // Lazy-load staff users on first edit
+  const ensureStaffLoaded = useCallback(async (): Promise<void> => {
+    if (staffLoaded) return;
+    try {
+      const res = await api.getStaffUsersForAssignment();
+      if (res.success && res.data) {
+        setStaffUsers(res.data);
+      }
+    } catch {
+      // Non-critical — dropdown will just be empty
+    }
+    setStaffLoaded(true);
+  }, [staffLoaded]);
+
+  const handleSearch = (e: React.FormEvent): void => {
     e.preventDefault();
     setPage(1);
     fetchCompanies();
   };
 
-  const handleClearSearch = () => {
+  const handleClearSearch = (): void => {
     setSearch('');
     setPage(1);
   };
 
-  const handleEditTerms = (company: CompanyListItem) => {
+  const handleCancelEdit = (): void => {
+    setEditingId(null);
+    setEditField(null);
+    setEditingTerms(null);
+    setEditingSalesRepId(null);
+  };
+
+  // --- Payment Terms inline edit ---
+  const handleEditTerms = (company: CompanyListItem): void => {
     setEditingId(company.id);
+    setEditField('terms');
     setEditingTerms(company.paymentTerms);
   };
 
-  const handleSaveTerms = async (companyId: string) => {
+  const handleSaveTerms = async (companyId: string): Promise<void> => {
     if (!editingTerms) return;
     setSaving(true);
     setError(null);
@@ -116,8 +149,7 @@ export default function CompaniesPage() {
       await api.updateCompany(companyId, { paymentTerms: editingTerms });
       setSuccess('Payment terms updated');
       setTimeout(() => setSuccess(null), 3000);
-      setEditingId(null);
-      setEditingTerms(null);
+      handleCancelEdit();
       fetchCompanies();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to update payment terms';
@@ -127,9 +159,31 @@ export default function CompaniesPage() {
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingTerms(null);
+  // --- Sales Rep inline edit ---
+  const handleEditSalesRep = async (company: CompanyListItem): Promise<void> => {
+    await ensureStaffLoaded();
+    setEditingId(company.id);
+    setEditField('salesRep');
+    setEditingSalesRepId(company.assignedSalesRepId);
+  };
+
+  const handleSaveSalesRep = async (companyId: string): Promise<void> => {
+    setSaving(true);
+    setError(null);
+    try {
+      await api.updateCompany(companyId, {
+        assignedSalesRepId: editingSalesRepId || null,
+      });
+      setSuccess('Sales rep updated');
+      setTimeout(() => setSuccess(null), 3000);
+      handleCancelEdit();
+      fetchCompanies();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to update sales rep';
+      setError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -141,7 +195,7 @@ export default function CompaniesPage() {
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Companies</h1>
             <p className="text-sm text-slate-600">
-              Manage customer companies and payment terms
+              Manage customer companies, payment terms, and sales rep assignments
             </p>
           </div>
         </div>
@@ -216,6 +270,9 @@ export default function CompaniesPage() {
                     Payment Terms
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Sales Rep
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Warehouse
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -246,8 +303,9 @@ export default function CompaniesPage() {
                     <td className="px-4 py-3">
                       <TierBadge tier={company.tier} />
                     </td>
+                    {/* Payment Terms — inline editable */}
                     <td className="px-4 py-3">
-                      {editingId === company.id ? (
+                      {editingId === company.id && editField === 'terms' ? (
                         <div className="flex items-center gap-2">
                           <select
                             value={editingTerms || ''}
@@ -285,6 +343,55 @@ export default function CompaniesPage() {
                           title="Click to edit payment terms"
                         >
                           <PaymentTermsBadge terms={company.paymentTerms} />
+                          <ChevronDown className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      )}
+                    </td>
+                    {/* Sales Rep — inline editable */}
+                    <td className="px-4 py-3">
+                      {editingId === company.id && editField === 'salesRep' ? (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={editingSalesRepId || ''}
+                            onChange={(e) => setEditingSalesRepId(e.target.value || null)}
+                            className="px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-[180px]"
+                          >
+                            <option value="">Unassigned</option>
+                            {staffUsers.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.firstName} {u.lastName}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleSaveSalesRep(company.id)}
+                            disabled={saving}
+                            className="p-1 text-emerald-600 hover:text-emerald-700"
+                            title="Save"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="p-1 text-slate-400 hover:text-slate-600"
+                            title="Cancel"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleEditSalesRep(company)}
+                          className="flex items-center gap-1 group text-left"
+                          title="Click to assign sales rep"
+                        >
+                          {company.assignedSalesRep ? (
+                            <span className="text-sm text-slate-700">
+                              {company.assignedSalesRep.firstName} {company.assignedSalesRep.lastName}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-slate-400 italic">Unassigned</span>
+                          )}
                           <ChevronDown className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       )}
@@ -372,7 +479,7 @@ function CreateCompanyModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
-}) {
+}): JSX.Element {
   const [formData, setFormData] = useState({
     name: '',
     tradingName: '',
@@ -385,7 +492,7 @@ function CreateCompanyModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!formData.name.trim()) {
       setError('Company name is required');
