@@ -61,7 +61,7 @@ export default function CustomerProductsPage() {
     pageSize,
     stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
     sort: sortBy || undefined,
-    isPublished: 'true', // Customers only see published products
+    // Note: isPublished filter is for public marketing website only, not customer portal
   });
 
   const products = productsData?.products ?? [];

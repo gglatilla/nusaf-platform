@@ -1,33 +1,38 @@
 # Current Session
 
 ## Active Task
-[TASK-027] Fix Customer Portal View Details Crash + isPublished Filter
+[TASK-028] Fix Customer Portal Filter, Sales Quote UX, Fulfillment Dashboard
 
 ## Status
 COMPLETE (2026-02-10)
 
 ## Completed This Session
 
-### Fix 1: ProductDetailModal crash for CUSTOMER role
-- Root cause: `product.supplier.code` accessed unconditionally in `supplierBadgeClass` computation
-- Backend strips `supplier` from response for CUSTOMER role (Golden Rule 4)
-- Fix: optional chaining `product.supplier?.code` + conditional `supplierBadgeClass`
-- File: `frontend/src/components/products/ProductDetailModal.tsx`
+### Fix 1: Remove isPublished from customer portal
+- `isPublished` is for the public marketing website, NOT the authenticated customer portal
+- Customer products page was filtering to published-only (1 product)
+- Removed the filter — customers now see ALL active products
+- File: `frontend/src/app/(customer)/my/products/page.tsx`
 
-### Fix 2: isPublished param not sent in getProducts()
-- Customer page passes `isPublished: 'true'` but `api.getProducts()` never added it to URL query string
-- Customers saw ALL products (published + unpublished) instead of only published
-- Fix: added `if (params.isPublished) searchParams.set('isPublished', params.isPublished)`
-- File: `frontend/src/lib/api.ts`
+### Fix 2: Embed company picker in AddToQuoteModal
+- Staff "Add to Quote" said "select a company" but gave no way to do it
+- Embedded `CustomerCompanyPicker` directly in the modal when staff has no company selected
+- Staff can now select a company without closing the modal
+- File: `frontend/src/components/quotes/AddToQuoteModal.tsx`
 
-## Remaining (Deployment — NOT code changes)
-- Sales login (`sales@nusaf.co.za` / `sales123`) — needs Railway deployment steps:
-  1. `npx prisma migrate deploy` — apply `add_company_is_internal` migration
-  2. `npm run db:seed` — re-seed test user data
-- This is NOT a code bug — the seed file and auth logic are correct
+### Fix 3: Fulfillment dashboard — missing database columns
+- Root cause: schema drift — `job_cards.material_check_performed` and `sales_orders.closed_at` (plus more) existed in Prisma schema but had no migration
+- Created migration `20260210120000_add_missing_schema_columns` adding:
+  - `CreditNoteStatus` enum, `credit_notes`/`credit_note_lines`/`credit_note_counter` tables
+  - `CANCELLED` variants to JobCard/PickingSlip/TransferRequest status enums
+  - `material_check_performed`, `material_check_result` columns on job_cards
+  - `version` column on purchase_orders
+  - `closed_at`, `closed_by` columns on sales_orders
+  - `job_card_bom_lines` table
+- Applied migration to Railway production database
 
 ## Context for Next Session
-- TASK-027 fixes pushed to remote
-- Customer portal products page now correctly filters by isPublished
-- ProductDetailModal safely handles missing supplier (CUSTOMER role)
-- Railway still needs migrate + seed for sales login to work
+- TASK-028 all pushed to remote
+- Migration applied to Railway — fulfillment dashboard should work
+- Railway backend service needs redeploy to pick up latest Prisma client
+- isPublished filter is only for public website routes, NOT customer portal

@@ -11,6 +11,7 @@ import {
 import { useCreateQuote, useAddQuoteItem } from '@/hooks/useQuotes';
 import { useAuthStore } from '@/stores/auth-store';
 import { useQuoteCompanyStore } from '@/stores/quote-company-store';
+import { CustomerCompanyPicker } from '@/components/quotes/CustomerCompanyPicker';
 import type { CatalogProduct } from '@/lib/api';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
 import { formatCurrency } from '@/lib/formatting';
@@ -168,9 +169,12 @@ export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalPro
           </div>
 
           {needsCompany && (
-            <p className="text-xs text-center text-amber-600">
-              Select a customer company before adding items to a quote.
-            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium text-amber-700">
+                Select a customer company to create a quote on their behalf:
+              </p>
+              <CustomerCompanyPicker />
+            </div>
           )}
 
           {!needsCompany && !product.hasPrice && (
