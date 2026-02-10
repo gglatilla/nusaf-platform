@@ -5359,6 +5359,22 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  async createCompany(data: {
+    name: string;
+    tradingName?: string;
+    registrationNumber?: string;
+    vatNumber?: string;
+    tier?: 'END_USER' | 'OEM_RESELLER' | 'DISTRIBUTOR';
+    primaryWarehouse?: 'JHB' | 'CT';
+    fulfillmentPolicy?: 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION';
+    paymentTerms?: 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+  }): Promise<ApiResponse<CompanyDetail>> {
+    return this.request('/admin/companies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export class ApiError extends Error {

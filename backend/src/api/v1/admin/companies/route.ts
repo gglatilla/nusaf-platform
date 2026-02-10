@@ -16,6 +16,17 @@ const companyListQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).optional().default(20),
 });
 
+const createCompanySchema = z.object({
+  name: z.string().min(1, 'Company name is required').max(200),
+  tradingName: z.string().max(200).optional(),
+  registrationNumber: z.string().max(50).optional(),
+  vatNumber: z.string().max(50).optional(),
+  tier: z.enum(['END_USER', 'OEM_RESELLER', 'DISTRIBUTOR']).optional().default('END_USER'),
+  primaryWarehouse: z.enum(['JHB', 'CT']).optional(),
+  fulfillmentPolicy: z.enum(['SHIP_PARTIAL', 'SHIP_COMPLETE', 'SALES_DECISION']).optional().default('SHIP_COMPLETE'),
+  paymentTerms: z.enum(['PREPAY', 'COD', 'NET_30', 'NET_60', 'NET_90']).optional().default('NET_30'),
+});
+
 const updateCompanySchema = z.object({
   paymentTerms: z.enum(['PREPAY', 'COD', 'NET_30', 'NET_60', 'NET_90']).optional(),
   tier: z.enum(['END_USER', 'OEM_RESELLER', 'DISTRIBUTOR']).optional(),
@@ -106,6 +117,42 @@ router.get('/', async (req, res) => {
       error: {
         code: 'INTERNAL_ERROR',
         message: error instanceof Error ? error.message : 'Failed to list companies',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/admin/companies
+ * Create a new company
+ */
+router.post('/', requireRole('ADMIN'), async (req, res) => {
+  try {
+    const parseResult = createCompanySchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid company data',
+          details: parseResult.error.flatten().fieldErrors,
+        },
+      });
+    }
+
+    const company = await prisma.company.create({
+      data: parseResult.data,
+    });
+
+    return res.status(201).json({ success: true, data: company });
+  } catch (error) {
+    console.error('Create company error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to create company',
       },
     });
   }

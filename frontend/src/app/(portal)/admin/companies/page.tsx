@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Building2, Search, X, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import { Building2, Search, X, ChevronDown, Check, RefreshCw, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogBody,
+  DialogFooter,
+  DialogTitle,
+  DialogCloseButton,
+} from '@/components/ui/dialog';
 import { api, type CompanyListItem, type PaymentTermsType, ApiError } from '@/lib/api';
 
 const PAYMENT_TERMS_LABELS: Record<PaymentTermsType, string> = {
@@ -55,6 +64,7 @@ export default function CompaniesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTerms, setEditingTerms] = useState<PaymentTermsType | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true);
@@ -135,6 +145,13 @@ export default function CompaniesPage() {
             </p>
           </div>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Company
+        </button>
       </div>
 
       {/* Messages */}
@@ -324,6 +341,230 @@ export default function CompaniesPage() {
           </div>
         )}
       </div>
+      {/* Create Company Modal */}
+      <CreateCompanyModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onCreated={() => {
+          setShowCreateModal(false);
+          setSuccess('Company created');
+          setTimeout(() => setSuccess(null), 3000);
+          fetchCompanies();
+        }}
+      />
     </div>
+  );
+}
+
+// ---------- Create Company Modal ----------
+
+const TIER_OPTIONS = [
+  { value: 'END_USER', label: 'End User (30% off list)' },
+  { value: 'OEM_RESELLER', label: 'OEM/Reseller (40% off list)' },
+  { value: 'DISTRIBUTOR', label: 'Distributor (50% off list)' },
+];
+
+function CreateCompanyModal({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: '',
+    tradingName: '',
+    registrationNumber: '',
+    vatNumber: '',
+    tier: 'END_USER' as 'END_USER' | 'OEM_RESELLER' | 'DISTRIBUTOR',
+    primaryWarehouse: 'JHB' as 'JHB' | 'CT',
+    paymentTerms: 'NET_30' as PaymentTermsType,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      setError('Company name is required');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const data: Record<string, string> = { name: formData.name.trim() };
+      if (formData.tradingName.trim()) data.tradingName = formData.tradingName.trim();
+      if (formData.registrationNumber.trim()) data.registrationNumber = formData.registrationNumber.trim();
+      if (formData.vatNumber.trim()) data.vatNumber = formData.vatNumber.trim();
+      if (formData.tier) data.tier = formData.tier;
+      if (formData.primaryWarehouse) data.primaryWarehouse = formData.primaryWarehouse;
+      if (formData.paymentTerms) data.paymentTerms = formData.paymentTerms;
+
+      await api.createCompany(data as Parameters<typeof api.createCompany>[0]);
+      // Reset form
+      setFormData({
+        name: '',
+        tradingName: '',
+        registrationNumber: '',
+        vatNumber: '',
+        tier: 'END_USER',
+        primaryWarehouse: 'JHB',
+        paymentTerms: 'NET_30',
+      });
+      onCreated();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to create company');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Company</DialogTitle>
+          <DialogCloseButton />
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <DialogBody>
+            <div className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {/* Name (required) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Acme Manufacturing"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              {/* Trading Name */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Trading Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.tradingName}
+                  onChange={(e) => setFormData({ ...formData, tradingName: e.target.value })}
+                  placeholder="Optional trading name"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* Registration + VAT side by side */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Registration Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.registrationNumber}
+                    onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                    placeholder="e.g. 2024/123456/07"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    VAT Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.vatNumber}
+                    onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
+                    placeholder="e.g. 4123456789"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              {/* Tier */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Customer Tier
+                </label>
+                <select
+                  value={formData.tier}
+                  onChange={(e) => setFormData({ ...formData, tier: e.target.value as typeof formData.tier })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {TIER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Warehouse + Payment Terms side by side */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Primary Warehouse
+                  </label>
+                  <select
+                    value={formData.primaryWarehouse}
+                    onChange={(e) => setFormData({ ...formData, primaryWarehouse: e.target.value as 'JHB' | 'CT' })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="JHB">Johannesburg</option>
+                    <option value="CT">Cape Town</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Payment Terms
+                  </label>
+                  <select
+                    value={formData.paymentTerms}
+                    onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value as PaymentTermsType })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {PAYMENT_TERMS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {PAYMENT_TERMS_LABELS[opt]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !formData.name.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Creating...' : 'Create Company'}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
