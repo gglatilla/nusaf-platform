@@ -7,6 +7,7 @@ import type {
   ConfirmDeliveryInput,
   DeliveryNoteListQuery,
 } from '../utils/validation/delivery-notes';
+import { generateDeliveryNoteNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -71,49 +72,6 @@ export interface DeliveryNoteSummary {
 /**
  * Generate the next delivery note number in format DN-YYYY-NNNNN
  */
-export async function generateDeliveryNoteNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.deliveryNoteCounter.findUnique({
-      where: { id: 'dn_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.deliveryNoteCounter.create({
-        data: {
-          id: 'dn_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.deliveryNoteCounter.update({
-        where: { id: 'dn_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.deliveryNoteCounter.update({
-      where: { id: 'dn_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `DN-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

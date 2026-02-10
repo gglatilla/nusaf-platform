@@ -6,6 +6,8 @@ import { createSoftReservation, releaseReservationsByReference } from './invento
 import { createOrderFromQuote, confirmOrder } from './order.service';
 import { generateFulfillmentPlan, executeFulfillmentPlan } from './orchestration.service';
 import { createProformaInvoice } from './proforma-invoice.service';
+import { generateQuoteNumber } from '../utils/number-generation';
+import { roundTo2 } from '../utils/math';
 
 /**
  * VAT rate for South Africa (%)
@@ -20,55 +22,6 @@ export const QUOTE_VALIDITY_DAYS = 30;
 /**
  * Generate the next quote number in format QUO-YYYY-NNNNN
  */
-export async function generateQuoteNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  // Use a transaction to safely increment the counter
-  const counter = await prisma.$transaction(async (tx) => {
-    // Get or create the counter record
-    let counter = await tx.quoteCounter.findUnique({
-      where: { id: 'quote_counter' },
-    });
-
-    if (!counter) {
-      // Initialize counter for this year
-      counter = await tx.quoteCounter.create({
-        data: {
-          id: 'quote_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    // If year changed, reset counter
-    if (counter.year !== currentYear) {
-      counter = await tx.quoteCounter.update({
-        where: { id: 'quote_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    // Increment counter for same year
-    counter = await tx.quoteCounter.update({
-      where: { id: 'quote_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  // Format: QUO-2025-00001
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `QUO-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Calculate quote totals from items
@@ -972,6 +925,3 @@ export async function deleteQuote(
 }
 
 // Utility function for rounding
-function roundTo2(value: number): number {
-  return Math.round(value * 100) / 100;
-}

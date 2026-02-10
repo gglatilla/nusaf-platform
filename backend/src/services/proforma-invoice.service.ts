@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import type {
   CreateProformaInvoiceInput,
 } from '../utils/validation/proforma-invoices';
+import { generateProformaNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -66,49 +67,6 @@ export interface ProformaInvoiceSummary {
 /**
  * Generate the next proforma invoice number in format PI-YYYY-NNNNN
  */
-export async function generateProformaNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.proformaInvoiceCounter.findUnique({
-      where: { id: 'pi_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.proformaInvoiceCounter.create({
-        data: {
-          id: 'pi_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.proformaInvoiceCounter.update({
-        where: { id: 'pi_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.proformaInvoiceCounter.update({
-      where: { id: 'pi_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `PI-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

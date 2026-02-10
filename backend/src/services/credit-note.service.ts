@@ -1,6 +1,7 @@
 import { Prisma, CreditNoteStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
+import { generateCreditNoteNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -70,49 +71,6 @@ export interface CreditNoteSummary {
 /**
  * Generate the next credit note number in format CN-YYYY-NNNNN
  */
-export async function generateCreditNoteNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.creditNoteCounter.findUnique({
-      where: { id: 'cn_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.creditNoteCounter.create({
-        data: {
-          id: 'cn_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.creditNoteCounter.update({
-        where: { id: 'cn_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.creditNoteCounter.update({
-      where: { id: 'cn_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `CN-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

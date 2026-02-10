@@ -6,6 +6,7 @@ import type {
   CreatePurchaseRequisitionInput,
   PurchaseRequisitionListQuery,
 } from '../utils/validation/purchase-requisitions';
+import { generateRequisitionNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -85,40 +86,6 @@ interface PaginatedResult<T> {
 // ============================================
 // NUMBER GENERATION
 // ============================================
-
-export async function generateRequisitionNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.purchaseRequisitionCounter.findUnique({
-      where: { id: 'pr_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.purchaseRequisitionCounter.create({
-        data: { id: 'pr_counter', year: currentYear, count: 1 },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.purchaseRequisitionCounter.update({
-        where: { id: 'pr_counter' },
-        data: { year: currentYear, count: 1 },
-      });
-      return counter;
-    }
-
-    counter = await tx.purchaseRequisitionCounter.update({
-      where: { id: 'pr_counter' },
-      data: { count: { increment: 1 } },
-    });
-    return counter;
-  });
-
-  const paddedCount = String(counter.count).padStart(5, '0');
-  return `PR-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // MAPPING HELPERS

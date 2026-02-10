@@ -4,6 +4,7 @@ import type {
   CreatePackingListInput,
   PackingListListQuery,
 } from '../utils/validation/packing-lists';
+import { generatePackingListNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -75,49 +76,6 @@ export interface PackingListSummary {
 /**
  * Generate the next packing list number in format PL-YYYY-NNNNN
  */
-export async function generatePackingListNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.packingListCounter.findUnique({
-      where: { id: 'pl_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.packingListCounter.create({
-        data: {
-          id: 'pl_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.packingListCounter.update({
-        where: { id: 'pl_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.packingListCounter.update({
-      where: { id: 'pl_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `PL-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

@@ -1,53 +1,11 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
 import { generateFulfillmentPlan, executeFulfillmentPlan } from './orchestration.service';
+import { generatePaymentNumber } from '../utils/number-generation';
 
 /**
  * Generate the next payment number in format PAY-YYYY-NNNNN
  */
-async function generatePaymentNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.paymentCounter.findUnique({
-      where: { id: 'payment_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.paymentCounter.create({
-        data: {
-          id: 'payment_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.paymentCounter.update({
-        where: { id: 'payment_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.paymentCounter.update({
-      where: { id: 'payment_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `PAY-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Calculate payment status for an order based on confirmed payments vs total

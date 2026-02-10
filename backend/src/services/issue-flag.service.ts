@@ -1,5 +1,6 @@
 import { Prisma, IssueFlagCategory, IssueFlagSeverity, IssueFlagStatus } from '@prisma/client';
 import { prisma } from '../config/database';
+import { generateIssueNumber } from '../utils/number-generation';
 
 /**
  * SLA deadlines by severity (in hours)
@@ -25,49 +26,6 @@ export const ISSUE_STATUS_TRANSITIONS: Record<IssueFlagStatus, IssueFlagStatus[]
 /**
  * Generate the next issue number in format ISS-YYYY-NNNNN
  */
-export async function generateIssueNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.issueFlagCounter.findUnique({
-      where: { id: 'issue_flag_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.issueFlagCounter.create({
-        data: {
-          id: 'issue_flag_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.issueFlagCounter.update({
-        where: { id: 'issue_flag_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.issueFlagCounter.update({
-      where: { id: 'issue_flag_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `ISS-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Calculate SLA deadline based on severity

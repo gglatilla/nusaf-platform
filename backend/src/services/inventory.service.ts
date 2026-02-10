@@ -12,6 +12,7 @@ import type {
   CreateStockAdjustmentInput,
   StockAdjustmentListQuery,
 } from '../utils/validation/inventory';
+import { generateAdjustmentNumber } from '../utils/number-generation';
 
 // ============================================
 // STOCK STATUS TYPES AND HELPERS
@@ -871,49 +872,6 @@ export async function getProductMovementHistory(
 /**
  * Generate the next adjustment number in format ADJ-YYYY-NNNNN
  */
-export async function generateAdjustmentNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.stockAdjustmentCounter.findUnique({
-      where: { id: 'stock_adjustment_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.stockAdjustmentCounter.create({
-        data: {
-          id: 'stock_adjustment_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.stockAdjustmentCounter.update({
-        where: { id: 'stock_adjustment_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.stockAdjustmentCounter.update({
-      where: { id: 'stock_adjustment_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `ADJ-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Create a stock adjustment (pending approval)

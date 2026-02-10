@@ -1,54 +1,11 @@
 import { Prisma, Warehouse, CycleCountStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { createStockAdjustment, approveStockAdjustment } from './inventory.service';
+import { generateCycleCountNumber } from '../utils/number-generation';
 
 // ============================================
 // NUMBER GENERATION
 // ============================================
-
-async function generateCycleCountNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.cycleCountCounter.findUnique({
-      where: { id: 'cycle_count_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.cycleCountCounter.create({
-        data: {
-          id: 'cycle_count_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.cycleCountCounter.update({
-        where: { id: 'cycle_count_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.cycleCountCounter.update({
-      where: { id: 'cycle_count_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `CC-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CREATE SESSION

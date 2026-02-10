@@ -2,6 +2,7 @@ import { Prisma, JobCardStatus, JobType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
 import { checkBomStock, explodeBom } from './bom.service';
+import { generateJobCardNumber } from '../utils/number-generation';
 
 /**
  * Valid status transitions for job cards
@@ -17,49 +18,6 @@ export const JOB_CARD_STATUS_TRANSITIONS: Record<JobCardStatus, JobCardStatus[]>
 /**
  * Generate the next job card number in format JC-YYYY-NNNNN
  */
-export async function generateJobCardNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.jobCardCounter.findUnique({
-      where: { id: 'job_card_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.jobCardCounter.create({
-        data: {
-          id: 'job_card_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.jobCardCounter.update({
-        where: { id: 'job_card_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.jobCardCounter.update({
-      where: { id: 'job_card_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `JC-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Input for creating a job card

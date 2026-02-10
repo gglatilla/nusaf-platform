@@ -1,6 +1,7 @@
 import { Prisma, Warehouse, PurchaseOrderStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import type { CreateGrvInput, GrvListQuery } from '../utils/validation/goods-receipts';
+import { generateGRVNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -72,49 +73,6 @@ export interface PaginatedResult<T> {
 /**
  * Generate the next GRV number in format GRV-YYYY-NNNNN
  */
-export async function generateGRVNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.grvCounter.findUnique({
-      where: { id: 'grv_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.grvCounter.create({
-        data: {
-          id: 'grv_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.grvCounter.update({
-        where: { id: 'grv_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.grvCounter.update({
-      where: { id: 'grv_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `GRV-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

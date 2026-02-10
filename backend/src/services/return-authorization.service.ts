@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
 import { createCreditNote } from './credit-note.service';
 import { logger } from '../utils/logger';
+import { generateRANumber } from '../utils/number-generation';
 import type {
   CreateReturnAuthorizationInput,
   RejectReturnAuthorizationInput,
@@ -89,49 +90,6 @@ export interface ReturnAuthorizationSummary {
 /**
  * Generate the next RA number in format RA-YYYY-NNNNN
  */
-export async function generateRANumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.returnAuthorizationCounter.findUnique({
-      where: { id: 'ra_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.returnAuthorizationCounter.create({
-        data: {
-          id: 'ra_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.returnAuthorizationCounter.update({
-        where: { id: 'ra_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.returnAuthorizationCounter.update({
-      where: { id: 'ra_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `RA-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

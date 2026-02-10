@@ -1,6 +1,7 @@
 import { Prisma, TaxInvoiceStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
+import { generateInvoiceNumber } from '../utils/number-generation';
 
 // ============================================
 // TYPES
@@ -70,49 +71,6 @@ export interface TaxInvoiceSummary {
 /**
  * Generate the next tax invoice number in format INV-YYYY-NNNNN
  */
-export async function generateInvoiceNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.taxInvoiceCounter.findUnique({
-      where: { id: 'ti_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.taxInvoiceCounter.create({
-        data: {
-          id: 'ti_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.taxInvoiceCounter.update({
-        where: { id: 'ti_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.taxInvoiceCounter.update({
-      where: { id: 'ti_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `INV-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE FUNCTIONS

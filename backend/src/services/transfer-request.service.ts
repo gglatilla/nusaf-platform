@@ -1,6 +1,7 @@
 import { Prisma, TransferRequestStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
+import { generateTransferRequestNumber } from '../utils/number-generation';
 
 /**
  * Valid status transitions for transfer requests
@@ -15,49 +16,6 @@ export const TRANSFER_REQUEST_STATUS_TRANSITIONS: Record<TransferRequestStatus, 
 /**
  * Generate the next transfer request number in format TR-YYYY-NNNNN
  */
-export async function generateTransferRequestNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.transferRequestCounter.findUnique({
-      where: { id: 'transfer_request_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.transferRequestCounter.create({
-        data: {
-          id: 'transfer_request_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.transferRequestCounter.update({
-        where: { id: 'transfer_request_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.transferRequestCounter.update({
-      where: { id: 'transfer_request_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `TR-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Line item data for creating a transfer request from order

@@ -1,6 +1,7 @@
 import { Prisma, PickingSlipStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
+import { generatePickingSlipNumber } from '../utils/number-generation';
 
 /**
  * Valid status transitions for picking slips
@@ -15,49 +16,6 @@ export const PICKING_SLIP_STATUS_TRANSITIONS: Record<PickingSlipStatus, PickingS
 /**
  * Generate the next picking slip number in format PS-YYYY-NNNNN
  */
-export async function generatePickingSlipNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.pickingSlipCounter.findUnique({
-      where: { id: 'picking_slip_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.pickingSlipCounter.create({
-        data: {
-          id: 'picking_slip_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.pickingSlipCounter.update({
-        where: { id: 'picking_slip_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.pickingSlipCounter.update({
-      where: { id: 'picking_slip_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `PS-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Line item data for creating a picking slip

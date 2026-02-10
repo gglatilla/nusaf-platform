@@ -16,6 +16,12 @@ import { prisma } from '../config/database';
 import { checkBomStock } from './bom.service';
 import { checkProductAvailability } from './allocation.service';
 import { getStockLevel, updateStockLevel } from './inventory.service';
+import {
+  generatePickingSlipNumberTx,
+  generateJobCardNumberTx,
+  generateTransferNumberTx,
+  generatePurchaseOrderNumberTx,
+} from '../utils/number-generation';
 
 // Transaction client type for passing into helper functions
 type TransactionClient = Prisma.TransactionClient;
@@ -1253,122 +1259,6 @@ export async function executeFulfillmentPlan(
 // ============================================
 // EXECUTION HELPERS (TO BE IMPLEMENTED IN MT-8, MT-9)
 // ============================================
-
-/**
- * Generate picking slip number within transaction
- */
-async function generatePickingSlipNumberTx(tx: TransactionClient): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  let counter = await tx.pickingSlipCounter.findUnique({
-    where: { id: 'picking_slip_counter' },
-  });
-
-  if (!counter) {
-    counter = await tx.pickingSlipCounter.create({
-      data: { id: 'picking_slip_counter', year: currentYear, count: 1 },
-    });
-  } else if (counter.year !== currentYear) {
-    counter = await tx.pickingSlipCounter.update({
-      where: { id: 'picking_slip_counter' },
-      data: { year: currentYear, count: 1 },
-    });
-  } else {
-    counter = await tx.pickingSlipCounter.update({
-      where: { id: 'picking_slip_counter' },
-      data: { count: { increment: 1 } },
-    });
-  }
-
-  return `PS-${counter.year}-${String(counter.count).padStart(5, '0')}`;
-}
-
-/**
- * Generate job card number within transaction
- */
-async function generateJobCardNumberTx(tx: TransactionClient): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  let counter = await tx.jobCardCounter.findUnique({
-    where: { id: 'job_card_counter' },
-  });
-
-  if (!counter) {
-    counter = await tx.jobCardCounter.create({
-      data: { id: 'job_card_counter', year: currentYear, count: 1 },
-    });
-  } else if (counter.year !== currentYear) {
-    counter = await tx.jobCardCounter.update({
-      where: { id: 'job_card_counter' },
-      data: { year: currentYear, count: 1 },
-    });
-  } else {
-    counter = await tx.jobCardCounter.update({
-      where: { id: 'job_card_counter' },
-      data: { count: { increment: 1 } },
-    });
-  }
-
-  return `JC-${counter.year}-${String(counter.count).padStart(5, '0')}`;
-}
-
-/**
- * Generate transfer request number within transaction
- */
-async function generateTransferNumberTx(tx: TransactionClient): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  let counter = await tx.transferRequestCounter.findUnique({
-    where: { id: 'transfer_request_counter' },
-  });
-
-  if (!counter) {
-    counter = await tx.transferRequestCounter.create({
-      data: { id: 'transfer_request_counter', year: currentYear, count: 1 },
-    });
-  } else if (counter.year !== currentYear) {
-    counter = await tx.transferRequestCounter.update({
-      where: { id: 'transfer_request_counter' },
-      data: { year: currentYear, count: 1 },
-    });
-  } else {
-    counter = await tx.transferRequestCounter.update({
-      where: { id: 'transfer_request_counter' },
-      data: { count: { increment: 1 } },
-    });
-  }
-
-  return `TR-${counter.year}-${String(counter.count).padStart(5, '0')}`;
-}
-
-/**
- * Generate purchase order number within transaction
- */
-async function generatePurchaseOrderNumberTx(tx: TransactionClient): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  let counter = await tx.purchaseOrderCounter.findUnique({
-    where: { id: 'purchase_order_counter' },
-  });
-
-  if (!counter) {
-    counter = await tx.purchaseOrderCounter.create({
-      data: { id: 'purchase_order_counter', year: currentYear, count: 1 },
-    });
-  } else if (counter.year !== currentYear) {
-    counter = await tx.purchaseOrderCounter.update({
-      where: { id: 'purchase_order_counter' },
-      data: { year: currentYear, count: 1 },
-    });
-  } else {
-    counter = await tx.purchaseOrderCounter.update({
-      where: { id: 'purchase_order_counter' },
-      data: { count: { increment: 1 } },
-    });
-  }
-
-  return `PO-${counter.year}-${String(counter.count).padStart(5, '0')}`;
-}
 
 /**
  * Create a picking slip from plan

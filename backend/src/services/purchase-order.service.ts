@@ -4,6 +4,8 @@ import { prisma } from '../config/database';
 import { generatePurchaseOrderPDF } from './pdf.service';
 import { sendEmail, generatePurchaseOrderEmail } from './email.service';
 import { updateStockLevel } from './inventory.service';
+import { generatePONumber } from '../utils/number-generation';
+import { roundTo2 } from '../utils/math';
 import type {
   CreatePurchaseOrderInput,
   UpdatePurchaseOrderInput,
@@ -128,49 +130,6 @@ export function isValidPOTransition(
 /**
  * Generate the next PO number in format PO-YYYY-NNNNN
  */
-export async function generatePONumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  const counter = await prisma.$transaction(async (tx) => {
-    let counter = await tx.purchaseOrderCounter.findUnique({
-      where: { id: 'po_counter' },
-    });
-
-    if (!counter) {
-      counter = await tx.purchaseOrderCounter.create({
-        data: {
-          id: 'po_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    if (counter.year !== currentYear) {
-      counter = await tx.purchaseOrderCounter.update({
-        where: { id: 'po_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    counter = await tx.purchaseOrderCounter.update({
-      where: { id: 'po_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `PO-${currentYear}-${paddedCount}`;
-}
 
 // ============================================
 // CORE CRUD
@@ -1024,6 +983,3 @@ function mapLineToData(line: {
 /**
  * Round to 2 decimal places
  */
-function roundTo2(value: number): number {
-  return Math.round(value * 100) / 100;
-}

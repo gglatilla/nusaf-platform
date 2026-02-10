@@ -1,6 +1,7 @@
 import { CustomerTier } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
+import { roundTo2, roundTo4 } from '../utils/math';
 
 /**
  * Customer tier discount percentages (off list price)
@@ -381,10 +382,3 @@ export async function recalculateProductPrices(options: {
 }
 
 // Utility functions for rounding
-function roundTo2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-function roundTo4(value: number): number {
-  return Math.round(value * 10000) / 10000;
-}

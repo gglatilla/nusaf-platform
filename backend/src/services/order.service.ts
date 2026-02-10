@@ -6,6 +6,8 @@ import {
   releaseReservationsByReference,
   releaseReservationsInTransaction,
 } from './inventory.service';
+import { generateOrderNumber } from '../utils/number-generation';
+import { roundTo2 } from '../utils/math';
 
 /**
  * VAT rate for South Africa (%)
@@ -32,55 +34,6 @@ export const STATUS_TRANSITIONS: Record<SalesOrderStatus, SalesOrderStatus[]> = 
 /**
  * Generate the next order number in format SO-YYYY-NNNNN
  */
-export async function generateOrderNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-
-  // Use a transaction to safely increment the counter
-  const counter = await prisma.$transaction(async (tx) => {
-    // Get or create the counter record
-    let counter = await tx.salesOrderCounter.findUnique({
-      where: { id: 'order_counter' },
-    });
-
-    if (!counter) {
-      // Initialize counter for this year
-      counter = await tx.salesOrderCounter.create({
-        data: {
-          id: 'order_counter',
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    // If year changed, reset counter
-    if (counter.year !== currentYear) {
-      counter = await tx.salesOrderCounter.update({
-        where: { id: 'order_counter' },
-        data: {
-          year: currentYear,
-          count: 1,
-        },
-      });
-      return counter;
-    }
-
-    // Increment counter for same year
-    counter = await tx.salesOrderCounter.update({
-      where: { id: 'order_counter' },
-      data: {
-        count: { increment: 1 },
-      },
-    });
-
-    return counter;
-  });
-
-  // Format: SO-2025-00001
-  const paddedCount = counter.count.toString().padStart(5, '0');
-  return `SO-${currentYear}-${paddedCount}`;
-}
 
 /**
  * Calculate order totals from lines
@@ -746,6 +699,3 @@ export async function updateOrderNotes(
 }
 
 // Utility function for rounding
-function roundTo2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
