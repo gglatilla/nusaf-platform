@@ -6,6 +6,8 @@ import {
   type ActiveDraftQuote,
   type CatalogProduct,
 } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth-store';
+import { useQuoteCompanyStore } from '@/stores/quote-company-store';
 
 /**
  * Hook for fetching paginated quotes list
@@ -36,13 +38,21 @@ export function useQuote(id: string | null) {
 }
 
 /**
- * Hook for fetching the active draft quote (for cart display)
+ * Hook for fetching the active draft quote (for cart display).
+ * Staff: passes selected company's ID so backend returns the correct draft.
  */
 export function useActiveQuote() {
+  const { user } = useAuthStore();
+  const { selectedCompany } = useQuoteCompanyStore();
+  const isStaff = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
+  const companyId = isStaff ? selectedCompany?.id : undefined;
+
   return useQuery({
-    queryKey: ['activeQuote'],
+    queryKey: ['activeQuote', companyId],
     queryFn: async () => {
-      const response = await api.getActiveQuote();
+      // Staff without a selected company: no active quote to fetch
+      if (isStaff && !companyId) return null;
+      const response = await api.getActiveQuote(companyId);
       return response.data;
     },
     staleTime: 30 * 1000, // 30 seconds
@@ -50,14 +60,19 @@ export function useActiveQuote() {
 }
 
 /**
- * Hook for creating a new quote or getting existing draft
+ * Hook for creating a new quote or getting existing draft.
+ * Staff: passes selected company's ID so quote is created for that customer.
  */
 export function useCreateQuote() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { selectedCompany } = useQuoteCompanyStore();
+  const isStaff = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
 
   return useMutation({
     mutationFn: async () => {
-      const response = await api.createQuote();
+      const companyId = isStaff ? selectedCompany?.id : undefined;
+      const response = await api.createQuote(companyId);
       return response.data;
     },
     onSuccess: () => {

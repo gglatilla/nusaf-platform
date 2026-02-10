@@ -5,6 +5,13 @@ import Link from 'next/link';
 import { ShoppingCart, ChevronDown, FileText, Trash2, X } from 'lucide-react';
 import { useActiveQuote, useRemoveQuoteItem } from '@/hooks/useQuotes';
 import { useAuthStore } from '@/stores/auth-store';
+import { useQuoteCompanyStore } from '@/stores/quote-company-store';
+
+const TIER_LABELS: Record<string, string> = {
+  END_USER: 'End User',
+  OEM_RESELLER: 'OEM/Reseller',
+  DISTRIBUTOR: 'Distributor',
+};
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-ZA', {
@@ -19,7 +26,9 @@ export function QuoteCart() {
   const { data: activeQuote, isLoading } = useActiveQuote();
   const removeItem = useRemoveQuoteItem();
   const { user } = useAuthStore();
+  const { selectedCompany } = useQuoteCompanyStore();
   const isCustomer = user?.role === 'CUSTOMER';
+  const isStaff = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
   const catalogHref = isCustomer ? '/my/products' : '/catalog';
   const quoteHref = (id: string) => isCustomer ? `/my/quotes/${id}` : `/quotes/${id}`;
 
@@ -68,7 +77,11 @@ export function QuoteCart() {
           ) : !activeQuote || activeQuote.items.length === 0 ? (
             <div className="p-6 text-center">
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-slate-600 mb-4">Your quote is empty</p>
+              {isStaff && !selectedCompany ? (
+                <p className="text-sm text-amber-600 mb-4">Select a customer company first to start a quote</p>
+              ) : (
+                <p className="text-sm text-slate-600 mb-4">Your quote is empty</p>
+              )}
               <Link
                 href={catalogHref}
                 onClick={() => setIsOpen(false)}
@@ -91,6 +104,15 @@ export function QuoteCart() {
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
+              {/* Staff: customer company banner */}
+              {isStaff && selectedCompany && (
+                <div className="px-4 py-2 bg-primary-50 border-b border-primary-100">
+                  <p className="text-xs font-medium text-primary-700">
+                    Creating quote for: {selectedCompany.name} ({TIER_LABELS[selectedCompany.tier] || selectedCompany.tier})
+                  </p>
+                </div>
+              )}
 
               {/* Items */}
               <div className="max-h-64 overflow-y-auto">

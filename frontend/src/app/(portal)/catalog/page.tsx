@@ -20,6 +20,8 @@ import {
 } from '@/components/products';
 import { useProducts, useCategories, useBulkPublishProducts } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
+import { useQuoteCompanyStore } from '@/stores/quote-company-store';
+import { CustomerCompanyPicker } from '@/components/quotes/CustomerCompanyPicker';
 import type { CatalogProduct } from '@/lib/api';
 import type { StockFilterValue } from '@/components/products/StockFilterChips';
 import type { WarehouseValue } from '@/components/products/WarehouseSelector';
@@ -35,6 +37,9 @@ export default function ProductsPage() {
   const isInternal = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
   const isAdmin = user?.role === 'ADMIN';
   const showQuantity = !!isInternal; // Internal users see numbers, customers see text
+
+  // Staff quote company picker
+  const { selectedCompany } = useQuoteCompanyStore();
 
   // Read URL params
   const urlCategoryId = searchParams.get('categoryId');
@@ -87,6 +92,7 @@ export default function ProductsPage() {
     sort: sortBy || undefined,
     warehouseId: warehouse !== 'ALL' ? warehouse : undefined,
     isPublished: publishFilter === 'PUBLISHED' ? 'true' : publishFilter === 'DRAFT' ? 'false' : undefined,
+    customerTier: selectedCompany?.tier || undefined,
   });
 
   const products = productsData?.products ?? [];
@@ -257,6 +263,8 @@ export default function ProductsPage() {
         description={isAdmin ? "Manage product marketing content and publish to website" : "Browse our product catalog"}
         actions={
           <div className="flex items-center gap-4">
+            {/* Customer company picker - staff only */}
+            {isInternal && <CustomerCompanyPicker />}
             {/* Warehouse selector - internal users only */}
             {isInternal && (
               <WarehouseSelector value={warehouse} onChange={handleWarehouseChange} />

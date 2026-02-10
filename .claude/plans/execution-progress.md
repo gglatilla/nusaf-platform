@@ -37,7 +37,7 @@
 ## Phase 2C — Remaining Operations
 - [x] T20: Auto-generate proforma — verify and harden (2026-02-10)
 - [x] T21: Staff-on-behalf-of-customer quotes (API) (2026-02-10)
-- [ ] T22: Staff-on-behalf-of-customer quotes (UI)
+- [x] T22: Staff-on-behalf-of-customer quotes (UI) (2026-02-10)
 - [ ] T23: Standalone transfer UI
 - [ ] T24: Credit note schema + service + PDF
 - [ ] T25: Credit note API + UI + auto-generate on RA completion
@@ -66,18 +66,19 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T22
+- Current phase: Phase 2C, next T23
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
-- Completed T21: Staff-on-behalf-of-customer quotes (API)
-  - POST /quotes: staff (ADMIN/MANAGER/SALES) must provide companyId in body → uses customer's tier for pricing
-  - CUSTOMER role: always own company, body companyId ignored
-  - Staff WITHOUT companyId: rejected with COMPANY_REQUIRED error
-  - Company isolation bypass: staff can access any company's quotes (getEffectiveCompanyId returns undefined)
-  - GET /quotes: staff sees quotes filtered by userId (their own created), optional companyId filter
-  - GET /quotes/active: staff must pass ?companyId= query param
-  - Service layer: getQuoteById, getQuotes, deleteQuote all accept optional companyId
-  - Backend compiles with zero TypeScript errors
-- Next: T22 — Staff-on-behalf-of-customer quotes (UI)
+- Completed T22: Staff-on-behalf-of-customer quotes (UI)
+  - Created `CustomerCompanyPicker` component — searchable dropdown showing company name, tier badge, payment terms
+  - Created `useQuoteCompanyStore` Zustand store (sessionStorage) — persists selected company across navigations
+  - Backend: `GET /products` accepts `customerTier` query param — staff sees tier-adjusted prices for selected customer
+  - Catalog page: company picker in header, passes `customerTier` to product query
+  - QuoteCart: shows "Creating quote for: [Company] ([Tier])" banner when company selected
+  - AddToQuoteModal: blocks "Add to Quote" if staff hasn't selected a company
+  - `useCreateQuote` hook: passes selected company's ID to `POST /quotes`
+  - `useActiveQuote` hook: passes company ID for staff, returns null if no company selected
+  - Both frontend and backend compile with zero TypeScript errors
+- Next: T23 — Standalone transfer UI

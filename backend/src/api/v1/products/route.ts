@@ -89,6 +89,7 @@ router.get('/', authenticate, async (req, res) => {
       stockStatus,
       warehouseId,
       isPublished,
+      customerTier: customerTierParam,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
@@ -184,7 +185,16 @@ router.get('/', authenticate, async (req, res) => {
 
     const userRole = authReq.user.role;
     const isCustomer = userRole === 'CUSTOMER';
-    const tier = (company?.tier ?? 'END_USER') as CustomerTier;
+    const isStaff = ['ADMIN', 'MANAGER', 'SALES'].includes(userRole);
+
+    // Staff can override tier when quoting on behalf of a customer
+    const validTiers: CustomerTier[] = ['END_USER', 'OEM_RESELLER', 'DISTRIBUTOR'];
+    const tierOverride = isStaff && customerTierParam && validTiers.includes(customerTierParam as CustomerTier)
+      ? (customerTierParam as CustomerTier)
+      : null;
+    const tier = tierOverride ?? (company?.tier ?? 'END_USER') as CustomerTier;
+    // When staff uses tier override, show tier-adjusted prices like a customer would see
+    const showTierPrice = isCustomer || !!tierOverride;
 
     // Fetch products
     const skip = fetchAll ? 0 : (pageNum - 1) * pageSizeNum;
@@ -224,9 +234,9 @@ router.get('/', authenticate, async (req, res) => {
       let priceLabel: string;
 
       if (listPrice) {
-        if (isCustomer) {
+        if (showTierPrice) {
           displayPrice = calculateCustomerPrice(listPrice, tier);
-          priceLabel = 'Your Price';
+          priceLabel = tierOverride ? 'Customer Price' : 'Your Price';
         } else {
           displayPrice = listPrice;
           priceLabel = 'List Price';

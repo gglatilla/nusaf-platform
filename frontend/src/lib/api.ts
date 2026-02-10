@@ -1019,6 +1019,8 @@ export interface ProductsQueryParams {
   stockStatus?: string;
   warehouseId?: string;
   isPublished?: string;
+  /** Staff: override tier to show customer-specific prices */
+  customerTier?: string;
 }
 
 // Recalculate prices response
@@ -3308,6 +3310,7 @@ class ApiClient {
     if (params.include) searchParams.set('include', params.include);
     if (params.stockStatus) searchParams.set('stockStatus', params.stockStatus);
     if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
+    if (params.customerTier) searchParams.set('customerTier', params.customerTier);
 
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/products?${queryString}` : '/products';
@@ -3589,10 +3592,10 @@ class ApiClient {
   }
 
   // Quote endpoints
-  async createQuote(): Promise<ApiResponse<CreateQuoteResponse>> {
+  async createQuote(companyId?: string): Promise<ApiResponse<CreateQuoteResponse>> {
     return this.request<ApiResponse<CreateQuoteResponse>>('/quotes', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(companyId ? { companyId } : {}),
     });
   }
 
@@ -3611,8 +3614,9 @@ class ApiClient {
     return this.request<ApiResponse<Quote>>(`/quotes/${id}`);
   }
 
-  async getActiveQuote(): Promise<ApiResponse<ActiveDraftQuote | null>> {
-    return this.request<ApiResponse<ActiveDraftQuote | null>>('/quotes/active');
+  async getActiveQuote(companyId?: string): Promise<ApiResponse<ActiveDraftQuote | null>> {
+    const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : '';
+    return this.request<ApiResponse<ActiveDraftQuote | null>>(`/quotes/active${query}`);
   }
 
   async updateQuoteNotes(id: string, customerNotes: string): Promise<ApiResponse<{ message: string }>> {

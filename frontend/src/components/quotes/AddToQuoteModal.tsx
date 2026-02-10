@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCreateQuote, useAddQuoteItem } from '@/hooks/useQuotes';
+import { useAuthStore } from '@/stores/auth-store';
+import { useQuoteCompanyStore } from '@/stores/quote-company-store';
 import type { CatalogProduct } from '@/lib/api';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
@@ -28,6 +30,11 @@ function formatCurrency(amount: number): string {
 export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuthStore();
+  const { selectedCompany } = useQuoteCompanyStore();
+  const isStaff = !!user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
+  const needsCompany = isStaff && !selectedCompany;
 
   const createQuote = useCreateQuote();
   const addItem = useAddQuoteItem();
@@ -157,14 +164,20 @@ export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalPro
             </button>
             <button
               onClick={handleAddToQuote}
-              disabled={isLoading || !product.hasPrice}
+              disabled={isLoading || !product.hasPrice || needsCompany}
               className="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Adding...' : 'Add to Quote'}
             </button>
           </div>
 
-          {!product.hasPrice && (
+          {needsCompany && (
+            <p className="text-xs text-center text-amber-600">
+              Select a customer company before adding items to a quote.
+            </p>
+          )}
+
+          {!needsCompany && !product.hasPrice && (
             <p className="text-xs text-center text-amber-600">
               This product has no price set. Contact sales for pricing.
             </p>
