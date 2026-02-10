@@ -453,6 +453,12 @@ router.get('/:id', authenticate, async (req, res) => {
               },
             },
           }),
+          _count: {
+            select: {
+              productImages: true,
+              productDocuments: true,
+            },
+          },
         },
       }),
       prisma.company.findUnique({
@@ -585,6 +591,19 @@ router.get('/:id', authenticate, async (req, res) => {
 
       // Status
       isActive: product.isActive,
+      isPublished: product.isPublished,
+      publishedAt: product.publishedAt,
+
+      // Marketing content
+      marketingTitle: product.marketingTitle,
+      marketingDescription: product.marketingDescription,
+      metaTitle: product.metaTitle,
+      metaDescription: product.metaDescription,
+      specifications: product.specifications,
+
+      // Completeness counts
+      imageCount: product._count.productImages,
+      documentCount: product._count.productDocuments,
 
       // Inventory defaults at root level (matches frontend ProductWithInventory type)
       ...(isCustomer ? {} : {
