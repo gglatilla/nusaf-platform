@@ -3,10 +3,10 @@
 ---
 
 ## Current
-- [TASK-023] Product Master Data Management [Master Data, UI/Frontend, Backend]
+(none — UI/UX Audit complete, no active task)
 
 ## Up Next
-(none)
+- [TASK-023] Product Master Data Management — Phases 4-5 (Completeness Scoring, Publishing Safeguards)
 
 ## Backlog
 
@@ -119,6 +119,19 @@ All above ──► TASK-022 (Orchestration Engine)
 - [TASK-022A] Fulfillment Orchestration UI ✓
 - [TASK-015] Public Website Homepage ✓
 - [TASK-016] Public Website Product Pages ✓
+- [TASK-023] Product Master Data Management — Phases 0-3 ✓
+- [TASK-024] Architecture Restructure ✓
+- [TASK-025] Fix Navigation/Display ✓
+- [ERP-EXEC] ERP Remediation — All 40 Tasks ✓
+- [UI-AUDIT] Full UI/UX Audit & Redesign — All 8 Phases ✓
+  - Phase 1: Domain & Routing Fixes ✓
+  - Phase 2: Navigation Restructure ✓
+  - Phase 3: Order Detail Redesign ✓
+  - Phase 4: Breadcrumb Navigation (21 pages) ✓
+  - Phase 5: Inventory UX Fixes ✓
+  - Phase 6: Product Edit Save Handler (already wired) ✓
+  - Phase 7: Customer Portal (invoices + deliveries) ✓
+  - Phase 8: General UX Polish (ConfirmDialog + status labels) ✓
 
 ---
 

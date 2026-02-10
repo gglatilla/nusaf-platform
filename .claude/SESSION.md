@@ -1,65 +1,80 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Execution Plan — ALL 40 TASKS COMPLETE
+UI/UX Audit & Redesign — ALL 8 PHASES COMPLETE
 
 ## Status
-COMPLETE — All tasks R1-R5, T1-T40 finished (2026-02-10)
+COMPLETE (2026-02-10)
 
 ## Completed This Session
-- [x] T38: Job card reservation release on completion (2026-02-10)
-- [x] T39: Prepay payment triggers fulfillment (2026-02-10)
-- [x] T40: End-to-end flow verification (2026-02-10)
 
-## What Was Done
+### Phase 1: Domain & Routing Fixes (P0) ✓
+- Fixed `www.nusaf.co.za` → `www.nusaf.net` across all files (page.tsx, robots.ts, sitemap.ts, etc.)
+- Created `frontend/src/lib/urls.ts` with `getWebsiteUrl()` and `getPortalUrl()` helpers
+- Fixed "View on Website" links from relative to absolute (ProductTable, catalog edit, OverviewTab, ProductDetailHeader)
+- Fixed middleware domain matching — exact hostname comparison, env var for portal redirect
+- Added `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_PORTAL_URL` to `.env.example`
+- Commit: bfebcb5
 
-### T38: Job Card Reservation Release on Completion
-- Added reservation release in `completeJobCard()` (job-card.service.ts:765-792)
-- Inside existing transaction, after BOM consumption, before order status propagation
-- Finds all unreleased HARD reservations with referenceType 'JobCard' and referenceId jobCard.id
-- Releases each (releasedAt, releasedBy, releaseReason) and decrements hardReserved
-- Follows exact same pattern as `completePicking()` lines 484-517
+### Phase 2: Navigation Restructure (P1) ✓
+- Restructured sidebar from 13 flat items to 7 business-function groups (Sales, Fulfillment, Inventory, Procurement, Catalog, Admin, Reports)
+- Updated `frontend/src/lib/navigation.ts` with grouped nav config
+- Updated `frontend/src/components/layout/Sidebar.tsx` with section rendering
+- Removed broken `/settings` link
+- Commit: 01a3799
 
-### T39: Prepay Payment Triggers Fulfillment
-- In `recordPayment()` (payment.service.ts), after syncing paymentStatus:
-  - Checks if paymentStatus tipped to PAID AND paymentTerms is PREPAY/COD AND order is CONFIRMED
-  - Auto-calls generateFulfillmentPlan + executeFulfillmentPlan
-  - Wrapped in try/catch — payment always succeeds even if fulfillment fails
-  - Returns fulfillmentTriggered and fulfillmentError in response
-- API route passes fulfillment data through in 201 response
-- Frontend: updated api.ts return type, RecordPaymentModal has onSuccess callback
-- Order detail page shows green success banner with fulfillment status (auto-dismisses 8s)
+### Phase 3: Order Detail Page Redesign (P1) ✓
+- Created `OrderActionMenu` component — primary action + grouped dropdown for secondary actions
+- Groups: Financial, Fulfillment, Shipping, Order Management
+- Fixed prepay blocking: ALL warehouse actions blocked when prepay unpaid
+- Added company column to order list (removed PO# column)
+- Added breadcrumb to order detail
+- Commit: 313919a
 
-### T40: End-to-End Flow Verification
-- Traced both customer flows through actual code (read-only, no live data)
-- Flow A (Account/NET_30): quote accept → order → confirm → auto-fulfillment → picking/jobs → READY_TO_SHIP → ship → deliver → auto tax invoice → INVOICED → close
-- Flow B (Prepay): quote accept → order → confirm → auto proforma → STOP → payment recorded → auto-fulfillment → same as Flow A
-- Zero breaks found in either flow
-- Documented in `.claude/plans/flow-verification.md`
+### Phase 4: Breadcrumb Navigation (P1) ✓
+- Created reusable `Breadcrumb` component at `frontend/src/components/ui/Breadcrumb.tsx`
+- Added breadcrumbs to ALL 21 detail pages, replacing ArrowLeft back buttons
+- Pages: orders, quotes, tax-invoices, credit-notes, picking-slips, job-cards, transfer-requests, delivery-notes, packing-lists, issues, return-authorizations, inventory items, adjustments, cycle-counts, goods-receipts, catalog detail/edit, purchase-orders, requisitions, suppliers
+- Commit: 283ef8d
 
-## Files Modified This Session
-- `backend/src/services/job-card.service.ts` — T38 reservation release
-- `backend/src/services/payment.service.ts` — T39 auto-fulfillment trigger
-- `backend/src/api/v1/orders/route.ts` — T39 pass fulfillment data in response
-- `frontend/src/lib/api.ts` — T39 updated return type
-- `frontend/src/components/orders/order-detail/RecordPaymentModal.tsx` — T39 onSuccess callback
-- `frontend/src/app/(portal)/orders/[id]/page.tsx` — T39 success banner
-- `.claude/plans/flow-verification.md` — T40 verification document (created)
-- `.claude/plans/execution-progress.md` — marked T38-T40 complete, phase COMPLETE
+### Phase 5: Inventory UX Fixes (P2) ✓
+- MovementLogTable already had comprehensive filters (no changes needed)
+- Added search input to stock adjustments page (adjustment number filter)
+- Commit: d11ea08
 
-## Decisions Made
-- T38: Release reservations after BOM consumption but before order status propagation
-- T39: Payment success is independent of fulfillment success (try/catch pattern)
-- T40: Code tracing only, no live data execution
+### Phase 6: Product Edit Save Handler (P2) ✓
+- Investigated — save handler already wired (`handleSave` calls `updateProduct.mutateAsync`)
+- No changes needed, marked complete
+
+### Phase 7: Customer Portal Improvements (P2) ✓
+- Created `/my/invoices/page.tsx` — invoice list with PDF download, overdue badges
+- Created `/my/deliveries/page.tsx` — delivery tracking with status filters
+- Added CUSTOMER role to `GET /delivery-notes` and `GET /tax-invoices` backend endpoints
+- Auto-scopes to customer's company, forces ISSUED-only for invoices
+- Updated `customer-navigation.ts` with Invoices and Deliveries nav items
+- Commit: 5088a4d
+
+### Phase 8: General UX Polish (P3) ✓
+- Created reusable `ConfirmDialog` component at `frontend/src/components/ui/ConfirmDialog.tsx`
+- Applied to quotes detail page (replaced 4 `window.confirm()` calls)
+- Fixed customer orders status label: "In Progress" → "Processing"
+- Commit: c247b5c
+
+## Key Files Created
+- `frontend/src/components/ui/Breadcrumb.tsx` — reusable portal breadcrumb
+- `frontend/src/components/ui/ConfirmDialog.tsx` — reusable confirmation dialog (danger/warning/info variants)
+- `frontend/src/components/orders/OrderActionMenu.tsx` — grouped action dropdown for order detail
+- `frontend/src/app/(customer)/my/invoices/page.tsx` — customer invoice list
+- `frontend/src/app/(customer)/my/deliveries/page.tsx` — customer delivery tracking
+- `frontend/src/lib/urls.ts` — URL helpers for domain management
 
 ## Next Steps
-- ALL 40 TASKS COMPLETE
-- Execution plan marked COMPLETE (2026-02-10)
-- No remaining tasks in the execution plan
-- Future work: see `.claude/plans/comprehensive-audit-2026-02-02.md` for P0-P4 items
+- All 8 phases of the UI/UX audit are COMPLETE
+- Remaining `window.confirm()` calls (~24) can be progressively replaced with ConfirmDialog
+- TASK-023 Phases 4-5 (Completeness Scoring, Publishing Safeguards) still NOT STARTED
+- Plan file: `.claude/plans/silly-hopping-wolf.md`
 
 ## Context for Next Session
-- Execution plan: `.claude/plans/execution-plan.md` — ALL DONE
-- Progress tracker: `.claude/plans/execution-progress.md` — ALL CHECKED
-- Flow verification: `.claude/plans/flow-verification.md` — both flows verified, zero breaks
+- UI/UX audit plan: `.claude/plans/silly-hopping-wolf.md` — ALL PHASES COMPLETE
+- ERP execution plan: `.claude/plans/execution-plan.md` — ALL 40 TASKS DONE
 - Both frontend and backend TypeScript compilation pass clean
