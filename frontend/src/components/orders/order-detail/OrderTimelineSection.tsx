@@ -14,6 +14,7 @@ import {
   CircleDot,
 } from 'lucide-react';
 import type { TimelineEvent, TimelineEventType } from '@/lib/api';
+import { formatDateTime } from '@/lib/formatting';
 
 interface OrderTimelineSectionProps {
   events: TimelineEvent[];
@@ -51,15 +52,6 @@ const DOCUMENT_ROUTES: Record<string, string> = {
   PickingSlip: '/picking-slips',
   JobCard: '/job-cards',
   TransferRequest: '/transfer-requests',
-};
-
-const formatDateTime = (dateString: string) => {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 };
 
 export function OrderTimelineSection({ events, isLoading }: OrderTimelineSectionProps) {

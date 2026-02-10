@@ -22,26 +22,7 @@ import {
 } from '@/hooks/useDeliveryNotes';
 import { DeliveryNoteStatusBadge } from '@/components/delivery-notes/DeliveryNoteStatusBadge';
 import type { DeliveryNoteStatus, ConfirmDeliveryLineInput } from '@/lib/api';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
-
-function formatDateShort(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function getLocationLabel(location: string): string {
   return location === 'JHB' ? 'Johannesburg' : 'Cape Town';
@@ -196,7 +177,7 @@ export default function DeliveryNoteDetailPage() {
             <DeliveryNoteStatusBadge status={deliveryNote.status} />
           </div>
           <p className="text-sm text-slate-600">
-            Created on {formatDateShort(deliveryNote.createdAt)}
+            Created on {formatDate(deliveryNote.createdAt)}
           </p>
         </div>
 

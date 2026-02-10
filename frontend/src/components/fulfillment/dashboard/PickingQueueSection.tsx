@@ -4,18 +4,10 @@ import Link from 'next/link';
 import { ClipboardList, ArrowRight } from 'lucide-react';
 import { PickingSlipStatusBadge } from '@/components/picking-slips/PickingSlipStatusBadge';
 import type { FulfillmentDashboardData } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface PickingQueueSectionProps {
   data: FulfillmentDashboardData['pickingQueue'];
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 export function PickingQueueSection({ data }: PickingQueueSectionProps) {

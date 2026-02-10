@@ -10,6 +10,7 @@ import { useStockAdjustments } from '@/hooks/useInventory';
 import { ClipboardList, Plus, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StockAdjustmentsQueryParams } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 const REASON_LABELS: Record<string, string> = {
   INITIAL_COUNT: 'Initial Count',
@@ -34,16 +35,6 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   APPROVED: { label: 'Approved', className: 'bg-green-100 text-green-700' },
   REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
 };
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
 
 const PAGE_SIZE = 20;
 

@@ -4,18 +4,11 @@ import Link from 'next/link';
 import { ChevronRight, MapPin } from 'lucide-react';
 import type { PickingSlipListItem } from '@/lib/api';
 import { PickingSlipStatusBadge } from './PickingSlipStatusBadge';
+import { formatDate } from '@/lib/formatting';
 
 interface PickingSlipListTableProps {
   pickingSlips: PickingSlipListItem[];
   isLoading?: boolean;
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function getLocationLabel(location: string): string {

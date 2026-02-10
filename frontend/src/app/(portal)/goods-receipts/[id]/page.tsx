@@ -12,16 +12,7 @@ import {
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useGoodsReceipt } from '@/hooks/useGoodsReceipts';
 import { GRVLineTable } from '@/components/goods-receipts/GRVLineTable';
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function getLocationLabel(location: string): string {
   return location === 'JHB' ? 'Johannesburg' : 'Cape Town';

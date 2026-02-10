@@ -5,6 +5,7 @@ import { Search, X, Plus, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useProducts } from '@/hooks/useProducts';
 import type { CatalogProduct, SupplierCurrency } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface AddPOLineModalProps {
   isOpen: boolean;
@@ -14,13 +15,6 @@ interface AddPOLineModalProps {
   existingProductIds: string[];
   onAddLine: (data: { productId: string; quantityOrdered: number; unitCost: number }) => Promise<void>;
   isAdding: boolean;
-}
-
-function formatCurrency(amount: number, currency: SupplierCurrency = 'EUR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
 }
 
 export function AddPOLineModal({

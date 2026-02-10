@@ -6,17 +6,11 @@ import type { IssueFlagListItem } from '@/lib/api';
 import { IssueFlagStatusBadge } from './IssueFlagStatusBadge';
 import { IssueFlagSeverityBadge } from './IssueFlagSeverityBadge';
 import { IssueFlagCategoryBadge } from './IssueFlagCategoryBadge';
+import { formatDate } from '@/lib/formatting';
 
 interface IssueListTableProps {
   issues: IssueFlagListItem[];
   loading?: boolean;
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date(dateString));
 }
 
 function formatSlaDeadline(dateString: string): { text: string; isOverdue: boolean } {

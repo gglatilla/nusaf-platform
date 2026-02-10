@@ -4,19 +4,13 @@ import { useState } from 'react';
 import { Minus, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import type { QuoteItem } from '@/lib/api';
 import { useUpdateQuoteItemQuantity, useRemoveQuoteItem } from '@/hooks/useQuotes';
+import { formatCurrency } from '@/lib/formatting';
 
 interface QuoteItemsTableProps {
   quoteId: string;
   items: QuoteItem[];
   isEditable: boolean;
   isCustomer?: boolean;
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
 }
 
 interface ItemRowProps {

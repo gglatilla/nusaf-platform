@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { useDocuments, useDocumentDownload } from '@/hooks/useDocuments';
 import type { DocumentType, Document } from '@/lib/api';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/api';
+import { formatDate, formatDateTime } from '@/lib/formatting';
 
 const TYPE_OPTIONS: { value: DocumentType | ''; label: string }[] = [
   { value: '', label: 'All Types' },
@@ -29,26 +30,6 @@ function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatDateTime(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export default function DocumentsPage() {

@@ -4,18 +4,10 @@ import Link from 'next/link';
 import { Wrench, ArrowRight } from 'lucide-react';
 import { JobCardStatusBadge } from '@/components/job-cards/JobCardStatusBadge';
 import type { FulfillmentDashboardData } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface JobsInProgressSectionProps {
   data: FulfillmentDashboardData['jobCards'];
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 export function JobsInProgressSection({ data }: JobsInProgressSectionProps) {

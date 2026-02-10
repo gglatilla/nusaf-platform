@@ -1,17 +1,11 @@
 'use client';
 
 import type { SalesOrderLine } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface OrderLineTableProps {
   lines: SalesOrderLine[];
   hideOperationalColumns?: boolean; // Hide Status and Picked columns (customer view)
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
 }
 
 const lineStatusLabels: Record<string, string> = {

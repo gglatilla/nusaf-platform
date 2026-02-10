@@ -2,6 +2,7 @@
 
 import type { StockMovement, StockMovementType } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/formatting';
 
 interface StockMovementsTableProps {
   movements: StockMovement[];
@@ -22,14 +23,6 @@ const MOVEMENT_TYPE_CONFIG: Record<
   ADJUSTMENT_OUT: { label: 'Adjustment Out', icon: '✏️' },
   SCRAP: { label: 'Scrap', icon: '🗑️' },
 };
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateString));
-}
 
 /**
  * Stock movements table showing recent inventory changes

@@ -4,18 +4,10 @@ import Link from 'next/link';
 import { Truck, ArrowRight } from 'lucide-react';
 import { TransferRequestStatusBadge } from '@/components/transfer-requests/TransferRequestStatusBadge';
 import type { FulfillmentDashboardData } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface PendingTransfersSectionProps {
   data: FulfillmentDashboardData['transfers'];
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 export function PendingTransfersSection({ data }: PendingTransfersSectionProps) {

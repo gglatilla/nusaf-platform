@@ -8,15 +8,7 @@ import { useCreditNotesForRA } from '@/hooks/useCreditNotes';
 import ReturnAuthorizationStatusBadge from '@/components/return-authorizations/ReturnAuthorizationStatusBadge';
 import { CreditNotesSection } from '@/components/orders/order-detail';
 import type { ReturnAuthorizationStatus } from '@/lib/api';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 const STATUS_MESSAGES: Record<ReturnAuthorizationStatus, { icon: React.ReactNode; message: string; className: string }> = {
   REQUESTED: {

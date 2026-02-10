@@ -3,20 +3,11 @@
 import Link from 'next/link';
 import { PackageCheck, MapPin, Calendar, User } from 'lucide-react';
 import type { GrvListItem, Warehouse } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface GRVListTableProps {
   goodsReceipts: GrvListItem[];
   isLoading?: boolean;
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 function getLocationLabel(location: Warehouse): string {

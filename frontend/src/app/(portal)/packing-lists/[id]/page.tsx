@@ -24,26 +24,7 @@ import {
 } from '@/hooks/usePackingLists';
 import { PackingListStatusBadge } from '@/components/packing-lists/PackingListStatusBadge';
 import type { PackingListStatus, PackingListLine } from '@/lib/api';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '\u2014';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
-
-function formatDateShort(dateString: string | null): string {
-  if (!dateString) return '\u2014';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function getLocationLabel(location: string): string {
   return location === 'JHB' ? 'Johannesburg' : 'Cape Town';
@@ -132,7 +113,7 @@ export default function PackingListDetailPage() {
             <PackingListStatusBadge status={packingList.status} />
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Created {formatDateShort(packingList.createdAt)}
+            Created {formatDate(packingList.createdAt)}
           </p>
         </div>
 

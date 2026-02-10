@@ -3,6 +3,7 @@
 import { FileSpreadsheet, CheckCircle2, XCircle, Clock, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ImportHistoryItem } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface ImportHistoryProps {
   items: ImportHistoryItem[];
@@ -59,17 +60,6 @@ interface ImportHistoryRowProps {
 function ImportHistoryRow({ item, onClick }: ImportHistoryRowProps) {
   const config = STATUS_CONFIG[item.status];
   const StatusIcon = config.icon;
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-ZA', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const colorClasses = {
     slate: 'bg-slate-100 text-slate-600',

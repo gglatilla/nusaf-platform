@@ -7,6 +7,7 @@ import { Receipt, Search, Download, AlertTriangle, Filter, X } from 'lucide-reac
 import { useTaxInvoices, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
 import { Pagination } from '@/components/products/Pagination';
 import type { TaxInvoiceStatus } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 const STATUS_OPTIONS: Array<{ value: TaxInvoiceStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: 'All Statuses' },
@@ -30,14 +31,6 @@ function formatShortDate(dateString: string | null): string {
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 function formatPaymentTerms(terms: string): string {

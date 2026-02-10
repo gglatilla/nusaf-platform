@@ -5,18 +5,11 @@ import { ChevronRight } from 'lucide-react';
 import type { JobCardListItem } from '@/lib/api';
 import { JobCardStatusBadge } from './JobCardStatusBadge';
 import { JobTypeBadge } from './JobTypeBadge';
+import { formatDate } from '@/lib/formatting';
 
 interface JobCardListTableProps {
   jobCards: JobCardListItem[];
   isLoading?: boolean;
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function SkeletonRow() {

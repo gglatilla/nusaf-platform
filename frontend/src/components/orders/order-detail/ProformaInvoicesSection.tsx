@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Download, FileText, XCircle } from 'lucide-react';
 import { useDownloadProformaInvoicePDF, useVoidProformaInvoice } from '@/hooks/useProformaInvoices';
 import type { ProformaInvoiceSummary } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface ProformaInvoicesSectionProps {
   proformaInvoices: ProformaInvoiceSummary[];
@@ -17,14 +18,6 @@ function formatShortDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 export function ProformaInvoicesSection({

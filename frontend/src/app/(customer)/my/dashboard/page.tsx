@@ -13,21 +13,7 @@ import { useQuotes, useActiveQuote } from '@/hooks/useQuotes';
 import { useOrders } from '@/hooks/useOrders';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 export default function CustomerDashboardPage() {
   const { user } = useAuthStore();

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useRecordPayment } from '@/hooks/usePayments';
 import type { PaymentMethod } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface RecordPaymentModalProps {
   isOpen: boolean;
@@ -11,14 +12,6 @@ interface RecordPaymentModalProps {
   orderId: string;
   balanceRemaining: number;
   onSuccess?: (data: { fulfillmentTriggered?: boolean; fulfillmentError?: string }) => void;
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [

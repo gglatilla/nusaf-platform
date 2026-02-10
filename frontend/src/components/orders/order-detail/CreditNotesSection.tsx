@@ -5,6 +5,7 @@ import { Download, FileText, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useDownloadCreditNotePDF, useVoidCreditNote } from '@/hooks/useCreditNotes';
 import type { CreditNoteSummary } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface CreditNotesSectionProps {
   creditNotes: CreditNoteSummary[];
@@ -18,14 +19,6 @@ function formatShortDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 export function CreditNotesSection({

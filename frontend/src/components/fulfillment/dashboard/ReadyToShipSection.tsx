@@ -3,27 +3,10 @@
 import Link from 'next/link';
 import { ShoppingCart, ArrowRight } from 'lucide-react';
 import type { FulfillmentDashboardData } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface ReadyToShipSectionProps {
   data: FulfillmentDashboardData['readyToShip'];
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 export function ReadyToShipSection({ data }: ReadyToShipSectionProps) {

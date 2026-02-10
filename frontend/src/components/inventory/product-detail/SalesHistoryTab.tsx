@@ -2,18 +2,11 @@
 
 import Link from 'next/link';
 import { useProductSalesHistory } from '@/hooks/useProductInventory';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface SalesHistoryTabProps {
   productId: string;
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
-};
-
-const formatDate = (dateString: string) => {
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString));
-};
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-700',

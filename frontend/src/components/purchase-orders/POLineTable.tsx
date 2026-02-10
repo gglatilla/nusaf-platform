@@ -2,17 +2,11 @@
 
 import Link from 'next/link';
 import type { PurchaseOrderLine, SupplierCurrency } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface POLineTableProps {
   lines: PurchaseOrderLine[];
   currency?: SupplierCurrency;
-}
-
-function formatCurrency(amount: number, currency: SupplierCurrency = 'EUR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
 }
 
 export function POLineTable({ lines, currency = 'EUR' }: POLineTableProps) {

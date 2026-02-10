@@ -2,14 +2,10 @@
 
 import { Building, Package, AlertCircle } from 'lucide-react';
 import type { PurchaseOrderPlan } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface PurchaseOrderPlanSectionProps {
   purchaseOrders: PurchaseOrderPlan[];
-}
-
-function formatCurrency(value: number, currency: string): string {
-  const symbol = currency === 'ZAR' ? 'R' : '€';
-  return `${symbol}${value.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function ReasonBadge({ reason }: { reason: string }) {

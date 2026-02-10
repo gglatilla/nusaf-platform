@@ -2,6 +2,7 @@
 
 import { Download, Trash2, FileText, FileCheck, Loader2 } from 'lucide-react';
 import type { DocumentForOrder, DocumentType } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface DocumentListProps {
   documents: DocumentForOrder[];
@@ -25,17 +26,6 @@ function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export function DocumentList({ documents, onDownload, onDelete, isLoading }: DocumentListProps) {

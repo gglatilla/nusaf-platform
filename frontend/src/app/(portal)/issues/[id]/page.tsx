@@ -21,16 +21,7 @@ import {
   useCloseIssue,
 } from '@/hooks/useIssueFlags';
 import type { IssueFlagStatus } from '@/lib/api';
-
-function formatDateTime(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
+import { formatDateTime } from '@/lib/formatting';
 
 function formatSlaDeadline(dateString: string, status: IssueFlagStatus): { text: string; isOverdue: boolean } {
   if (status === 'RESOLVED' || status === 'CLOSED') {

@@ -12,13 +12,7 @@ import {
 } from '@/hooks/usePurchaseOrders';
 import { AddPOLineModal } from '@/components/purchase-orders/AddPOLineModal';
 import type { Supplier, SupplierCurrency, Warehouse, PurchaseOrderLine } from '@/lib/api';
-
-function formatCurrency(amount: number, currency: SupplierCurrency = 'EUR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
-}
+import { formatCurrency } from '@/lib/formatting';
 
 interface DraftLine extends PurchaseOrderLine {
   isNew?: boolean;

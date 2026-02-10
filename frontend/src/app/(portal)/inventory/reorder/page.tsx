@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LowStockProduct } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -628,14 +629,6 @@ interface PreviewGroup {
   lines: PreviewLine[];
   supplierTotal: number;
   hasMissingCost: boolean;
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(value);
 }
 
 function POPreviewModal({

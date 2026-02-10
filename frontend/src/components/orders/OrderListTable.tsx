@@ -4,27 +4,13 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { SalesOrderListItem } from '@/lib/api';
 import { OrderStatusBadge } from './OrderStatusBadge';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface OrderListTableProps {
   orders: SalesOrderListItem[];
   isLoading?: boolean;
   linkPrefix?: string; // Default: '/orders' — use '/my/orders' for customer portal
   quotesHref?: string; // Default: '/quotes' — use '/my/quotes' for customer portal
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function SkeletonRow() {

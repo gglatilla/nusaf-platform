@@ -19,23 +19,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useTaxInvoice, useVoidTaxInvoice, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '\u2014';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 function formatPaymentTerms(terms: string): string {
   switch (terms) {

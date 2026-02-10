@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { StockMovement } from '@/lib/api/types/products';
 import { REFERENCE_TYPE_ROUTES } from '@/lib/constants/reference-routes';
+import { formatDateTime } from '@/lib/formatting';
 
 interface AuditLogTabProps {
   movements: StockMovement[];
@@ -18,16 +19,6 @@ const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   ADJUSTMENT_IN: { label: 'Adjustment In', color: 'bg-cyan-100 text-cyan-700' },
   ADJUSTMENT_OUT: { label: 'Adjustment Out', color: 'bg-pink-100 text-pink-700' },
   SCRAP: { label: 'Scrap', color: 'bg-slate-100 text-slate-700' },
-};
-
-const formatDateTime = (dateString: string) => {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 };
 
 export function AuditLogTab({ movements }: AuditLogTabProps) {

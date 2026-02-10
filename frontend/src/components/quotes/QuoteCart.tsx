@@ -6,19 +6,13 @@ import { ShoppingCart, ChevronDown, FileText, Trash2, X } from 'lucide-react';
 import { useActiveQuote, useRemoveQuoteItem } from '@/hooks/useQuotes';
 import { useAuthStore } from '@/stores/auth-store';
 import { useQuoteCompanyStore } from '@/stores/quote-company-store';
+import { formatCurrency } from '@/lib/formatting';
 
 const TIER_LABELS: Record<string, string> = {
   END_USER: 'End User',
   OEM_RESELLER: 'OEM/Reseller',
   DISTRIBUTOR: 'Distributor',
 };
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
 
 export function QuoteCart() {
   const [isOpen, setIsOpen] = useState(false);

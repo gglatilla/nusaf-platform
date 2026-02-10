@@ -19,6 +19,7 @@ import {
 import { ProductBomTab } from '@/components/products/ProductBomTab';
 import { useCreateStockAdjustment } from '@/hooks/useProductInventory';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/formatting';
 
 type TabType = 'details' | 'inventory' | 'pricing' | 'images' | 'bom';
 
@@ -36,14 +37,6 @@ function LoadingSkeleton() {
       </div>
     </div>
   );
-}
-
-function formatCurrency(amount: number | null): string {
-  if (amount === null) return 'Price on Request';
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
 }
 
 export default function ProductDetailPage() {

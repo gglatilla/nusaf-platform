@@ -20,26 +20,7 @@ import { JobTypeBadge } from '@/components/job-cards/JobTypeBadge';
 import { IssueFlagStatusBadge } from '@/components/issues/IssueFlagStatusBadge';
 import { IssueFlagSeverityBadge } from '@/components/issues/IssueFlagSeverityBadge';
 import { CreateIssueFlagModal } from '@/components/issues/CreateIssueFlagModal';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
-
-function formatDateShort(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function LoadingSkeleton() {
   return (
@@ -160,7 +141,7 @@ export default function JobCardDetailPage() {
             <JobTypeBadge jobType={jobCard.jobType} />
           </div>
           <p className="text-sm text-slate-600">
-            Created on {formatDateShort(jobCard.createdAt)}
+            Created on {formatDate(jobCard.createdAt)}
           </p>
         </div>
 

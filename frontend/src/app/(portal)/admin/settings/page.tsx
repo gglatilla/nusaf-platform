@@ -15,6 +15,7 @@ import {
   type UpdatePricingRuleData,
   ApiError,
 } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 type SettingsTab = 'exchange-rate' | 'pricing-rules' | 'categories';
 
@@ -245,15 +246,6 @@ export default function SettingsPage() {
   };
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-ZA', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   // Check if rate has changed
   const hasRateChanges = settings && parseFloat(eurZarRate) !== settings.eurZarRate;

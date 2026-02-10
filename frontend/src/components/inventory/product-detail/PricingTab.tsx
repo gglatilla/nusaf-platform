@@ -2,18 +2,11 @@
 
 import { ArrowRight } from 'lucide-react';
 import type { ProductWithInventory } from '@/lib/api/types/products';
+import { formatCurrency } from '@/lib/formatting';
 
 interface PricingTabProps {
   product: ProductWithInventory;
 }
-
-const formatCurrency = (amount: number | null | undefined, currency = 'ZAR') => {
-  if (amount == null) return '—';
-  if (currency === 'EUR') {
-    return `EUR ${amount.toFixed(4)}`;
-  }
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
-};
 
 const TIER_DISCOUNTS = [
   { tier: 'End User', discount: 0.30, description: '30% off list' },

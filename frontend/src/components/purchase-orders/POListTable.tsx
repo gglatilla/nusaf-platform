@@ -4,25 +4,11 @@ import Link from 'next/link';
 import { ChevronRight, MapPin } from 'lucide-react';
 import type { PurchaseOrderListItem, SupplierCurrency } from '@/lib/api';
 import { POStatusBadge } from './POStatusBadge';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface POListTableProps {
   purchaseOrders: PurchaseOrderListItem[];
   isLoading?: boolean;
-}
-
-function formatCurrency(amount: number, currency: SupplierCurrency = 'EUR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function getLocationLabel(location: string): string {

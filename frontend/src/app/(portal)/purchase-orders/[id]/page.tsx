@@ -43,22 +43,7 @@ import {
 import { ReceiveGoodsModal } from '@/components/goods-receipts/ReceiveGoodsModal';
 import { ApiError } from '@/lib/api';
 import type { SupplierCurrency } from '@/lib/api';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number, currency: SupplierCurrency = 'EUR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 function getLocationLabel(location: string): string {
   return location === 'JHB' ? 'Johannesburg' : 'Cape Town';

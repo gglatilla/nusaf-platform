@@ -7,15 +7,7 @@ import { useDeliveryNotes } from '@/hooks/useDeliveryNotes';
 import { DeliveryNoteStatusBadge } from '@/components/delivery-notes/DeliveryNoteStatusBadge';
 import { Pagination } from '@/components/products/Pagination';
 import type { DeliveryNoteStatus } from '@/lib/api';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '-';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 type StatusFilter = DeliveryNoteStatus | 'ALL';
 

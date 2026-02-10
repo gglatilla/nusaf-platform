@@ -4,27 +4,13 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { QuoteListItem } from '@/lib/api';
 import { QuoteStatusBadge } from './QuoteStatusBadge';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface QuoteListTableProps {
   quotes: QuoteListItem[];
   isLoading?: boolean;
   linkPrefix?: string; // Default: '/quotes' — use '/my/quotes' for customer portal
   browseHref?: string; // Default: '/catalog' — use '/my/products' for customer portal
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function getExpiryInfo(validUntil: string | null, status: string): { text: string; className: string } | null {

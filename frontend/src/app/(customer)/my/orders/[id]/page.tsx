@@ -25,15 +25,7 @@ import { OrderLineTable } from '@/components/orders/OrderLineTable';
 import { OrderTotals } from '@/components/orders/OrderTotals';
 import { FulfillmentPipelineSteps } from '@/components/orders/order-detail';
 import { DeliveryNoteStatusBadge } from '@/components/delivery-notes/DeliveryNoteStatusBadge';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function LoadingSkeleton() {
   return (

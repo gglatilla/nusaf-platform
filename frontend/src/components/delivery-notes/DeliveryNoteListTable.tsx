@@ -3,18 +3,10 @@
 import Link from 'next/link';
 import { DeliveryNoteStatusBadge } from './DeliveryNoteStatusBadge';
 import type { DeliveryNoteListItem } from '@/lib/api';
+import { formatDate } from '@/lib/formatting';
 
 interface DeliveryNoteListTableProps {
   deliveryNotes: DeliveryNoteListItem[];
-}
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function getLocationLabel(location: string): string {

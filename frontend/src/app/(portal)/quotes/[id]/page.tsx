@@ -11,14 +11,7 @@ import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
 import { CreateOrderModal } from '@/components/orders/CreateOrderModal';
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function getValidityInfo(validUntil: string | null, status: string): { text: string; className: string; urgent: boolean } | null {
   if (!validUntil || status !== 'CREATED') return null;

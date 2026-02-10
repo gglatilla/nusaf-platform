@@ -7,20 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { useQuotes } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { DashboardIssuesWidget } from '@/components/issues/DashboardIssuesWidget';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();

@@ -4,25 +4,10 @@ import Link from 'next/link';
 import { Package, ArrowRight } from 'lucide-react';
 import { POStatusBadge } from '@/components/purchase-orders/POStatusBadge';
 import type { FulfillmentDashboardData } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface AwaitingDeliverySectionProps {
   data: FulfillmentDashboardData['awaitingDelivery'];
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency === 'EUR' ? 'EUR' : 'ZAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 export function AwaitingDeliverySection({ data }: AwaitingDeliverySectionProps) {

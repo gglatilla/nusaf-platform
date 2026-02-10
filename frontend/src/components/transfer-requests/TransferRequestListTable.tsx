@@ -4,18 +4,11 @@ import Link from 'next/link';
 import { ChevronRight, ArrowRight } from 'lucide-react';
 import type { TransferRequestListItem } from '@/lib/api';
 import { TransferRequestStatusBadge } from './TransferRequestStatusBadge';
+import { formatDate } from '@/lib/formatting';
 
 interface TransferRequestListTableProps {
   transferRequests: TransferRequestListItem[];
   isLoading?: boolean;
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
 }
 
 function getLocationLabel(location: string): string {

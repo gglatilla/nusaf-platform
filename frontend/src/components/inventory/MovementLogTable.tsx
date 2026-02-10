@@ -7,6 +7,7 @@ import { useStockMovements } from '@/hooks/useInventory';
 import { Pagination } from '@/components/products/Pagination';
 import { REFERENCE_TYPE_ROUTES, WAREHOUSE_NAMES } from '@/lib/constants/reference-routes';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/formatting';
 
 const MOVEMENT_TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
   RECEIPT: { icon: '📥', label: 'Receipt', color: 'text-green-600' },
@@ -19,16 +20,6 @@ const MOVEMENT_TYPE_CONFIG: Record<string, { icon: string; label: string; color:
   ADJUSTMENT_OUT: { icon: '✏️', label: 'Adjustment (-)', color: 'text-red-600' },
   SCRAP: { icon: '🗑️', label: 'Scrap', color: 'text-red-600' },
 };
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
 
 function getDateRangeParams(range: string): { startDate?: string; endDate?: string } {
   const now = new Date();

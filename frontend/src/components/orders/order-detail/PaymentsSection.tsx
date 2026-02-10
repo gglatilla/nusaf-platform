@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Banknote, XCircle } from 'lucide-react';
 import { useVoidPayment } from '@/hooks/usePayments';
 import type { Payment, OrderPaymentStatus, PaymentMethod } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 interface PaymentsSectionProps {
   payments: Payment[];
@@ -21,14 +22,6 @@ function formatShortDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 function paymentMethodLabel(method: PaymentMethod): string {

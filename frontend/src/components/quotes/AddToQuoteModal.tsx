@@ -13,18 +13,12 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useQuoteCompanyStore } from '@/stores/quote-company-store';
 import type { CatalogProduct } from '@/lib/api';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
+import { formatCurrency } from '@/lib/formatting';
 
 interface AddToQuoteModalProps {
   product: CatalogProduct;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
 }
 
 export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalProps) {

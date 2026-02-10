@@ -30,28 +30,11 @@ import type {
   ActiveCycleCountItem,
   RecentMovementItem,
 } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 // ============================================
 // HELPERS
 // ============================================
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-ZA').format(value);

@@ -32,6 +32,7 @@ import type {
   SalesReportData,
   RevenueByTierEntry,
 } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 // ============================================
 // DATE RANGE PRESETS
@@ -88,15 +89,6 @@ function getDateRangeParams(range: string): { startDate?: string; endDate?: stri
 // ============================================
 // FORMATTERS
 // ============================================
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-ZA').format(value);

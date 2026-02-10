@@ -5,21 +5,7 @@ import Link from 'next/link';
 import { Download, Receipt } from 'lucide-react';
 import { useTaxInvoices, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
 import { Pagination } from '@/components/products/Pagination';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   ISSUED: { label: 'Issued', className: 'bg-green-100 text-green-700' },

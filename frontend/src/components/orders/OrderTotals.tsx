@@ -1,4 +1,5 @@
 'use client';
+import { formatCurrency } from '@/lib/formatting';
 
 interface OrderTotalsProps {
   subtotal: number;
@@ -6,13 +7,6 @@ interface OrderTotalsProps {
   vatAmount: number;
   total: number;
   currency?: string;
-}
-
-function formatCurrency(amount: number, currency: string = 'ZAR'): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency,
-  }).format(amount);
 }
 
 export function OrderTotals({ subtotal, vatRate, vatAmount, total, currency = 'ZAR' }: OrderTotalsProps) {

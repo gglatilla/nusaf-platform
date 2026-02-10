@@ -3,21 +3,13 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import type { IssueComment } from '@/lib/api';
+import { formatDateTime } from '@/lib/formatting';
 
 interface IssueCommentThreadProps {
   comments: IssueComment[];
   onAddComment: (content: string) => Promise<void>;
   isSubmitting?: boolean;
   disabled?: boolean;
-}
-
-function formatDateTime(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
 }
 
 export function IssueCommentThread({

@@ -44,15 +44,7 @@ import { CreateTransferRequestModal } from '@/components/transfer-requests/Creat
 import { OrderDocumentsSection } from '@/components/documents';
 import { FulfillmentPlanModal } from '@/components/fulfillment/FulfillmentPlanModal';
 import { useAuthStore } from '@/stores/auth-store';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function LoadingSkeleton() {
   return (

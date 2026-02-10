@@ -5,6 +5,7 @@ import { ClipboardCheck, Eye } from 'lucide-react';
 import { useStockAdjustments } from '@/hooks/useInventory';
 import { AdjustmentApproveModal } from './AdjustmentApproveModal';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/formatting';
 
 const REASON_LABELS: Record<string, string> = {
   INITIAL_COUNT: 'Initial Count',
@@ -16,16 +17,6 @@ const REASON_LABELS: Record<string, string> = {
   DATA_CORRECTION: 'Data Correction',
   OTHER: 'Other',
 };
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-}
 
 function TableSkeleton() {
   return (

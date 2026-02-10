@@ -3,20 +3,11 @@
 import Link from 'next/link';
 import { useProductPurchaseHistory } from '@/hooks/useProductInventory';
 import type { ProductWithInventory } from '@/lib/api/types/products';
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 interface PurchasingTabProps {
   product: ProductWithInventory;
 }
-
-const formatCurrency = (amount: number, currency = 'ZAR') => {
-  if (currency === 'EUR') return `EUR ${amount.toFixed(4)}`;
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
-};
-
-const formatDate = (dateString: string | null) => {
-  if (!dateString) return '—';
-  return new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString));
-};
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-700',

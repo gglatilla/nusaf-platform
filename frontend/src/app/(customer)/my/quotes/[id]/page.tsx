@@ -23,14 +23,7 @@ import {
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
+import { formatDate } from '@/lib/formatting';
 
 function getValidityInfo(
   validUntil: string | null,

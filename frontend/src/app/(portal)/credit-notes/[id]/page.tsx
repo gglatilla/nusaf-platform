@@ -16,23 +16,7 @@ import {
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useCreditNote, useVoidCreditNote, useDownloadCreditNotePDF } from '@/hooks/useCreditNotes';
 import { useAuthStore } from '@/stores/auth-store';
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '\u2014';
-  return new Intl.DateTimeFormat('en-ZA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatCurrency, formatDate } from '@/lib/formatting';
 
 function LoadingSkeleton() {
   return (

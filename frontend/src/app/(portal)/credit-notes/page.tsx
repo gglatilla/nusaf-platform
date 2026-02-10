@@ -7,6 +7,7 @@ import { FileText, Search, Download, Filter, X } from 'lucide-react';
 import { useCreditNotes, useDownloadCreditNotePDF } from '@/hooks/useCreditNotes';
 import { Pagination } from '@/components/products/Pagination';
 import type { CreditNoteStatus } from '@/lib/api';
+import { formatCurrency } from '@/lib/formatting';
 
 const STATUS_OPTIONS: Array<{ value: CreditNoteStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: 'All Statuses' },
@@ -21,14 +22,6 @@ function formatShortDate(dateString: string | null): string {
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateString));
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: 'ZAR',
-    minimumFractionDigits: 2,
-  }).format(amount);
 }
 
 export default function CreditNotesPage() {
