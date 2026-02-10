@@ -320,16 +320,17 @@ async function main() {
     },
   });
 
-  // Create admin company
+  // Create internal Nusaf company (for staff users — hidden from customer lists)
   const adminCompany = await prisma.company.upsert({
     where: { id: 'nusaf-internal' },
-    update: {},
+    update: { isInternal: true },
     create: {
       id: 'nusaf-internal',
       name: 'Nusaf Dynamic Technologies',
       tradingName: 'Nusaf',
       tier: 'DISTRIBUTOR',
       isActive: true,
+      isInternal: true,
     },
   });
 

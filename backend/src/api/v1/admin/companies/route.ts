@@ -46,15 +46,17 @@ router.get('/', async (req, res) => {
     const { search, page, pageSize } = parseResult.data;
     const skip = (page - 1) * pageSize;
 
+    // Hide internal companies (e.g. Nusaf) from the customer list
     const where = search
       ? {
+          isInternal: false,
           OR: [
             { name: { contains: search, mode: 'insensitive' as const } },
             { tradingName: { contains: search, mode: 'insensitive' as const } },
             { registrationNumber: { contains: search, mode: 'insensitive' as const } },
           ],
         }
-      : {};
+      : { isInternal: false };
 
     const [companies, total] = await Promise.all([
       prisma.company.findMany({

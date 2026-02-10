@@ -89,6 +89,7 @@ model Company {
   vatNumber          String?      @map("vat_number")
   tier               CustomerTier @default(END_USER)
   isActive           Boolean      @default(true) @map("is_active")
+  isInternal         Boolean      @default(false) @map("is_internal")
 
   // Primary warehouse for fulfillment (CT customers check CT stock first, spill to JHB)
   primaryWarehouse Warehouse? @map("primary_warehouse")
