@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useCustomer } from '@/hooks/useCustomers';
 import { useAuthStore } from '@/stores/auth-store';
-import { CustomerDetailHeader } from '@/components/customers/detail';
+import { CustomerDetailHeader, OverviewTab, FinancialTab } from '@/components/customers/detail';
 import { cn } from '@/lib/utils';
 
 type TabId = 'overview' | 'financial' | 'addresses' | 'contacts';
@@ -99,15 +99,11 @@ export default function CustomerDetailPage(): JSX.Element {
       {/* Tab Content */}
       <div>
         {activeTab === 'overview' && (
-          <div className="bg-white border border-slate-200 rounded-lg p-6 text-center text-slate-500">
-            Overview tab — coming in Phase 1.8B
-          </div>
+          <OverviewTab customer={customer} canEdit={!!canEdit} />
         )}
 
         {activeTab === 'financial' && (
-          <div className="bg-white border border-slate-200 rounded-lg p-6 text-center text-slate-500">
-            Financial tab — coming in Phase 1.8B
-          </div>
+          <FinancialTab customer={customer} canEdit={!!canEdit} />
         )}
 
         {activeTab === 'addresses' && (
