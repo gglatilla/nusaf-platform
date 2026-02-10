@@ -27,7 +27,7 @@ const createUserSchema = z.object({
   role: z.enum(staffRoles),
   employeeCode: z.string().max(20).optional(),
   primaryWarehouse: z.enum(['JHB', 'CT']).optional(),
-  companyId: z.string().cuid('Valid company ID required'),
+  companyId: z.string().cuid('Valid company ID required').optional(),
 });
 
 const updateUserSchema = z.object({
@@ -144,7 +144,7 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
       });
     }
 
-    const { password, ...userData } = parseResult.data;
+    const { password, companyId: providedCompanyId, ...userData } = parseResult.data;
 
     // Check email uniqueness
     const existing = await prisma.user.findUnique({ where: { email: userData.email } });
@@ -166,13 +166,26 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
       }
     }
 
-    // Verify company exists
-    const company = await prisma.company.findUnique({ where: { id: userData.companyId } });
-    if (!company) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_COMPANY', message: 'Company not found' },
-      });
+    // Resolve companyId: use provided value or auto-assign to internal company
+    let resolvedCompanyId: string;
+    if (providedCompanyId) {
+      const company = await prisma.company.findUnique({ where: { id: providedCompanyId } });
+      if (!company) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_COMPANY', message: 'Company not found' },
+        });
+      }
+      resolvedCompanyId = company.id;
+    } else {
+      const internalCompany = await prisma.company.findFirst({ where: { isInternal: true } });
+      if (!internalCompany) {
+        return res.status(500).json({
+          success: false,
+          error: { code: 'NO_INTERNAL_COMPANY', message: 'No internal company configured. Please create a company with isInternal=true first.' },
+        });
+      }
+      resolvedCompanyId = internalCompany.id;
     }
 
     const hashedPassword = await hashPassword(password);
@@ -180,6 +193,7 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
     const user = await prisma.user.create({
       data: {
         ...userData,
+        companyId: resolvedCompanyId,
         password: hashedPassword,
       },
       select: {

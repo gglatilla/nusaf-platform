@@ -5485,7 +5485,7 @@ class ApiClient {
     role: StaffRole;
     employeeCode?: string;
     primaryWarehouse?: 'JHB' | 'CT';
-    companyId: string;
+    companyId?: string;
   }): Promise<ApiResponse<StaffUserListItem>> {
     return this.request('/admin/users', {
       method: 'POST',

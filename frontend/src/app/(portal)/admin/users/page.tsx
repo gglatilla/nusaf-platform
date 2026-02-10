@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, X, RefreshCw, Plus, Shield, Eye, EyeOff } from 'lucide-react';
+import { Search, X, RefreshCw, Plus, Shield, Eye, EyeOff } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,6 @@ import {
   api,
   type StaffUserListItem,
   type StaffRole,
-  type CompanyListItem,
   ApiError,
 } from '@/lib/api';
 import { formatDateTime } from '@/lib/formatting';
@@ -344,7 +343,6 @@ interface UserFormData {
   role: StaffRole;
   employeeCode: string;
   primaryWarehouse: '' | 'JHB' | 'CT';
-  companyId: string;
   isActive: boolean;
 }
 
@@ -359,35 +357,11 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
     role: 'SALES',
     employeeCode: '',
     primaryWarehouse: '',
-    companyId: '',
     isActive: true,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
-
-  // Load companies for dropdown
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const loadCompanies = async (): Promise<void> => {
-      setLoadingCompanies(true);
-      try {
-        const res = await api.getCompanies({ pageSize: 100 });
-        if (!cancelled && res.success && res.data) {
-          setCompanies(res.data.companies);
-        }
-      } catch {
-        // Silently fail — companies list is non-critical
-      } finally {
-        if (!cancelled) setLoadingCompanies(false);
-      }
-    };
-    loadCompanies();
-    return () => { cancelled = true; };
-  }, [open]);
 
   // Populate form when editing
   useEffect(() => {
@@ -400,7 +374,6 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
         role: user.role,
         employeeCode: user.employeeCode || '',
         primaryWarehouse: (user.primaryWarehouse as '' | 'JHB' | 'CT') || '',
-        companyId: user.company.id,
         isActive: user.isActive,
       });
     } else {
@@ -412,7 +385,6 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
         role: 'SALES',
         employeeCode: '',
         primaryWarehouse: '',
-        companyId: '',
         isActive: true,
       });
     }
@@ -453,11 +425,6 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
           setSaving(false);
           return;
         }
-        if (!formData.companyId) {
-          setFormError('Company is required');
-          setSaving(false);
-          return;
-        }
 
         await api.createStaffUser({
           email: formData.email.trim(),
@@ -467,7 +434,6 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
           role: formData.role,
           employeeCode: formData.employeeCode || undefined,
           primaryWarehouse: formData.primaryWarehouse as 'JHB' | 'CT' | undefined || undefined,
-          companyId: formData.companyId,
         });
         onSaved('User created');
       }
@@ -615,33 +581,6 @@ function UserFormModal({ open, onOpenChange, user, onSaved }: UserFormModalProps
                   <option value="CT">Cape Town</option>
                 </select>
               </div>
-
-              {/* Company (only for create) */}
-              {!isEdit && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Company <span className="text-red-500">*</span>
-                  </label>
-                  {loadingCompanies ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Loading companies...
-                    </div>
-                  ) : (
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) => updateField('companyId', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      required
-                    >
-                      <option value="">Select company...</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
 
               {/* Active toggle (only for edit) */}
               {isEdit && (
