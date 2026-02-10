@@ -52,6 +52,7 @@ export default function StockAdjustmentsPage() {
   const { user, isLoading: authLoading } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [locationFilter, setLocationFilter] = useState<string>('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -68,13 +69,18 @@ export default function StockAdjustmentsPage() {
   if (locationFilter) params.location = locationFilter;
 
   const { data, isLoading, error } = useStockAdjustments(params);
-  const adjustments = data?.adjustments ?? [];
+  const allAdjustments = data?.adjustments ?? [];
+  const adjustments = search
+    ? allAdjustments.filter((adj) =>
+        adj.adjustmentNumber.toLowerCase().includes(search.toLowerCase())
+      )
+    : allAdjustments;
   const pagination = data?.pagination;
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, locationFilter]);
+  }, [statusFilter, locationFilter, search]);
 
   if (authLoading || !user) {
     return (
@@ -98,6 +104,17 @@ export default function StockAdjustmentsPage() {
         description="Create, review, and approve stock quantity adjustments"
       />
       <div className="p-4 sm:p-6 xl:p-8 space-y-4">
+        {/* Search */}
+        <div className="max-w-sm">
+          <input
+            type="text"
+            placeholder="Search by adjustment number..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Status tabs */}
