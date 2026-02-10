@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { X } from 'lucide-react';
+import { portalUrls } from '@/lib/urls';
 
 interface NavigationItem {
   name: string;
@@ -99,7 +100,7 @@ export function MobileNavDrawer({ isOpen, onClose, navigation }: MobileNavDrawer
           {/* Footer */}
           <div className="px-4 py-6 border-t border-slate-200 space-y-4">
             <Link
-              href="https://app.nusaf.net/login"
+              href={portalUrls.login()}
               onClick={onClose}
               className="block w-full px-4 py-3 bg-primary-600 text-white text-center font-medium rounded-lg hover:bg-primary-700 transition-colors"
             >

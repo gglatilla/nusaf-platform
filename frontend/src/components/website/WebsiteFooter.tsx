@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { portalUrls } from '@/lib/urls';
 
 const footerNavigation = {
   products: [
@@ -12,7 +13,7 @@ const footerNavigation = {
     { name: 'About Us', href: '/about' },
     { name: 'Resources', href: '/resources' },
     { name: 'Contact', href: '/contact' },
-    { name: 'Customer Portal', href: 'https://app.nusaf.net/login' },
+    { name: 'Customer Portal', href: portalUrls.login() },
   ],
   locations: [
     { name: 'Johannesburg (HQ)', detail: 'Main warehouse & manufacturing' },

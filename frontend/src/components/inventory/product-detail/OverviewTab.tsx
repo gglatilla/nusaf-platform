@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Package, ExternalLink } from 'lucide-react';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
+import { websiteUrls } from '@/lib/urls';
 import type { ProductWithInventory } from '@/lib/api/types/products';
 
 interface OverviewTabProps {
@@ -201,7 +202,7 @@ export function OverviewTab({ product, canEdit }: OverviewTabProps) {
             )}
             {product.isActive && (
               <a
-                href={`/products/p/${product.nusafSku}`}
+                href={websiteUrls.productDetail(product.nusafSku)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"

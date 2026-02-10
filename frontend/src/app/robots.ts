@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.net';
 
 /**
  * Generate robots.txt for the marketing website.

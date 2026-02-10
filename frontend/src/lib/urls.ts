@@ -54,6 +54,28 @@ export const pageUrls = {
 };
 
 /**
+ * Website URLs (www.nusaf.net)
+ * These are for generating external links to the public marketing site from the portal.
+ */
+export const websiteUrls = {
+  /**
+   * Get the website base URL from environment or default
+   */
+  base: () => process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.net',
+
+  /**
+   * Product detail page on the public website
+   * @example websiteUrls.productDetail('CHN-123') => 'https://www.nusaf.net/products/p/CHN-123'
+   */
+  productDetail: (sku: string) => `${websiteUrls.base()}/products/p/${sku}`,
+
+  /**
+   * Product detail page with preview mode (for admins)
+   */
+  productPreview: (sku: string) => `${websiteUrls.base()}/products/p/${sku}?preview=true`,
+};
+
+/**
  * Portal URLs (app.nusaf.net)
  * These are for generating external links to the portal from the marketing site.
  */
@@ -81,6 +103,7 @@ export const urls = {
   products: productUrls,
   pages: pageUrls,
   portal: portalUrls,
+  website: websiteUrls,
 };
 
 export default urls;

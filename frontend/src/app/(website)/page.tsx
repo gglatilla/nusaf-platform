@@ -11,7 +11,7 @@ import {
   CTABannerSection,
 } from '@/components/website/sections';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.net';
 
 export const metadata: Metadata = {
   title: 'Nusaf Dynamic Technologies | Industrial Components & Power Transmission',

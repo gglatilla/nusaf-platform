@@ -13,7 +13,7 @@ import { api, PublicProductDetail, PublicProduct } from '@/lib/api';
 import { productUrls } from '@/lib/urls';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.co.za';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.nusaf.net';
 
 interface ProductPageProps {
   params: Promise<{ sku: string }>;

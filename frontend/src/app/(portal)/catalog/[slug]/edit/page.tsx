@@ -6,6 +6,7 @@ import { ArrowLeft, Globe, Eye, Loader2 } from 'lucide-react';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useUpdateProduct, usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
+import { websiteUrls } from '@/lib/urls';
 import { ProductContentEditor, type ProductContentFormData } from '@/components/products/ProductContentEditor';
 import { cn } from '@/lib/utils';
 
@@ -139,7 +140,7 @@ export default function ProductEditPage() {
         <div className="flex items-center gap-3">
           {/* Preview on Website */}
           <a
-            href={`/products/p/${product.nusafSku}?preview=true`}
+            href={websiteUrls.productPreview(product.nusafSku)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"

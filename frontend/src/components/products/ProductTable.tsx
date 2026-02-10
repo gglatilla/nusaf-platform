@@ -6,6 +6,7 @@ import { ChevronUp, ChevronDown, ImageIcon, MoreHorizontal, Edit, Eye, Globe, Ey
 import type { CatalogProduct, StockStatus } from '@/lib/api';
 import { PublishStatusBadge } from './PublishStatusBadge';
 import { usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
+import { websiteUrls } from '@/lib/urls';
 
 interface ProductTableProps {
   products: CatalogProduct[];
@@ -335,7 +336,7 @@ export function ProductTable({
                             )}
                             {product.isPublished && (
                               <a
-                                href={`/products/p/${product.nusafSku}`}
+                                href={websiteUrls.productDetail(product.nusafSku)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"

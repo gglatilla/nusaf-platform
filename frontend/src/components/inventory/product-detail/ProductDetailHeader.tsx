@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Edit, ExternalLink } from 'lucide-react';
 import { StockStatusBadge } from '@/components/inventory/StockStatusBadge';
 import { cn } from '@/lib/utils';
+import { websiteUrls } from '@/lib/urls';
 import type { ProductWithInventory } from '@/lib/api/types/products';
 
 interface ProductDetailHeaderProps {
@@ -66,7 +67,7 @@ export function ProductDetailHeader({ product, canEdit }: ProductDetailHeaderPro
         <div className="flex items-center gap-3 flex-shrink-0">
           {product.isActive && (
             <a
-              href={`/products/p/${product.nusafSku}`}
+              href={websiteUrls.productDetail(product.nusafSku)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MobileMenuWrapper } from './MobileMenuWrapper';
 import { GuestQuoteBasket } from './GuestQuoteBasket';
+import { portalUrls } from '@/lib/urls';
 
 const navigation = [
   { name: 'Solutions', href: '/solutions' },
@@ -45,7 +46,7 @@ export function WebsiteHeader() {
 
             {/* Customer Portal CTA */}
             <Link
-              href="https://app.nusaf.net/login"
+              href={portalUrls.login()}
               className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
             >
               Customer Portal
