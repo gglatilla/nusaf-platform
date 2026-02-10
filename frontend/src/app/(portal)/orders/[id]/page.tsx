@@ -620,6 +620,28 @@ export default function OrderDetailPage() {
                 </div>
               </div>
 
+              {/* Cash customer details */}
+              {order.cashCustomerName && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3 -mx-1">
+                  <h3 className="text-xs font-medium text-green-700 uppercase tracking-wide mb-1.5">Cash Customer</h3>
+                  <dl className="space-y-1 text-sm">
+                    <dd className="text-slate-900 font-medium">{order.cashCustomerName}</dd>
+                    {order.cashCustomerCompany && (
+                      <dd className="text-slate-600">{order.cashCustomerCompany}</dd>
+                    )}
+                    {order.cashCustomerPhone && (
+                      <dd className="text-slate-600">{order.cashCustomerPhone}</dd>
+                    )}
+                    {order.cashCustomerEmail && (
+                      <dd className="text-slate-600">{order.cashCustomerEmail}</dd>
+                    )}
+                    {order.cashCustomerVat && (
+                      <dd className="text-slate-500 text-xs">VAT: {order.cashCustomerVat}</dd>
+                    )}
+                  </dl>
+                </div>
+              )}
+
               {order.quoteNumber && (
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-slate-400 flex-shrink-0" />

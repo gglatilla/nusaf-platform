@@ -346,6 +346,49 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
             </dl>
+
+            {/* Cash customer details */}
+            {quote.cashCustomerName && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <h3 className="text-xs font-medium text-green-700 uppercase tracking-wide mb-2">Cash Customer</h3>
+                <dl className="space-y-1.5 text-sm">
+                  <div>
+                    <dt className="text-xs text-slate-500">Name</dt>
+                    <dd className="text-slate-900">{quote.cashCustomerName}</dd>
+                  </div>
+                  {quote.cashCustomerCompany && (
+                    <div>
+                      <dt className="text-xs text-slate-500">Company</dt>
+                      <dd className="text-slate-900">{quote.cashCustomerCompany}</dd>
+                    </div>
+                  )}
+                  {quote.cashCustomerPhone && (
+                    <div>
+                      <dt className="text-xs text-slate-500">Phone</dt>
+                      <dd className="text-slate-900">{quote.cashCustomerPhone}</dd>
+                    </div>
+                  )}
+                  {quote.cashCustomerEmail && (
+                    <div>
+                      <dt className="text-xs text-slate-500">Email</dt>
+                      <dd className="text-slate-900">{quote.cashCustomerEmail}</dd>
+                    </div>
+                  )}
+                  {quote.cashCustomerVat && (
+                    <div>
+                      <dt className="text-xs text-slate-500">VAT Number</dt>
+                      <dd className="text-slate-900">{quote.cashCustomerVat}</dd>
+                    </div>
+                  )}
+                  {quote.cashCustomerAddress && (
+                    <div>
+                      <dt className="text-xs text-slate-500">Address</dt>
+                      <dd className="text-slate-900 whitespace-pre-line">{quote.cashCustomerAddress}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
           </div>
 
           {/* Continue Shopping */}

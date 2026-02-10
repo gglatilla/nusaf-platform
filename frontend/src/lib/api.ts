@@ -1078,6 +1078,7 @@ export interface Quote {
   company: {
     id: string;
     name: string;
+    isCashAccount?: boolean;
   };
   items: QuoteItem[];
   subtotal: number;
@@ -1085,6 +1086,12 @@ export interface Quote {
   vatAmount: number;
   total: number;
   customerNotes: string | null;
+  cashCustomerName: string | null;
+  cashCustomerPhone: string | null;
+  cashCustomerEmail: string | null;
+  cashCustomerCompany: string | null;
+  cashCustomerVat: string | null;
+  cashCustomerAddress: string | null;
   validUntil: string | null;
   finalizedAt: string | null;
   createdAt: string;
@@ -1100,6 +1107,9 @@ export interface QuoteListItem {
   total: number;
   validUntil: string | null;
   createdAt: string;
+  companyName?: string;
+  cashCustomerName?: string | null;
+  isCashAccount?: boolean;
 }
 
 export interface QuotesListResponse {
@@ -1126,6 +1136,15 @@ export interface CreateQuoteResponse {
   id: string;
   quoteNumber: string;
   isNew: boolean;
+}
+
+export interface CashCustomerInput {
+  cashCustomerName?: string;
+  cashCustomerPhone?: string;
+  cashCustomerEmail?: string;
+  cashCustomerCompany?: string;
+  cashCustomerVat?: string;
+  cashCustomerAddress?: string;
 }
 
 export interface AddQuoteItemData {
@@ -1245,6 +1264,12 @@ export interface SalesOrder {
   customerNotes: string | null;
   holdReason: string | null;
   cancelReason: string | null;
+  cashCustomerName: string | null;
+  cashCustomerPhone: string | null;
+  cashCustomerEmail: string | null;
+  cashCustomerCompany: string | null;
+  cashCustomerVat: string | null;
+  cashCustomerAddress: string | null;
   confirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -2662,6 +2687,7 @@ export interface CompanyListItem {
   vatNumber: string | null;
   tier: string;
   isActive: boolean;
+  isCashAccount: boolean;
   primaryWarehouse: string | null;
   fulfillmentPolicy: string;
   paymentTerms: PaymentTermsType;
@@ -3715,10 +3741,13 @@ class ApiClient {
   }
 
   // Quote endpoints
-  async createQuote(companyId?: string): Promise<ApiResponse<CreateQuoteResponse>> {
+  async createQuote(companyId?: string, cashCustomer?: CashCustomerInput): Promise<ApiResponse<CreateQuoteResponse>> {
     return this.request<ApiResponse<CreateQuoteResponse>>('/quotes', {
       method: 'POST',
-      body: JSON.stringify(companyId ? { companyId } : {}),
+      body: JSON.stringify({
+        ...(companyId ? { companyId } : {}),
+        ...(cashCustomer || {}),
+      }),
     });
   }
 
@@ -3746,6 +3775,13 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string }>>(`/quotes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ customerNotes }),
+    });
+  }
+
+  async updateCashCustomerDetails(quoteId: string, details: CashCustomerInput): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/quotes/${quoteId}/cash-customer`, {
+      method: 'PATCH',
+      body: JSON.stringify(details),
     });
   }
 

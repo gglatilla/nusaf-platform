@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Building2, Search, ChevronDown, X, Check } from 'lucide-react';
+import { Building2, Search, ChevronDown, X, Check, Banknote } from 'lucide-react';
 import { api, type CompanyListItem } from '@/lib/api';
 import { useQuoteCompanyStore, type QuoteCompany } from '@/stores/quote-company-store';
+import { CashCustomerForm } from './CashCustomerForm';
 
 const TIER_LABELS: Record<string, string> = {
   END_USER: 'End User',
@@ -99,6 +100,7 @@ export function CustomerCompanyPicker() {
       name: company.name,
       tier: company.tier,
       paymentTerms: company.paymentTerms,
+      isCashAccount: company.isCashAccount,
     };
     selectCompany(quoteCompany);
     setIsOpen(false);
@@ -111,6 +113,7 @@ export function CustomerCompanyPicker() {
   };
 
   return (
+    <div className="space-y-3">
     <div className="relative" ref={dropdownRef}>
       {/* Trigger button */}
       <button
@@ -173,9 +176,17 @@ export function CustomerCompanyPicker() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 truncate">
+                        {company.isCashAccount && (
+                          <Banknote className="inline h-3.5 w-3.5 mr-1 text-green-600" />
+                        )}
                         {company.name}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
+                        {company.isCashAccount && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                            Cash
+                          </span>
+                        )}
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${TIER_COLORS[company.tier] || 'bg-slate-100 text-slate-700'}`}>
                           {TIER_LABELS[company.tier] || company.tier}
                         </span>
@@ -194,6 +205,10 @@ export function CustomerCompanyPicker() {
           </div>
         </div>
       )}
+    </div>
+
+    {/* Cash customer form — shown when a cash account company is selected */}
+    {selectedCompany?.isCashAccount && <CashCustomerForm />}
     </div>
   );
 }

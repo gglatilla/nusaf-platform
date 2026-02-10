@@ -5,6 +5,7 @@ import {
   type AddQuoteItemData,
   type ActiveDraftQuote,
   type CatalogProduct,
+  type CashCustomerInput,
 } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useQuoteCompanyStore } from '@/stores/quote-company-store';
@@ -66,13 +67,27 @@ export function useActiveQuote() {
 export function useCreateQuote() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { selectedCompany } = useQuoteCompanyStore();
+  const { selectedCompany, cashCustomer } = useQuoteCompanyStore();
   const isStaff = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
 
   return useMutation({
     mutationFn: async () => {
       const companyId = isStaff ? selectedCompany?.id : undefined;
-      const response = await api.createQuote(companyId);
+
+      // Include cash customer details when creating a quote for a cash company
+      let cashDetails: CashCustomerInput | undefined;
+      if (isStaff && selectedCompany?.isCashAccount && cashCustomer.cashCustomerName) {
+        cashDetails = {
+          cashCustomerName: cashCustomer.cashCustomerName || undefined,
+          cashCustomerPhone: cashCustomer.cashCustomerPhone || undefined,
+          cashCustomerEmail: cashCustomer.cashCustomerEmail || undefined,
+          cashCustomerCompany: cashCustomer.cashCustomerCompany || undefined,
+          cashCustomerVat: cashCustomer.cashCustomerVat || undefined,
+          cashCustomerAddress: cashCustomer.cashCustomerAddress || undefined,
+        };
+      }
+
+      const response = await api.createQuote(companyId, cashDetails);
       return response.data;
     },
     onSuccess: () => {
