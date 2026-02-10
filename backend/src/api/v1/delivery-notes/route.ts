@@ -25,7 +25,7 @@ router.use(authenticate);
  * GET /api/v1/delivery-notes
  * List delivery notes with filtering and pagination
  */
-router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (req, res) => {
+router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
 

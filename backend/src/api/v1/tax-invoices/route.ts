@@ -22,13 +22,16 @@ router.use(authenticate);
  * GET /api/v1/tax-invoices
  * List all tax invoices with filters (staff only)
  */
-router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'CUSTOMER'), async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const isCustomer = authReq.user.role === 'CUSTOMER';
     const { status, companyId, search, dateFrom, dateTo, paymentTerms, overdue, page, pageSize } = req.query;
 
     const result = await getTaxInvoices({
-      status: status as string | undefined as 'ISSUED' | 'VOIDED' | 'DRAFT' | undefined,
-      companyId: companyId as string | undefined,
+      // Customers can only see ISSUED invoices for their own company
+      status: isCustomer ? 'ISSUED' : (status as string | undefined as 'ISSUED' | 'VOIDED' | 'DRAFT' | undefined),
+      companyId: isCustomer ? authReq.user.companyId : (companyId as string | undefined),
       search: search as string | undefined,
       dateFrom: dateFrom as string | undefined,
       dateTo: dateTo as string | undefined,
