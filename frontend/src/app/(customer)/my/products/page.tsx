@@ -231,13 +231,13 @@ export default function CustomerProductsPage() {
                 </div>
               )}
 
-              {/* Product grid — no supplier badges, no stock quantities */}
+              {/* Product grid — no supplier badges, show stock quantities */}
               <ProductGrid
                 products={products}
                 isLoading={isLoadingProducts}
                 onViewDetails={handleViewDetails}
                 onClearFilters={handleClearFilters}
-                showQuantity={false}
+                showQuantity={true}
                 hideSupplier={true}
               />
 
@@ -259,12 +259,12 @@ export default function CustomerProductsPage() {
         </main>
       </div>
 
-      {/* Product detail modal — no supplier info, no stock quantities */}
+      {/* Product detail modal — no supplier info, show stock quantities */}
       <ProductDetailModal
         product={selectedProduct}
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
-        showStockQuantity={false}
+        showStockQuantity={true}
         hideSupplier={true}
         detailLinkPrefix="/my/products"
         onAddToQuote={(product) => setAddToQuoteProduct(product)}
