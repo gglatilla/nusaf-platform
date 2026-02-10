@@ -1,32 +1,26 @@
 # Current Session
 
 ## Active Task
-[TASK-027] Cash Customer Quoting — COMPLETE (2026-02-10)
+None — session saved (2026-02-10)
 
 ## Completed This Session
 
-### TASK-027: Cash Customer Quoting (7 micro-tasks)
-- **Database**: isCashAccount on Company, 6 cash customer fields on Quote + SalesOrder, 2 cash companies (JHB, CT)
-- **Backend services**: quote + order services handle cash fields, validation at finalize, resolveCustomerName helper
-- **Backend API**: POST/PATCH cash customer endpoints, companies return isCashAccount
-- **Document services**: delivery note, proforma, tax invoice, packing list use resolveCustomerName
-- **Frontend**: CashCustomerForm component, Zustand store, company picker with cash badge
-- **Quote/order detail pages**: display cash customer info blocks
-- **Tests**: 12 unit tests for cash customer utilities, all 114 existing tests pass
+### Bug Fix: Sales role company picker (e89f1f5)
+- `/api/v1/admin/companies` had router-level `requireRole('ADMIN', 'MANAGER')` blocking SALES users
+- Changed to per-route: GET allows SALES, POST stays ADMIN, PATCH stays ADMIN/MANAGER
 
-## Commits
-- d15bc66: Backend (schema, services, API, documents)
-- 59726fd: Frontend (types, store, components)
-- 3191111: Tests
+### Seed: Stock levels for all products (6f86d42)
+- Added stock level seeding to `backend/prisma/seed.ts`
+- Creates JHB + CT StockLevel records for every existing product
+- Distribution: ~20% out of stock, ~15% low, ~15% single-warehouse, ~50% normal
+- Uses seeded random (deterministic) — safe to re-run via `npm run db:seed`
+- **To remove**: delete the "STOCK LEVELS" section from seed.ts, then run SQL: `DELETE FROM stock_levels WHERE ...` or truncate
 
 ## Next Steps
-- Deploy: `npx prisma migrate deploy` on Railway (adds cash companies)
-- Test in browser: select "Cash Sales - Johannesburg", fill in customer form, create/finalize quote
-- Verify proforma shows cash customer name instead of "Cash Sales - JHB"
-- Check TASKS.md for backlog items
+- Run `npm run db:seed` on Railway to populate stock levels
+- Test quoting flow as sales user with stocked/out-of-stock products
+- Check TASKS.md backlog for next feature work
 
 ## Context for Next Session
-- Migration `20260211100000_add_cash_customer_support` needs to be applied on Railway
-- Cash companies have well-known IDs: `cash-sales-jhb`, `cash-sales-ct`
-- Cash customer name is required at finalization (not at draft creation)
-- CashCustomerForm is rendered inside CustomerCompanyPicker when isCashAccount company is selected
+- Stock level seed data is in `backend/prisma/seed.ts` (after global settings section) — user may ask to remove it later
+- TASK-027 cash customer migration still needs `npx prisma migrate deploy` on Railway
