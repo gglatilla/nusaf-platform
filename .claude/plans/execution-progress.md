@@ -54,7 +54,7 @@
 - [x] T32: Cycle count reconcile + apply in one step (2026-02-10)
 - [x] T33: Confirmation dialog on adjustment approval (2026-02-10)
 - [x] T34: Reorder report PO generation confirmation modal (2026-02-10)
-- [ ] T35: PO detail role-based action buttons
+- [x] T35: PO detail role-based action buttons (2026-02-10)
 - [ ] T36: Customer link to order after quote acceptance
 - [ ] T37: Reorder report cost price fallback
 - [ ] T38: Job card reservation release on completion

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   ArrowLeft,
   Building,
@@ -119,17 +120,31 @@ export default function PurchaseOrderDetailPage() {
     );
   }
 
-  // Permission logic
+  // Role-based visibility
+  const { user } = useAuthStore();
+  const userRole = user?.role;
+  const isAdmin = userRole === 'ADMIN';
+  const isManager = userRole === 'MANAGER';
+  const isPurchaser = userRole === 'PURCHASER';
+  const isWarehouse = userRole === 'WAREHOUSE';
+  const isAdminOrManager = isAdmin || isManager;
+
+  // Role groups
+  const canSeePurchasingActions = isAdminOrManager || isPurchaser;  // submit, send, acknowledge, cancel
+  const canSeeApprovalActions = isAdminOrManager;                    // approve, reject (not purchaser)
+  const canSeeReceiveAction = isAdminOrManager || isWarehouse || isPurchaser; // receive goods
+
+  // Permission logic (status + role)
   const isDraft = po.status === 'DRAFT';
   const isPendingApproval = po.status === 'PENDING_APPROVAL';
   const isSent = po.status === 'SENT';
-  const canReceive = ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED'].includes(po.status);
-  const canSubmit = isDraft;
-  const canApprove = isPendingApproval;
-  const canReject = isPendingApproval;
-  const canSend = isDraft || isPendingApproval;
-  const canAcknowledge = isSent;
-  const canCancel = ['DRAFT', 'PENDING_APPROVAL'].includes(po.status);
+  const canReceive = canSeeReceiveAction && ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED'].includes(po.status);
+  const canSubmit = canSeePurchasingActions && isDraft;
+  const canApprove = canSeeApprovalActions && isPendingApproval;
+  const canReject = canSeeApprovalActions && isPendingApproval;
+  const canSend = canSeePurchasingActions && (isDraft || isPendingApproval);
+  const canAcknowledge = canSeePurchasingActions && isSent;
+  const canCancel = canSeePurchasingActions && ['DRAFT', 'PENDING_APPROVAL'].includes(po.status);
 
   // Show receiving progress for POs that have been sent or beyond
   const showReceivingProgress = ['SENT', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED'].includes(po.status);
