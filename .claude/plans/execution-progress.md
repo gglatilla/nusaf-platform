@@ -36,7 +36,7 @@
 
 ## Phase 2C — Remaining Operations
 - [x] T20: Auto-generate proforma — verify and harden (2026-02-10)
-- [ ] T21: Staff-on-behalf-of-customer quotes (API)
+- [x] T21: Staff-on-behalf-of-customer quotes (API) (2026-02-10)
 - [ ] T22: Staff-on-behalf-of-customer quotes (UI)
 - [ ] T23: Standalone transfer UI
 - [ ] T24: Credit note schema + service + PDF
@@ -66,17 +66,18 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T21
+- Current phase: Phase 2C, next T22
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
-- Completed T20: Auto-generate proforma — verify and harden
-  - Verified: PREPAY/COD orders auto-generate proforma in acceptQuote() ✅
-  - Verified: account orders (NET_30/60/90) do NOT generate proforma ✅
-  - Verified: PDF includes bank details (placeholders), order reference, disclaimer ✅
-  - Verified: customer portal shows ACTIVE proformas with PDF download ✅
-  - Fixed: "Proforma Invoice" button on staff order detail was showing for ALL CONFIRMED orders
-    - Now: only shows for PREPAY/COD when no active proforma exists (fallback for auto-generation failure)
-  - Backend + frontend compile with zero TypeScript errors
-- Next: T21 — Staff-on-behalf-of-customer quotes (API)
+- Completed T21: Staff-on-behalf-of-customer quotes (API)
+  - POST /quotes: staff (ADMIN/MANAGER/SALES) must provide companyId in body → uses customer's tier for pricing
+  - CUSTOMER role: always own company, body companyId ignored
+  - Staff WITHOUT companyId: rejected with COMPANY_REQUIRED error
+  - Company isolation bypass: staff can access any company's quotes (getEffectiveCompanyId returns undefined)
+  - GET /quotes: staff sees quotes filtered by userId (their own created), optional companyId filter
+  - GET /quotes/active: staff must pass ?companyId= query param
+  - Service layer: getQuoteById, getQuotes, deleteQuote all accept optional companyId
+  - Backend compiles with zero TypeScript errors
+- Next: T22 — Staff-on-behalf-of-customer quotes (UI)

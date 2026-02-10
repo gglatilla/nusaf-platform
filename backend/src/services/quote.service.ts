@@ -661,10 +661,13 @@ export async function rejectQuote(
 }
 
 /**
- * Get quotes for a company with pagination and filtering
+ * Get quotes with pagination and filtering.
+ * companyId is optional — when undefined, returns quotes across all companies (for staff).
+ * userId is optional — when provided, filters to quotes created by that user.
  */
 export async function getQuotes(options: {
-  companyId: string;
+  companyId?: string;
+  userId?: string;
   status?: QuoteStatus;
   page?: number;
   pageSize?: number;
@@ -677,6 +680,7 @@ export async function getQuotes(options: {
     total: number;
     validUntil: Date | null;
     createdAt: Date;
+    companyName?: string;
   }>;
   pagination: {
     page: number;
@@ -685,10 +689,11 @@ export async function getQuotes(options: {
     totalPages: number;
   };
 }> {
-  const { companyId, status, page = 1, pageSize = 20 } = options;
+  const { companyId, userId, status, page = 1, pageSize = 20 } = options;
 
   const where: Prisma.QuoteWhereInput = {
-    companyId,
+    ...(companyId ? { companyId } : {}),
+    ...(userId ? { userId } : {}),
     deletedAt: null,
   };
 
@@ -702,6 +707,7 @@ export async function getQuotes(options: {
       where,
       include: {
         _count: { select: { items: true } },
+        company: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
@@ -718,6 +724,7 @@ export async function getQuotes(options: {
       total: Number(q.total),
       validUntil: q.validUntil,
       createdAt: q.createdAt,
+      companyName: q.company.name,
     })),
     pagination: {
       page,
@@ -729,13 +736,14 @@ export async function getQuotes(options: {
 }
 
 /**
- * Get quote details
+ * Get quote details.
+ * companyId is optional — when undefined, skips company isolation (for staff access).
  */
-export async function getQuoteById(quoteId: string, companyId: string) {
+export async function getQuoteById(quoteId: string, companyId?: string) {
   const quote = await prisma.quote.findFirst({
     where: {
       id: quoteId,
-      companyId, // Company isolation
+      ...(companyId ? { companyId } : {}), // Company isolation (skipped for staff)
       deletedAt: null,
     },
     include: {
@@ -878,17 +886,18 @@ export async function updateQuoteNotes(
 }
 
 /**
- * Delete a quote (soft delete, DRAFT only)
+ * Delete a quote (soft delete, DRAFT only).
+ * companyId is optional — when undefined, skips company isolation (for staff access).
  */
 export async function deleteQuote(
   quoteId: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const quote = await prisma.quote.findFirst({
     where: {
       id: quoteId,
-      companyId,
+      ...(companyId ? { companyId } : {}),
       deletedAt: null,
     },
   });

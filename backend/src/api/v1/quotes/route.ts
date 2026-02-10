@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
 import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import type { UserRole } from '@prisma/client';
 import {
   addQuoteItemSchema,
   updateQuoteItemSchema,
@@ -24,33 +25,70 @@ import {
 
 const router = Router();
 
+// Staff roles that can create quotes on behalf of customers
+const QUOTE_STAFF_ROLES: UserRole[] = ['ADMIN', 'MANAGER', 'SALES'];
+
+function isQuoteStaff(role: UserRole): boolean {
+  return QUOTE_STAFF_ROLES.includes(role);
+}
+
+/**
+ * Get the effective companyId for quote access.
+ * - CUSTOMER: always own companyId (strict isolation)
+ * - Staff (ADMIN/MANAGER/SALES): undefined (can access all quotes)
+ */
+function getEffectiveCompanyId(authReq: AuthenticatedRequest): string | undefined {
+  return isQuoteStaff(authReq.user.role) ? undefined : authReq.user.companyId;
+}
+
 // All routes require authentication
 // Customers can manage their own quotes (company isolation enforced in service layer)
 router.use(authenticate);
 
 /**
  * POST /api/v1/quotes
- * Create a new draft quote or return existing draft
+ * Create a new draft quote or return existing draft.
+ * Staff (ADMIN/MANAGER/SALES): must provide companyId in body for customer company.
+ * CUSTOMER: always uses own company, body companyId is ignored.
  */
 router.post('/', async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
+    const staff = isQuoteStaff(authReq.user.role);
 
-    // Get company tier
+    let targetCompanyId: string;
+
+    if (staff) {
+      // Staff must select a customer company
+      const { companyId } = req.body;
+      if (!companyId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'COMPANY_REQUIRED', message: 'Customer company must be selected' },
+        });
+      }
+      targetCompanyId = companyId;
+    } else {
+      // CUSTOMER: always own company
+      targetCompanyId = authReq.user.companyId;
+    }
+
+    // Get target company for tier
     const company = await prisma.company.findUnique({
-      where: { id: authReq.user.companyId },
+      where: { id: targetCompanyId },
+      select: { id: true, name: true, tier: true },
     });
 
     if (!company) {
       return res.status(400).json({
         success: false,
-        error: { code: 'NO_COMPANY', message: 'User company not found' },
+        error: { code: 'NO_COMPANY', message: staff ? 'Customer company not found' : 'User company not found' },
       });
     }
 
     const result = await getOrCreateDraftQuote(
       authReq.user.id,
-      authReq.user.companyId,
+      targetCompanyId,
       company.tier
     );
 
@@ -60,6 +98,7 @@ router.post('/', async (req, res) => {
         id: result.id,
         quoteNumber: result.quoteNumber,
         isNew: result.isNew,
+        ...(staff ? { companyName: company.name, companyTier: company.tier } : {}),
       },
     });
   } catch (error) {
@@ -96,8 +135,15 @@ router.get('/', async (req, res) => {
 
     const { status, page, pageSize } = queryResult.data;
 
+    const staff = isQuoteStaff(authReq.user.role);
+    // Staff can optionally filter by companyId query param; customers always see own
+    const companyId = staff
+      ? (req.query.companyId as string | undefined)
+      : authReq.user.companyId;
+
     const result = await getQuotes({
-      companyId: authReq.user.companyId,
+      companyId,
+      userId: staff ? authReq.user.id : undefined,
       status,
       page,
       pageSize,
@@ -121,13 +167,27 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/v1/quotes/active
- * Get the active draft quote for the current user (for cart display)
+ * Get the active draft quote for the current user (for cart display).
+ * Staff can pass ?companyId=xxx to get the draft for a specific customer company.
  */
 router.get('/active', async (req, res) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
+    const staff = isQuoteStaff(authReq.user.role);
 
-    const draft = await getActiveDraftQuote(authReq.user.id, authReq.user.companyId);
+    // Staff must specify which customer company's draft to fetch
+    const targetCompanyId = staff
+      ? (req.query.companyId as string | undefined)
+      : authReq.user.companyId;
+
+    if (staff && !targetCompanyId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'COMPANY_REQUIRED', message: 'Customer company must be selected' },
+      });
+    }
+
+    const draft = await getActiveDraftQuote(authReq.user.id, targetCompanyId!);
 
     return res.json({
       success: true,
@@ -162,7 +222,7 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
 
     if (!quote) {
       return res.status(404).json({
@@ -209,8 +269,8 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -252,7 +312,7 @@ router.delete('/:id', async (req, res) => {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
-    const result = await deleteQuote(id, authReq.user.id, authReq.user.companyId);
+    const result = await deleteQuote(id, authReq.user.id, getEffectiveCompanyId(authReq));
 
     if (!result.success) {
       const statusCode = result.error === 'Quote not found' ? 404 : 400;
@@ -304,13 +364,13 @@ router.post('/:id/items', async (req, res) => {
       });
     }
 
-    // addQuoteItem now handles company isolation internally
+    // addQuoteItem handles company isolation internally; staff bypass via undefined
     const result = await addQuoteItem(
       id,
       bodyResult.data.productId,
       bodyResult.data.quantity,
       authReq.user.id,
-      authReq.user.companyId // Pass companyId for isolation check
+      getEffectiveCompanyId(authReq)
     );
 
     if (!result.success) {
@@ -360,8 +420,8 @@ router.patch('/:id/items/:itemId', async (req, res) => {
       });
     }
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -408,8 +468,8 @@ router.delete('/:id/items/:itemId', async (req, res) => {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id, itemId } = req.params;
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -451,8 +511,8 @@ router.post('/:id/finalize', async (req, res) => {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -494,8 +554,8 @@ router.post('/:id/accept', async (req, res) => {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -543,8 +603,8 @@ router.post('/:id/reject', async (req, res) => {
     const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
-    // Verify quote belongs to company
-    const quote = await getQuoteById(id, authReq.user.companyId);
+    // Verify quote access (staff can access any company's quotes)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
     if (!quote) {
       return res.status(404).json({
         success: false,
