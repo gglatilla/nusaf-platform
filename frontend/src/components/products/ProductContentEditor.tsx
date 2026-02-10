@@ -130,11 +130,11 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
   useEffect(() => {
     if (product) {
       setFormData({
-        marketingTitle: (product as any).marketingTitle ?? '',
-        marketingDescription: (product as any).marketingDescription ?? '',
-        metaTitle: (product as any).metaTitle ?? '',
-        metaDescription: (product as any).metaDescription ?? '',
-        specifications: (product as any).specifications ?? {},
+        marketingTitle: product.marketingTitle ?? '',
+        marketingDescription: product.marketingDescription ?? '',
+        metaTitle: product.metaTitle ?? '',
+        metaDescription: product.metaDescription ?? '',
+        specifications: product.specifications ?? {},
       });
     }
   }, [product]);

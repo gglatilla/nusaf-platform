@@ -107,6 +107,19 @@ export interface ProductWithInventory extends CatalogProduct {
   supplierId: string;
   categoryId: string;
   subCategoryId: string | null;
+  // Marketing content
+  marketingTitle: string | null;
+  marketingDescription: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  specifications: Record<string, string> | null;
+  // Publishing status
+  isPublished: boolean;
+  publishedAt: string | null;
+  // Completeness counts
+  imageCount: number;
+  documentCount: number;
+  // Relations
   inventory?: ProductInventory;
   movements?: StockMovement[];
 }

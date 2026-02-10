@@ -66,8 +66,8 @@ export default function ProductEditPage() {
     refetch();
   };
 
-  // Publish status (from product data if available)
-  const isPublished = (product as any)?.isPublished ?? false;
+  // Publish status
+  const isPublished = product?.isPublished ?? false;
   const isPublishing = publishProduct.isPending || unpublishProduct.isPending;
 
   const handlePublish = async () => {
