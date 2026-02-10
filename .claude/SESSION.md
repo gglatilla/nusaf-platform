@@ -63,6 +63,7 @@ See `.claude/plans/ticklish-yawning-pretzel.md` for original 4-phase plan (Phase
 - 2bdfc7d: Phase 1.4 — DB migration (customer management fields)
 - 649cfd7: Phase 1.5 — Expanded Company CRUD + address/contact routes
 - f380414: Phase 1.6 — Staff user auto-assign to internal company
+- 3c8eec1: Phase 1.7 — Rename Companies → Customers + expand API types
 
 ## Context for Next Session
 - Plan files: see above
