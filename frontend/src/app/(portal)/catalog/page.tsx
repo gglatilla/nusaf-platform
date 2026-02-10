@@ -38,6 +38,7 @@ export default function ProductsPage() {
   const isInternal = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
   const isAdmin = user?.role === 'ADMIN';
   const showQuantity = true; // All authenticated users see stock quantities
+  const hideSupplier = !isInternal; // Customers don't see supplier info
 
   // Staff quote company picker
   const { selectedCompany } = useQuoteCompanyStore();
@@ -340,6 +341,7 @@ export default function ProductsPage() {
                     onViewDetails={handleViewDetails}
                     onClearFilters={handleClearFilters}
                     showQuantity={showQuantity}
+                    hideSupplier={hideSupplier}
                   />
                 ) : (
                   <ProductTable

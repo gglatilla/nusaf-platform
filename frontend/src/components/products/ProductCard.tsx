@@ -23,7 +23,7 @@ export const ProductCard = memo(function ProductCard({ product, onViewDetails, s
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all">
       {/* Supplier badge — hidden for customer views (Golden Rule 4) */}
-      {!hideSupplier && (
+      {!hideSupplier && product.supplier && (
         <div className="mb-3">
           <span
             className={cn(

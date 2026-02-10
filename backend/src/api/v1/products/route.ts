@@ -262,8 +262,7 @@ router.get('/', authenticate, async (req, res) => {
         supplierSku: product.supplierSku,
         description: product.description,
         unitOfMeasure: product.unitOfMeasure,
-        // Golden Rule 4: Hide supplier from CUSTOMER role
-        ...(isCustomer ? {} : { supplier: product.supplier }),
+        supplier: product.supplier,
         category: product.category,
         subCategory: product.subCategory,
         price: displayPrice,
@@ -555,8 +554,7 @@ router.get('/:id', authenticate, async (req, res) => {
       supplierSku: product.supplierSku,
       description: product.description,
       unitOfMeasure: product.unitOfMeasure,
-      // Golden Rule 4: Hide supplier from CUSTOMER
-      ...(isCustomer ? {} : { supplier: product.supplier }),
+      supplier: product.supplier,
       category: product.category,
       subCategory: product.subCategory,
       price: displayPrice,
