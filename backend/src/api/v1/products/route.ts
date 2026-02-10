@@ -385,8 +385,8 @@ router.get('/:id', authenticate, async (req, res) => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const whereClause = isUUID ? { id } : { nusafSku: id };
 
-    // Parallel fetch: product, company tier, global settings, and optional inventory/movements
-    const [product, company, globalSettings, inventoryResult, movementsResult] = await Promise.all([
+    // Step 1: Fetch product, company tier, and global settings in parallel
+    const [product, company, globalSettings] = await Promise.all([
       prisma.product.findFirst({
         where: { ...whereClause, isActive: true, deletedAt: null },
         include: {
@@ -469,8 +469,6 @@ router.get('/:id', authenticate, async (req, res) => {
         where: { id: 'global' },
         select: { eurZarRate: true },
       }),
-      includeInventory ? getProductInventorySummary(id) : Promise.resolve(undefined),
-      includeMovements ? getProductMovementHistory(id, { pageSize: movementLimit }) : Promise.resolve(undefined),
     ]);
 
     if (!product || !product.isActive || product.deletedAt) {
@@ -479,6 +477,13 @@ router.get('/:id', authenticate, async (req, res) => {
         error: { code: 'NOT_FOUND', message: 'Product not found' },
       });
     }
+
+    // Step 2: Fetch inventory/movements using the resolved product UUID
+    const productId = product.id;
+    const [inventoryResult, movementsResult] = await Promise.all([
+      includeInventory ? getProductInventorySummary(productId) : Promise.resolve(undefined),
+      includeMovements ? getProductMovementHistory(productId, { pageSize: movementLimit }) : Promise.resolve(undefined),
+    ]);
 
     const userRole = req.user!.role;
     const isCustomer = userRole === 'CUSTOMER';
