@@ -464,7 +464,11 @@ async function main() {
 
   const rand = seededRandom(42);
 
-  let stockCreated = 0;
+  // Delete existing stock levels and batch insert (much faster than individual upserts)
+  await prisma.stockLevel.deleteMany({});
+  console.log('  Cleared existing stock levels');
+
+  const stockRecords: { productId: string; location: 'JHB' | 'CT'; onHand: number }[] = [];
   let outOfStock = 0;
   let lowStock = 0;
 
@@ -474,17 +478,14 @@ async function main() {
     let ctOnHand: number;
 
     if (roll < 0.20) {
-      // ~20% out of stock both warehouses
       jhbOnHand = 0;
       ctOnHand = 0;
       outOfStock++;
     } else if (roll < 0.35) {
-      // ~15% low stock
       jhbOnHand = Math.floor(rand() * 5) + 1;
       ctOnHand = Math.floor(rand() * 3);
       lowStock++;
     } else if (roll < 0.50) {
-      // ~15% one warehouse only
       if (rand() > 0.5) {
         jhbOnHand = Math.floor(rand() * 40) + 10;
         ctOnHand = 0;
@@ -493,27 +494,22 @@ async function main() {
         ctOnHand = Math.floor(rand() * 20) + 5;
       }
     } else {
-      // ~50% normal stock (JHB typically higher)
       jhbOnHand = Math.floor(rand() * 70) + 10;
       ctOnHand = Math.floor(rand() * 30) + 5;
     }
 
-    await prisma.stockLevel.upsert({
-      where: { productId_location: { productId: product.id, location: 'JHB' } },
-      update: { onHand: jhbOnHand },
-      create: { productId: product.id, location: 'JHB', onHand: jhbOnHand },
-    });
-
-    await prisma.stockLevel.upsert({
-      where: { productId_location: { productId: product.id, location: 'CT' } },
-      update: { onHand: ctOnHand },
-      create: { productId: product.id, location: 'CT', onHand: ctOnHand },
-    });
-
-    stockCreated += 2;
+    stockRecords.push({ productId: product.id, location: 'JHB', onHand: jhbOnHand });
+    stockRecords.push({ productId: product.id, location: 'CT', onHand: ctOnHand });
   }
 
-  console.log(`Seeded ${stockCreated} stock levels for ${allProducts.length} products`);
+  // Batch insert in chunks of 500
+  const CHUNK_SIZE = 500;
+  for (let i = 0; i < stockRecords.length; i += CHUNK_SIZE) {
+    const chunk = stockRecords.slice(i, i + CHUNK_SIZE);
+    await prisma.stockLevel.createMany({ data: chunk, skipDuplicates: true });
+  }
+
+  console.log(`Seeded ${stockRecords.length} stock levels for ${allProducts.length} products`);
   console.log(`  - Out of stock: ${outOfStock} products`);
   console.log(`  - Low stock: ${lowStock} products`);
 
