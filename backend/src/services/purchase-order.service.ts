@@ -103,7 +103,7 @@ export const PO_STATUS_TRANSITIONS: Record<PurchaseOrderStatus, PurchaseOrderSta
   PENDING_APPROVAL: ['SENT', 'DRAFT', 'CANCELLED'], // After approval or rejection (DRAFT = rejected for revision)
   SENT: ['ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
   ACKNOWLEDGED: ['PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
-  PARTIALLY_RECEIVED: ['RECEIVED', 'CANCELLED'],
+  PARTIALLY_RECEIVED: ['RECEIVED'],
   RECEIVED: ['CLOSED'],
   CLOSED: [],
   CANCELLED: [],
@@ -387,6 +387,22 @@ export async function cancelPurchaseOrder(
 
   if (!isValidPOTransition(po.status, 'CANCELLED')) {
     return { success: false, error: `Cannot cancel purchase order with status ${po.status}` };
+  }
+
+  // Block cancellation if any GRVs with received quantities exist
+  const grvs = await prisma.goodsReceivedVoucher.findMany({
+    where: { purchaseOrderId: id },
+    include: { lines: { select: { quantityReceived: true } } },
+  });
+  const totalReceived = grvs.reduce(
+    (sum, grv) => sum + grv.lines.reduce((s, l) => s + l.quantityReceived, 0),
+    0
+  );
+  if (totalReceived > 0) {
+    return {
+      success: false,
+      error: `Cannot cancel purchase order — ${totalReceived} units already received across ${grvs.length} GRV(s). Received goods must be handled first.`,
+    };
   }
 
   // If PO was SENT or ACKNOWLEDGED, onOrder was incremented — decrement unreceived quantities
