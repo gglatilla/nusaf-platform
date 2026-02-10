@@ -35,7 +35,7 @@
 - [x] T19: Soft reservation expiry background job (2026-02-10)
 
 ## Phase 2C — Remaining Operations
-- [ ] T20: Auto-generate proforma — verify and harden
+- [x] T20: Auto-generate proforma — verify and harden (2026-02-10)
 - [ ] T21: Staff-on-behalf-of-customer quotes (API)
 - [ ] T22: Staff-on-behalf-of-customer quotes (UI)
 - [ ] T23: Standalone transfer UI
@@ -66,19 +66,17 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T20
+- Current phase: Phase 2C, next T21
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
-- Completed T18: Double reservation deduplication
-  - In `executeFulfillmentPlan()`, releases SalesOrder-level reservations for orchestrated products
-  - Created fix script for existing double reservations
-- Completed T19: Soft reservation expiry background job
-  - Created `reservation-cleanup.service.ts` with `releaseExpiredSoftReservations()` (batch processing, 100 at a time)
-  - Added `POST /api/v1/admin/cleanup/expired-reservations` endpoint (ADMIN only)
-  - Fixed quote EXPIRED path to release soft reservations (was missing)
-  - Verified `rejectQuote()` already releases reservations
-  - No `cancelQuote()` exists — quotes use EXPIRED/REJECTED statuses
+- Completed T20: Auto-generate proforma — verify and harden
+  - Verified: PREPAY/COD orders auto-generate proforma in acceptQuote() ✅
+  - Verified: account orders (NET_30/60/90) do NOT generate proforma ✅
+  - Verified: PDF includes bank details (placeholders), order reference, disclaimer ✅
+  - Verified: customer portal shows ACTIVE proformas with PDF download ✅
+  - Fixed: "Proforma Invoice" button on staff order detail was showing for ALL CONFIRMED orders
+    - Now: only shows for PREPAY/COD when no active proforma exists (fallback for auto-generation failure)
   - Backend + frontend compile with zero TypeScript errors
-- Next: T20 — Auto-generate proforma: verify and harden
+- Next: T21 — Staff-on-behalf-of-customer quotes (API)

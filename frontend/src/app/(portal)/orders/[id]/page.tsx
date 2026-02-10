@@ -138,7 +138,8 @@ export default function OrderDetailPage() {
   const canRecordPayment = order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'NOT_REQUIRED';
   const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
-  const canCreateProformaInvoice = order.status === 'CONFIRMED';
+  const hasActiveProforma = proformaInvoices?.some((pi) => pi.status === 'ACTIVE');
+  const canCreateProformaInvoice = order.status === 'CONFIRMED' && isPrepay && !hasActiveProforma;
   const hasActiveTaxInvoice = taxInvoices?.some((ti) => ti.status === 'ISSUED');
   const canCreateTaxInvoice = ['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && !hasActiveTaxInvoice;
   const canRequestReturn = ['SHIPPED', 'DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status);
