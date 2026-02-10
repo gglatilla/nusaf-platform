@@ -1,60 +1,65 @@
 # Current Session
 
 ## Active Task
-ERP Remediation — Execution Plan (40 tasks across 6 phases)
+ERP Remediation — Execution Plan — ALL 40 TASKS COMPLETE
 
 ## Status
-Phase 3B IN PROGRESS — T31-T37 complete, next T38 (Job card reservation release on completion)
+COMPLETE — All tasks R1-R5, T1-T40 finished (2026-02-10)
 
 ## Completed This Session
-- [x] T34: Reorder report PO generation confirmation modal (2026-02-10)
-- [x] T35: PO detail role-based action buttons (2026-02-10)
-- [x] T36: Customer link to order after quote acceptance (2026-02-10) — already implemented
-- [x] T37: Reorder report cost price fallback (2026-02-10)
+- [x] T38: Job card reservation release on completion (2026-02-10)
+- [x] T39: Prepay payment triggers fulfillment (2026-02-10)
+- [x] T40: End-to-end flow verification (2026-02-10)
 
 ## What Was Done
 
-### T34: Reorder Report PO Confirmation Modal
-- Added preview confirmation modal before generating POs from reorder report
-- Modal shows: supplier sections with line items (SKU, description, qty, unit cost, line total), supplier subtotals, grand total
-- Items with null/zero costPrice flagged as "Cost TBD" in amber with warning icon
-- Global amber warning banner when any items have missing cost prices
-- Confirm → creates Draft POs, Cancel → closes modal
-- Added `POPreviewModal` component, `previewGroups` memo, `showPreview` state
+### T38: Job Card Reservation Release on Completion
+- Added reservation release in `completeJobCard()` (job-card.service.ts:765-792)
+- Inside existing transaction, after BOM consumption, before order status propagation
+- Finds all unreleased HARD reservations with referenceType 'JobCard' and referenceId jobCard.id
+- Releases each (releasedAt, releasedBy, releaseReason) and decrements hardReserved
+- Follows exact same pattern as `completePicking()` lines 484-517
 
-### T35: PO Detail Role-Based Action Buttons
-- Added `useAuthStore` to PO detail page for role checks
-- WAREHOUSE: sees Receive Goods only (+ PDF)
-- PURCHASER: sees Submit, Send, Acknowledge, Cancel — NOT Approve/Reject
-- ADMIN/MANAGER: sees all buttons
-- Role groups: canSeePurchasingActions, canSeeApprovalActions, canSeeReceiveAction
+### T39: Prepay Payment Triggers Fulfillment
+- In `recordPayment()` (payment.service.ts), after syncing paymentStatus:
+  - Checks if paymentStatus tipped to PAID AND paymentTerms is PREPAY/COD AND order is CONFIRMED
+  - Auto-calls generateFulfillmentPlan + executeFulfillmentPlan
+  - Wrapped in try/catch — payment always succeeds even if fulfillment fails
+  - Returns fulfillmentTriggered and fulfillmentError in response
+- API route passes fulfillment data through in 201 response
+- Frontend: updated api.ts return type, RecordPaymentModal has onSuccess callback
+- Order detail page shows green success banner with fulfillment status (auto-dismisses 8s)
 
-### T36: Customer Link to Order After Quote Acceptance
-- Already implemented — green banner with "View Order [orderNumber] →" link exists
-- Backend returns `convertedOrder` (id + orderNumber) for ACCEPTED/CONVERTED quotes
-- No code changes needed
-
-### T37: Reorder Report Cost Price Fallback
-- Items with null/zero costPrice now filtered out before PO generation
-- Skipped items tracked in `skippedItems` state and shown in amber warning banner
-- If ALL selected items have no cost price, no POs are created
-- Warning banner lists each skipped SKU with description
+### T40: End-to-End Flow Verification
+- Traced both customer flows through actual code (read-only, no live data)
+- Flow A (Account/NET_30): quote accept → order → confirm → auto-fulfillment → picking/jobs → READY_TO_SHIP → ship → deliver → auto tax invoice → INVOICED → close
+- Flow B (Prepay): quote accept → order → confirm → auto proforma → STOP → payment recorded → auto-fulfillment → same as Flow A
+- Zero breaks found in either flow
+- Documented in `.claude/plans/flow-verification.md`
 
 ## Files Modified This Session
-- `frontend/src/app/(portal)/inventory/reorder/page.tsx` — T34 preview modal + T37 cost price filtering
-- `frontend/src/app/(portal)/purchase-orders/[id]/page.tsx` — T35 role-based buttons
-- `.claude/plans/execution-progress.md` — marked T34-T37 complete
+- `backend/src/services/job-card.service.ts` — T38 reservation release
+- `backend/src/services/payment.service.ts` — T39 auto-fulfillment trigger
+- `backend/src/api/v1/orders/route.ts` — T39 pass fulfillment data in response
+- `frontend/src/lib/api.ts` — T39 updated return type
+- `frontend/src/components/orders/order-detail/RecordPaymentModal.tsx` — T39 onSuccess callback
+- `frontend/src/app/(portal)/orders/[id]/page.tsx` — T39 success banner
+- `.claude/plans/flow-verification.md` — T40 verification document (created)
+- `.claude/plans/execution-progress.md` — marked T38-T40 complete, phase COMPLETE
 
-## Next Steps (Exact)
-1. Start T38: Job card reservation release on completion
-2. Read execution-plan.md for T38 full prompt
-3. User must say "go" to proceed
+## Decisions Made
+- T38: Release reservations after BOM consumption but before order status propagation
+- T39: Payment success is independent of fulfillment success (try/catch pattern)
+- T40: Code tracing only, no live data execution
+
+## Next Steps
+- ALL 40 TASKS COMPLETE
+- Execution plan marked COMPLETE (2026-02-10)
+- No remaining tasks in the execution plan
+- Future work: see `.claude/plans/comprehensive-audit-2026-02-02.md` for P0-P4 items
 
 ## Context for Next Session
-- Execution plan: `.claude/plans/execution-plan.md`
-- Progress tracker: `.claude/plans/execution-progress.md`
-- Workflow: read progress → find first unchecked → read plan → execute → mark done → commit → push → STOP
-- User says "go" to proceed to next task
-- Phase 3B (UX Improvements): T31-T37 done, T38 remaining
-- Phase 4 (Automation Wiring): T39-T40 remaining
+- Execution plan: `.claude/plans/execution-plan.md` — ALL DONE
+- Progress tracker: `.claude/plans/execution-progress.md` — ALL CHECKED
+- Flow verification: `.claude/plans/flow-verification.md` — both flows verified, zero breaks
 - Both frontend and backend TypeScript compilation pass clean
