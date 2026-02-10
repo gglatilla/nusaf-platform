@@ -4,8 +4,7 @@
 Order-to-Fulfillment Workflow — Customer Management Restructure (Phase 1.4–1.11)
 
 ## Plan
-See `.claude/plans/serialized-mixing-reef.md` for customer management plan.
-See `.claude/plans/ticklish-yawning-pretzel.md` for original 4-phase plan (Phases 2–4 after this).
+See `.claude/plans/nested-sprouting-lake.md` for Phase 1.8 plan.
 
 ## Completed Micro-tasks
 
@@ -33,44 +32,35 @@ See `.claude/plans/ticklish-yawning-pretzel.md` for original 4-phase plan (Phase
 - Removed company dropdown from staff user create form
 - 4 unit tests (auto-assign, explicit companyId, no internal company error, invalid companyId error)
 
-### Phase 1.7: Frontend — Rename Companies → Customers + List Page Update
+### Phase 1.7: Frontend — Rename Companies → Customers + List Page Update (3c8eec1)
 - Moved route from `/admin/companies` to `/admin/customers`
-- Updated navigation.ts: "Companies" → "Customers"
-- Renamed all user-facing text (page title, buttons, search, empty states, modal)
-- Added `accountNumber`, `accountStatus`, `territory` to CompanyListItem type
-- Expanded CompanyDetail type with all Phase 1.4 fields (credit, addresses, contacts, etc.)
-- Added new types: CreditStatusType, AccountStatusType, ShippingMethodType, ContactRoleType, CompanyAddress, CompanyContact
-- Added API methods: createCompanyAddress, updateCompanyAddress, deleteCompanyAddress, createCompanyContact, updateCompanyContact, deleteCompanyContact
-- Updated createCompany/updateCompany to accept all new fields
-- Added Account # column and AccountStatus badge to list table
-- Made customer name clickable (links to `/admin/customers/[id]`)
-- Replaced Users column with territory display
-- Created placeholder detail page for Phase 1.8
+- Updated navigation, renamed all user-facing text
+- Expanded API types, added address/contact CRUD methods
+- Created placeholder detail page
+
+### Phase 1.8: Frontend — Customer Detail Page — COMPLETE
+- **1.8A** (f8e1053): Hook (`useCustomers.ts`), page shell with tabs, `CustomerDetailHeader`, shared `constants.ts`
+- **1.8B** (f2c02b4): `OverviewTab` (company info, logistics, sales rep, notes) + `FinancialTab` (credit, email, B-BBEE, users table)
+- **1.8C** (3673c83): `AddressesTab` (card layout, shipping/billing groups) + `AddressFormModal` (SA provinces, delivery instructions)
+- **1.8D** (e5eda2c): `ContactsTab` (table with role badges, primary star) + `ContactFormModal` (role dropdown, primary/active toggles)
 
 ## Pending Micro-tasks
-- [ ] Phase 1.8: Frontend — Customer detail page (overview + financial + sales + logistics)
-- [ ] Phase 1.9: Frontend — Address management on detail page
-- [ ] Phase 1.10: Frontend — Contact management on detail page
+- [ ] Phase 1.9–1.10: MERGED INTO 1.8 — address + contact management delivered in Phase 1.8C/D
 - [ ] Phase 1.11: Cleanup + link audit
 - [ ] Phase 2.1–2.2: Customer Checkout Flow
 - [ ] Phase 3.1–3.3: Backorder Visibility
 - [ ] Phase 4.1–4.5: Notification System
 
 ## Commits This Session
-- 641d8e0: Phase 1.2b — Staff user management frontend
-- a7ccfd1: Phase 1.3 — Sales rep assignment UI
-- 85348e8: SESSION.md update
-- 2bdfc7d: Phase 1.4 — DB migration (customer management fields)
-- 649cfd7: Phase 1.5 — Expanded Company CRUD + address/contact routes
-- f380414: Phase 1.6 — Staff user auto-assign to internal company
-- 3c8eec1: Phase 1.7 — Rename Companies → Customers + expand API types
+- f8e1053: Phase 1.8A — Customer detail hook, page shell, header, constants
+- f2c02b4: Phase 1.8B — OverviewTab + FinancialTab with inline editing
+- 3673c83: Phase 1.8C — AddressesTab + AddressFormModal
+- e5eda2c: Phase 1.8D — ContactsTab + ContactFormModal
 
 ## Context for Next Session
-- Plan files: see above
-- Phase 1.8 next: Customer detail page with tabs (Overview, Financial, Addresses, Contacts)
-- Backend API paths stay as /admin/companies (no breaking change)
-- Placeholder detail page exists at `/admin/customers/[id]` — ready to build out
-- API types for CompanyDetail, CompanyAddress, CompanyContact are complete
-- API methods for address/contact CRUD are wired up
+- Phase 1.8 complete — all 4 tabs working (Overview, Financial, Addresses, Contacts)
+- Phase 1.9/1.10 were merged into 1.8C/1.8D (address + contact CRUD on detail page)
+- Next: Phase 1.11 (cleanup + link audit) then Phase 2 (Customer Checkout Flow)
+- New files created: `hooks/useCustomers.ts`, `components/customers/constants.ts`, `components/customers/detail/*.tsx`
 - CompanyCounter table needs to be created on local DB
 - Migrations pending on Railway: 20260211100000, 20260211120000, 20260211140000
