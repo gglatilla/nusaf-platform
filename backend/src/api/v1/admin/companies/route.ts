@@ -5,9 +5,8 @@ import { prisma } from '../../../../config/database';
 
 const router = Router();
 
-// All routes require authentication + admin/manager role
+// All routes require authentication
 router.use(authenticate);
-router.use(requireRole('ADMIN', 'MANAGER'));
 
 // Validation schemas
 const companyListQuerySchema = z.object({
@@ -39,7 +38,7 @@ const updateCompanySchema = z.object({
  * GET /api/v1/admin/companies
  * List companies with pagination and search
  */
-router.get('/', async (req, res) => {
+router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
   try {
     const parseResult = companyListQuerySchema.safeParse(req.query);
 
@@ -163,7 +162,7 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
  * GET /api/v1/admin/companies/:id
  * Get company detail
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
   try {
     const company = await prisma.company.findUnique({
       where: { id: req.params.id },
@@ -201,7 +200,7 @@ router.get('/:id', async (req, res) => {
  * PATCH /api/v1/admin/companies/:id
  * Update company (mainly paymentTerms, tier, etc.)
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
     const parseResult = updateCompanySchema.safeParse(req.body);
 
