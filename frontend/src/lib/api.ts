@@ -499,6 +499,21 @@ export interface ProductWithInventory extends CatalogProduct {
   categoryId: string;
   subCategoryId: string | null;
 
+  // Marketing content
+  marketingTitle: string | null;
+  marketingDescription: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  specifications: Record<string, string> | null;
+
+  // Publishing status
+  isPublished: boolean;
+  publishedAt: string | null;
+
+  // Completeness counts
+  imageCount: number;
+  documentCount: number;
+
   // Inventory data (when ?include=inventory)
   inventory?: ProductInventory;
   // Movements (when ?include=movements)

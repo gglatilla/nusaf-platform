@@ -105,13 +105,24 @@ const initialFormData: ProductContentFormData = {
   specifications: {},
 };
 
+export interface CompletenessInputData {
+  marketingTitle: string | null;
+  marketingDescription: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  specifications: Record<string, string> | null;
+  imageCount: number;
+  documentCount: number;
+}
+
 interface ProductContentEditorProps {
   product: ProductWithInventory;
   onSave: (data: ProductContentFormData) => Promise<void>;
   isLoading?: boolean;
+  onCompletenessInputChange?: (data: CompletenessInputData) => void;
 }
 
-export function ProductContentEditor({ product, onSave, isLoading }: ProductContentEditorProps) {
+export function ProductContentEditor({ product, onSave, isLoading, onCompletenessInputChange }: ProductContentEditorProps) {
   const [formData, setFormData] = useState<ProductContentFormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +149,19 @@ export function ProductContentEditor({ product, onSave, isLoading }: ProductCont
       });
     }
   }, [product]);
+
+  // Report completeness input data for live scoring
+  useEffect(() => {
+    onCompletenessInputChange?.({
+      marketingTitle: formData.marketingTitle || null,
+      marketingDescription: formData.marketingDescription || null,
+      metaTitle: formData.metaTitle || null,
+      metaDescription: formData.metaDescription || null,
+      specifications: Object.keys(formData.specifications).length > 0 ? formData.specifications : null,
+      imageCount: images.length,
+      documentCount: documents.length,
+    });
+  }, [formData, images.length, documents.length, onCompletenessInputChange]);
 
   const handleChange = (field: keyof ProductContentFormData, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

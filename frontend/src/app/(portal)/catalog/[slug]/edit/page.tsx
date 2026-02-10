@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Globe, Eye, Loader2 } from 'lucide-react';
@@ -8,7 +9,13 @@ import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useUpdateProduct, usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
 import { websiteUrls } from '@/lib/urls';
-import { ProductContentEditor, type ProductContentFormData } from '@/components/products/ProductContentEditor';
+import {
+  ProductContentEditor,
+  type ProductContentFormData,
+  type CompletenessInputData,
+} from '@/components/products/ProductContentEditor';
+import { CompletenessPanel } from '@/components/products/CompletenessPanel';
+import { calculateCompleteness, type CompletenessResult } from '@/lib/product-completeness';
 import { cn } from '@/lib/utils';
 
 function LoadingSkeleton() {
@@ -29,6 +36,14 @@ function LoadingSkeleton() {
   );
 }
 
+const DEFAULT_COMPLETENESS: CompletenessResult = {
+  score: 0,
+  fields: [],
+  canPublish: false,
+  requiredMet: 0,
+  requiredTotal: 5,
+};
+
 export default function ProductEditPage() {
   const params = useParams();
   const router = useRouter();
@@ -42,6 +57,13 @@ export default function ProductEditPage() {
   const updateProduct = useUpdateProduct();
   const publishProduct = usePublishProduct();
   const unpublishProduct = useUnpublishProduct();
+
+  // Live completeness scoring from editor form state
+  const [completeness, setCompleteness] = useState<CompletenessResult>(DEFAULT_COMPLETENESS);
+
+  const handleCompletenessInputChange = useCallback((data: CompletenessInputData) => {
+    setCompleteness(calculateCompleteness(data));
+  }, []);
 
   // Check if user is admin (can edit product content)
   const canEditProduct = user?.role === 'ADMIN';
@@ -69,6 +91,7 @@ export default function ProductEditPage() {
   // Publish status
   const isPublished = product?.isPublished ?? false;
   const isPublishing = publishProduct.isPending || unpublishProduct.isPending;
+  const publishDisabled = !isPublished && !completeness.canPublish;
 
   const handlePublish = async () => {
     try {
@@ -149,27 +172,40 @@ export default function ProductEditPage() {
           </a>
 
           {/* Publish/Unpublish Button */}
-          <button
-            type="button"
-            onClick={isPublished ? handleUnpublish : handlePublish}
-            disabled={isPublishing}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-              isPublished
-                ? 'text-slate-700 bg-white border border-slate-200 hover:bg-slate-50'
-                : 'text-white bg-green-600 hover:bg-green-700'
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={isPublished ? handleUnpublish : handlePublish}
+              disabled={isPublishing || publishDisabled}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                isPublished
+                  ? 'text-slate-700 bg-white border border-slate-200 hover:bg-slate-50'
+                  : 'text-white bg-green-600 hover:bg-green-700'
+              )}
+            >
+              {isPublishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Globe className="h-4 w-4" />
+              )}
+              {isPublishing
+                ? (isPublished ? 'Unpublishing...' : 'Publishing...')
+                : (isPublished ? 'Unpublish' : 'Publish')}
+            </button>
+            {/* Tooltip when publish is disabled */}
+            {publishDisabled && !isPublishing && (
+              <div className="absolute right-0 top-full mt-2 w-56 p-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                Complete all required fields before publishing.
+              </div>
             )}
-          >
-            {isPublishing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Globe className="h-4 w-4" />
-            )}
-            {isPublishing
-              ? (isPublished ? 'Unpublishing...' : 'Publishing...')
-              : (isPublished ? 'Unpublish' : 'Publish')}
-          </button>
+          </div>
         </div>
+      </div>
+
+      {/* Completeness Panel — between header and editor */}
+      <div className="mb-6 max-w-sm">
+        <CompletenessPanel completeness={completeness} />
       </div>
 
       {/* Marketing Content Editor */}
@@ -177,6 +213,7 @@ export default function ProductEditPage() {
         product={product}
         onSave={handleSave}
         isLoading={updateProduct.isPending}
+        onCompletenessInputChange={handleCompletenessInputChange}
       />
     </div>
   );
