@@ -59,6 +59,7 @@ function createMockTx() {
     },
     transferRequest: {
       update: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     stockReservation: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -67,6 +68,9 @@ function createMockTx() {
     salesOrder: {
       findUnique: vi.fn().mockResolvedValue(null),
       update: vi.fn().mockResolvedValue({}),
+    },
+    jobCardBomLine: {
+      findMany: vi.fn().mockResolvedValue([]),
     },
     bomItem: {
       findMany: vi.fn().mockResolvedValue([]),
