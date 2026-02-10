@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Check, MapPin, Calendar, FileText, User, AlertTriangle } from 'lucide-react';
+import { Play, Check, MapPin, Calendar, FileText, User, AlertTriangle } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   usePickingSlip,
   useStartPicking,
@@ -130,23 +131,20 @@ export default function PickingSlipDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Picking Slips', href: '/picking-slips' }, { label: pickingSlip.pickingSlipNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/picking-slips" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {pickingSlip.pickingSlipNumber}
-              </h1>
-              <PickingSlipStatusBadge status={pickingSlip.status} />
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDateShort(pickingSlip.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {pickingSlip.pickingSlipNumber}
+            </h1>
+            <PickingSlipStatusBadge status={pickingSlip.status} />
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDateShort(pickingSlip.createdAt)}
+          </p>
         </div>
 
         {/* Actions */}

@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote, Lock } from 'lucide-react';
+import { Check, Pause, Play, X, Calendar, Building, FileText, Package, ClipboardList, Wrench, Truck, Boxes, FileOutput, Receipt, RotateCcw, Banknote, Lock } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { OrderActionMenu } from '@/components/orders/OrderActionMenu';
 import { useOrder, useOrderTimeline, useConfirmOrder, useHoldOrder, useReleaseOrderHold, useCancelOrder, useCloseOrder } from '@/hooks/useOrders';
 import { usePickingSlipsForOrder, useGeneratePickingSlips } from '@/hooks/usePickingSlips';
@@ -292,60 +293,58 @@ export default function OrderDetailPage() {
           <button onClick={() => setPaymentSuccessBanner(null)} className="text-green-600 hover:text-green-800 text-sm font-medium">Dismiss</button>
         </div>
       )}
+      {/* Breadcrumb */}
+      <Breadcrumb items={[{ label: 'Orders', href: '/orders' }, { label: order.orderNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/orders" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">{order.orderNumber}</h1>
-              <OrderStatusBadge status={order.status} />
-              {/* Payment Terms Badge */}
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isPrepay
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
-                }`}
-              >
-                {order.paymentTerms === 'PREPAY' ? 'Prepay'
-                  : order.paymentTerms === 'COD' ? 'COD'
-                  : order.paymentTerms === 'NET_60' ? 'Net 60'
-                  : order.paymentTerms === 'NET_90' ? 'Net 90'
-                  : 'Net 30'}
-              </span>
-              {/* Payment Status Badge */}
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  order.paymentStatus === 'PAID'
-                    ? 'bg-green-100 text-green-700'
-                    : order.paymentStatus === 'PARTIALLY_PAID'
-                      ? 'bg-amber-100 text-amber-700'
-                      : order.paymentStatus === 'NOT_REQUIRED'
-                        ? 'bg-slate-100 text-slate-600'
-                        : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {order.paymentStatus === 'PAID'
-                  ? 'Paid'
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">{order.orderNumber}</h1>
+            <OrderStatusBadge status={order.status} />
+            {/* Payment Terms Badge */}
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                isPrepay
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {order.paymentTerms === 'PREPAY' ? 'Prepay'
+                : order.paymentTerms === 'COD' ? 'COD'
+                : order.paymentTerms === 'NET_60' ? 'Net 60'
+                : order.paymentTerms === 'NET_90' ? 'Net 90'
+                : 'Net 30'}
+            </span>
+            {/* Payment Status Badge */}
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                order.paymentStatus === 'PAID'
+                  ? 'bg-green-100 text-green-700'
                   : order.paymentStatus === 'PARTIALLY_PAID'
-                    ? 'Partially Paid'
+                    ? 'bg-amber-100 text-amber-700'
                     : order.paymentStatus === 'NOT_REQUIRED'
-                      ? 'On Account'
-                      : 'Unpaid'}
-              </span>
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDate(order.createdAt)}
-              {order.fulfillmentType !== 'STOCK_ONLY' && (
-                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
-                  {order.fulfillmentType === 'ASSEMBLY_REQUIRED' ? 'Assembly Required' : 'Mixed'}
-                </span>
-              )}
-            </p>
+                      ? 'bg-slate-100 text-slate-600'
+                      : 'bg-red-100 text-red-700'
+              }`}
+            >
+              {order.paymentStatus === 'PAID'
+                ? 'Paid'
+                : order.paymentStatus === 'PARTIALLY_PAID'
+                  ? 'Partially Paid'
+                  : order.paymentStatus === 'NOT_REQUIRED'
+                    ? 'On Account'
+                    : 'Unpaid'}
+            </span>
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDate(order.createdAt)}
+            {order.fulfillmentType !== 'STOCK_ONLY' && (
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+                {order.fulfillmentType === 'ASSEMBLY_REQUIRED' ? 'Assembly Required' : 'Mixed'}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Actions — Primary action + grouped dropdown */}

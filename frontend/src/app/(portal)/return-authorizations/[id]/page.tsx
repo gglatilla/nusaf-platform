@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Check, X, Package, Loader2, AlertCircle,
+  Check, X, Package, Loader2, AlertCircle,
   RotateCcw, Truck, CheckCircle, Ban,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   useReturnAuthorization,
@@ -192,19 +193,16 @@ export default function ReturnAuthorizationDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <Breadcrumb items={[{ label: 'Returns', href: '/return-authorizations' }, { label: ra.raNumber }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/return-authorizations" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">{ra.raNumber}</h1>
-              <ReturnAuthorizationStatusBadge status={ra.status} />
-            </div>
-            <p className="mt-1 text-sm text-slate-600">Return Authorization for {ra.customerName}</p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">{ra.raNumber}</h1>
+            <ReturnAuthorizationStatusBadge status={ra.status} />
           </div>
+          <p className="mt-1 text-sm text-slate-600">Return Authorization for {ra.customerName}</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

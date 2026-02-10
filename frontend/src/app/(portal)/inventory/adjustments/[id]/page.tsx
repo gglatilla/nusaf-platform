@@ -11,7 +11,6 @@ import {
   useRejectStockAdjustment,
 } from '@/hooks/useInventory';
 import {
-  ArrowLeft,
   Check,
   XCircle,
   AlertCircle,
@@ -19,6 +18,7 @@ import {
   CheckCircle2,
   Ban,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { cn } from '@/lib/utils';
 
 const REASON_LABELS: Record<string, string> = {
@@ -114,14 +114,7 @@ export default function StockAdjustmentDetailPage() {
         description="View adjustment details and line items"
       />
       <div className="p-4 sm:p-6 xl:p-8">
-        {/* Back link */}
-        <Link
-          href="/inventory/adjustments"
-          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Adjustments
-        </Link>
+        <Breadcrumb items={[{ label: 'Adjustments', href: '/inventory/adjustments' }, { label: adjustment?.adjustmentNumber ?? 'Adjustment' }]} />
 
         {/* Error */}
         {error && (

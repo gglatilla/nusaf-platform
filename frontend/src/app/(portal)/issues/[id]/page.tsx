@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Clock,
   CheckCircle,
   ExternalLink,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { IssueFlagStatusBadge } from '@/components/issues/IssueFlagStatusBadge';
 import { IssueFlagSeverityBadge } from '@/components/issues/IssueFlagSeverityBadge';
 import { IssueFlagCategoryBadge } from '@/components/issues/IssueFlagCategoryBadge';
@@ -61,7 +60,6 @@ function formatSlaDeadline(dateString: string, status: IssueFlagStatus): { text:
 
 export default function IssueDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
 
   const { data: issue, isLoading } = useIssueFlag(id);
@@ -75,30 +73,24 @@ export default function IssueDetailPage() {
 
   if (isLoading) {
     return (
-      <>
-        <PageHeader title="Loading..." />
-        <div className="p-4 sm:p-6 xl:p-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-slate-200 rounded w-1/3" />
-            <div className="h-24 bg-slate-200 rounded" />
-            <div className="h-48 bg-slate-200 rounded" />
-          </div>
+      <div className="p-4 sm:p-6 xl:p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-200 rounded w-1/3" />
+          <div className="h-24 bg-slate-200 rounded" />
+          <div className="h-48 bg-slate-200 rounded" />
         </div>
-      </>
+      </div>
     );
   }
 
   if (!issue) {
     return (
-      <>
-        <PageHeader title="Issue Not Found" />
-        <div className="p-4 sm:p-6 xl:p-8">
-          <p className="text-slate-600">The requested issue could not be found.</p>
-          <Link href="/issues" className="text-primary-600 hover:text-primary-700 mt-4 inline-block">
-            Back to Issues
-          </Link>
-        </div>
-      </>
+      <div className="p-4 sm:p-6 xl:p-8">
+        <p className="text-slate-600">The requested issue could not be found.</p>
+        <Link href="/issues" className="text-primary-600 hover:text-primary-700 mt-4 inline-block">
+          Back to Issues
+        </Link>
+      </div>
     );
   }
 
@@ -127,21 +119,13 @@ export default function IssueDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title={issue.issueNumber}
-        description={issue.title}
-        actions={
-          <button
-            onClick={() => router.push('/issues')}
-            className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Issues
-          </button>
-        }
-      />
-
       <div className="p-4 sm:p-6 xl:p-8 space-y-6">
+        <Breadcrumb items={[{ label: 'Issues', href: '/issues' }, { label: issue.issueNumber }]} />
+
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">{issue.issueNumber}</h1>
+          <p className="mt-1 text-sm text-slate-500">{issue.title}</p>
+        </div>
         {/* Status and badges */}
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <div className="flex flex-wrap gap-3 mb-6">

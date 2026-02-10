@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, X, Send, Calendar, Building, Trash2, Package } from 'lucide-react';
+import { Check, X, Send, Calendar, Building, Trash2, Package } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
@@ -128,21 +129,19 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={[{ label: 'Quotes', href: '/quotes' }, { label: quote.quoteNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/quotes" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">{quote.quoteNumber}</h1>
-              <QuoteStatusBadge status={quote.status} />
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDate(quote.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">{quote.quoteNumber}</h1>
+            <QuoteStatusBadge status={quote.status} />
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDate(quote.createdAt)}
+          </p>
         </div>
 
         {/* Actions */}

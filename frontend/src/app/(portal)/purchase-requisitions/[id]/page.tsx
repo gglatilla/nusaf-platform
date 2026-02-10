@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Clock,
   Check,
   XCircle,
@@ -12,6 +11,7 @@ import {
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   usePurchaseRequisition,
@@ -117,10 +117,7 @@ export default function PurchaseRequisitionDetailPage() {
   if (error || !pr) {
     return (
       <div className="p-6">
-        <Link href="/purchase-requisitions" className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 mb-6">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Requisitions
-        </Link>
+        <Breadcrumb items={[{ label: 'Requisitions', href: '/purchase-requisitions' }, { label: 'Not Found' }]} />
         <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error instanceof Error ? error.message : 'Purchase requisition not found'}
@@ -137,11 +134,7 @@ export default function PurchaseRequisitionDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Back link */}
-      <Link href="/purchase-requisitions" className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Requisitions
-      </Link>
+      <Breadcrumb items={[{ label: 'Requisitions', href: '/purchase-requisitions' }, { label: pr.requisitionNumber }]} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

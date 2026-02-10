@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Download,
   XCircle,
   Calendar,
@@ -14,6 +13,7 @@ import {
   User,
   RotateCcw,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useCreditNote, useVoidCreditNote, useDownloadCreditNotePDF } from '@/hooks/useCreditNotes';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -95,35 +95,33 @@ export default function CreditNoteDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={[{ label: 'Credit Notes', href: '/credit-notes' }, { label: creditNote.creditNoteNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/credit-notes" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold text-slate-900">{creditNote.creditNoteNumber}</h1>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                CREDIT NOTE
-              </span>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  creditNote.status === 'ISSUED'
-                    ? 'bg-green-100 text-green-700'
-                    : creditNote.status === 'DRAFT'
-                      ? 'bg-slate-100 text-slate-600'
-                      : 'bg-red-100 text-red-600 line-through'
-                }`}
-              >
-                {creditNote.status === 'ISSUED' ? 'Issued' : creditNote.status === 'DRAFT' ? 'Draft' : 'Voided'}
-              </span>
-            </div>
-            <p className="text-sm text-slate-600">
-              Issued on {formatDate(creditNote.issueDate)}
-              {' \u00B7 '}RA {creditNote.raNumber}
-            </p>
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold text-slate-900">{creditNote.creditNoteNumber}</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+              CREDIT NOTE
+            </span>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                creditNote.status === 'ISSUED'
+                  ? 'bg-green-100 text-green-700'
+                  : creditNote.status === 'DRAFT'
+                    ? 'bg-slate-100 text-slate-600'
+                    : 'bg-red-100 text-red-600 line-through'
+              }`}
+            >
+              {creditNote.status === 'ISSUED' ? 'Issued' : creditNote.status === 'DRAFT' ? 'Draft' : 'Voided'}
+            </span>
           </div>
+          <p className="text-sm text-slate-600">
+            Issued on {formatDate(creditNote.issueDate)}
+            {' \u00B7 '}RA {creditNote.raNumber}
+          </p>
         </div>
 
         {/* Actions */}

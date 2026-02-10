@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Package, Tag, Building, Ruler, Edit } from 'lucide-react';
+import { Package, Tag, Building, Ruler, Edit } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
@@ -103,11 +104,9 @@ export default function ProductDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <Breadcrumb items={[{ label: 'Catalog', href: '/catalog' }, { label: product.nusafSku }]} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/catalog" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-slate-900">{product.nusafSku}</h1>

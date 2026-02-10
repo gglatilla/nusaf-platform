@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Play, Pause, Check, Calendar, FileText, User, Package, AlertCircle, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import type { BomComponent, BomStatus } from '@/lib/api';
 import {
   useJobCard,
@@ -146,24 +147,21 @@ export default function JobCardDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Job Cards', href: '/job-cards' }, { label: jobCard.jobCardNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/job-cards" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {jobCard.jobCardNumber}
-              </h1>
-              <JobCardStatusBadge status={jobCard.status} />
-              <JobTypeBadge jobType={jobCard.jobType} />
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDateShort(jobCard.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {jobCard.jobCardNumber}
+            </h1>
+            <JobCardStatusBadge status={jobCard.status} />
+            <JobTypeBadge jobType={jobCard.jobType} />
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDateShort(jobCard.createdAt)}
+          </p>
         </div>
 
         {/* Actions */}

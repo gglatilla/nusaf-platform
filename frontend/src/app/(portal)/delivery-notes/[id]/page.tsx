@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Send,
   Check,
   X,
@@ -14,6 +13,7 @@ import {
   User,
   Package,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   useDeliveryNote,
   useDispatchDeliveryNote,
@@ -184,23 +184,20 @@ export default function DeliveryNoteDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Delivery Notes', href: '/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/delivery-notes" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {deliveryNote.deliveryNoteNumber}
-              </h1>
-              <DeliveryNoteStatusBadge status={deliveryNote.status} />
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDateShort(deliveryNote.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {deliveryNote.deliveryNoteNumber}
+            </h1>
+            <DeliveryNoteStatusBadge status={deliveryNote.status} />
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDateShort(deliveryNote.createdAt)}
+          </p>
         </div>
 
         {/* Actions */}

@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import {
-  ArrowLeft,
   Building,
   Calendar,
   Check,
@@ -20,6 +19,7 @@ import {
   ThumbsUp,
   X,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   usePurchaseOrder,
   usePurchaseOrderGrvs,
@@ -227,11 +227,9 @@ export default function PurchaseOrderDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <Breadcrumb items={[{ label: 'Purchase Orders', href: '/purchase-orders' }, { label: po.poNumber }]} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/purchase-orders" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-slate-900">{po.poNumber}</h1>

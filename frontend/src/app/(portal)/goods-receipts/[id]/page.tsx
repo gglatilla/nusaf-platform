@@ -3,13 +3,13 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Calendar,
   FileText,
   MapPin,
   PackageCheck,
   User,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useGoodsReceipt } from '@/hooks/useGoodsReceipts';
 import { GRVLineTable } from '@/components/goods-receipts/GRVLineTable';
 
@@ -73,11 +73,9 @@ export default function GoodsReceiptDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <Breadcrumb items={[{ label: 'Goods Receipts', href: '/goods-receipts' }, { label: grv.grvNumber }]} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/goods-receipts" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <div className="flex items-center gap-3">
               <PackageCheck className="h-6 w-6 text-green-600" />

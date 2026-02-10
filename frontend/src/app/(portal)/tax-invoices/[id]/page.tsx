@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Download,
   XCircle,
   Calendar,
@@ -16,6 +15,7 @@ import {
   AlertTriangle,
   Truck,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useTaxInvoice, useVoidTaxInvoice, useDownloadTaxInvoicePDF } from '@/hooks/useTaxInvoices';
 import { useDeliveryNotesForOrder } from '@/hooks/useDeliveryNotes';
 import { useProformaInvoicesForOrder } from '@/hooks/useProformaInvoices';
@@ -119,55 +119,53 @@ export default function TaxInvoiceDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={[{ label: 'Tax Invoices', href: '/tax-invoices' }, { label: invoice.invoiceNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/tax-invoices" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold text-slate-900">{invoice.invoiceNumber}</h1>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                TAX INVOICE
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold text-slate-900">{invoice.invoiceNumber}</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+              TAX INVOICE
+            </span>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                invoice.status === 'ISSUED'
+                  ? 'bg-green-100 text-green-700'
+                  : invoice.status === 'DRAFT'
+                    ? 'bg-slate-100 text-slate-600'
+                    : 'bg-red-100 text-red-600 line-through'
+              }`}
+            >
+              {invoice.status === 'ISSUED' ? 'Issued' : invoice.status === 'DRAFT' ? 'Draft' : 'Voided'}
+            </span>
+            {/* Payment Terms Badge */}
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                isPrepay
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {formatPaymentTerms(invoice.paymentTerms)}
+            </span>
+            {overdueFlag && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                <AlertTriangle className="h-3 w-3" />
+                Overdue
               </span>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  invoice.status === 'ISSUED'
-                    ? 'bg-green-100 text-green-700'
-                    : invoice.status === 'DRAFT'
-                      ? 'bg-slate-100 text-slate-600'
-                      : 'bg-red-100 text-red-600 line-through'
-                }`}
-              >
-                {invoice.status === 'ISSUED' ? 'Issued' : invoice.status === 'DRAFT' ? 'Draft' : 'Voided'}
-              </span>
-              {/* Payment Terms Badge */}
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isPrepay
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
-                }`}
-              >
-                {formatPaymentTerms(invoice.paymentTerms)}
-              </span>
-              {overdueFlag && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                  <AlertTriangle className="h-3 w-3" />
-                  Overdue
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-slate-600">
-              Issued on {formatDate(invoice.issueDate)}
-              {invoice.dueDate && (
-                <span className={overdueFlag ? ' text-red-600 font-medium' : ''}>
-                  {' \u00B7 '}Due {formatDate(invoice.dueDate)}
-                </span>
-              )}
-            </p>
+            )}
           </div>
+          <p className="text-sm text-slate-600">
+            Issued on {formatDate(invoice.issueDate)}
+            {invoice.dueDate && (
+              <span className={overdueFlag ? ' text-red-600 font-medium' : ''}>
+                {' \u00B7 '}Due {formatDate(invoice.dueDate)}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Actions */}

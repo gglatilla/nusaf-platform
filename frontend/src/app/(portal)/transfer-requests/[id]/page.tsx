@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Truck, Check, ArrowRight, Calendar, FileText, User, Package } from 'lucide-react';
+import { Truck, Check, ArrowRight, Calendar, FileText, User, Package } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   useTransferRequest,
@@ -129,23 +130,20 @@ export default function TransferRequestDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Transfers', href: '/transfer-requests' }, { label: transfer.transferNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/transfer-requests" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {transfer.transferNumber}
-              </h1>
-              <TransferRequestStatusBadge status={transfer.status} />
-            </div>
-            <p className="text-sm text-slate-600">
-              Created on {formatDateShort(transfer.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {transfer.transferNumber}
+            </h1>
+            <TransferRequestStatusBadge status={transfer.status} />
           </div>
+          <p className="text-sm text-slate-600">
+            Created on {formatDateShort(transfer.createdAt)}
+          </p>
         </div>
 
         {/* Actions */}

@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Globe, Eye, Loader2 } from 'lucide-react';
+import { Globe, Eye, Loader2 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useUpdateProduct, usePublishProduct, useUnpublishProduct } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
@@ -111,11 +112,9 @@ export default function ProductEditPage() {
   return (
     <div className="p-4 sm:p-6 xl:p-8">
       {/* Header */}
+      <Breadcrumb items={[{ label: 'Catalog', href: '/catalog' }, { label: product.nusafSku, href: `/catalog/${productId}` }, { label: 'Edit' }]} />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/catalog" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-slate-900">Edit Marketing Content</h1>

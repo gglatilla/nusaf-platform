@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Edit, ExternalLink } from 'lucide-react';
+import { Edit, ExternalLink } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { StockStatusBadge } from '@/components/inventory/StockStatusBadge';
 import { cn } from '@/lib/utils';
 import { websiteUrls } from '@/lib/urls';
@@ -38,14 +39,7 @@ export function ProductDetailHeader({ product, canEdit }: ProductDetailHeaderPro
 
   return (
     <div className="space-y-4">
-      {/* Back link */}
-      <Link
-        href="/inventory/items"
-        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Items
-      </Link>
+      <Breadcrumb items={[{ label: 'Items', href: '/inventory/items' }, { label: product.nusafSku }]} />
 
       {/* Header row */}
       <div className="flex items-start justify-between">

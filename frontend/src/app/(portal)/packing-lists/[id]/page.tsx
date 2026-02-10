@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Check,
   X,
   Download,
@@ -16,6 +15,7 @@ import {
   Boxes,
   AlertTriangle,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import {
   usePackingList,
   useFinalizePackingList,
@@ -122,21 +122,18 @@ export default function PackingListDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Packing Lists', href: '/packing-lists' }, { label: packingList.packingListNumber }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/packing-lists" className="p-2 hover:bg-slate-100 rounded-md">
-            <ArrowLeft className="h-5 w-5 text-slate-500" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">{packingList.packingListNumber}</h1>
-              <PackingListStatusBadge status={packingList.status} />
-            </div>
-            <p className="text-sm text-slate-500 mt-1">
-              Created {formatDateShort(packingList.createdAt)}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">{packingList.packingListNumber}</h1>
+            <PackingListStatusBadge status={packingList.status} />
           </div>
+          <p className="text-sm text-slate-500 mt-1">
+            Created {formatDateShort(packingList.createdAt)}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

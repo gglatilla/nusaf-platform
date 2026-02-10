@@ -14,7 +14,6 @@ import {
   useCancelCycleCount,
 } from '@/hooks/useInventory';
 import {
-  ArrowLeft,
   Save,
   CheckCircle2,
   XCircle,
@@ -26,6 +25,7 @@ import {
   Minus,
   FileText,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -224,13 +224,7 @@ export default function CycleCountDetailPage() {
   if (fetchError || !session) {
     return (
       <div className="p-4 sm:p-6 xl:p-8">
-        <Link
-          href="/inventory/cycle-counts"
-          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Cycle Counts
-        </Link>
+        <Breadcrumb items={[{ label: 'Cycle Counts', href: '/inventory/cycle-counts' }, { label: 'Not Found' }]} />
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-700">
             {fetchError instanceof Error ? fetchError.message : 'Cycle count session not found'}
@@ -249,13 +243,7 @@ export default function CycleCountDetailPage() {
         description={isCountingMode ? 'Enter counted quantities for each product' : 'Cycle count session details'}
       />
       <div className="p-4 sm:p-6 xl:p-8 max-w-6xl">
-        <Link
-          href="/inventory/cycle-counts"
-          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Cycle Counts
-        </Link>
+        <Breadcrumb items={[{ label: 'Cycle Counts', href: '/inventory/cycle-counts' }, { label: session.sessionNumber }]} />
 
         {/* Status banner */}
         <div className={cn('border rounded-lg p-4 mb-6', statusConfig.bg)}>

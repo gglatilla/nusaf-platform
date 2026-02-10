@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Factory,
   Mail,
   Phone,
@@ -17,6 +16,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useSupplier, useDeleteSupplierContact } from '@/hooks/useSuppliers';
 import { useAuthStore } from '@/stores/auth-store';
 import { SupplierFormModal } from '@/components/suppliers/SupplierFormModal';
@@ -92,11 +92,9 @@ export default function SupplierDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <Breadcrumb items={[{ label: 'Suppliers', href: '/admin/suppliers' }, { label: supplier.name }]} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/admin/suppliers" className="text-slate-400 hover:text-slate-600">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
           <div>
             <div className="flex items-center gap-3">
               <Factory className="h-6 w-6 text-slate-400" />

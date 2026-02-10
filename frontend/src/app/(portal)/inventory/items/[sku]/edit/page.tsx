@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useUpdateProduct, useCategories } from '@/hooks/useProducts';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
@@ -152,16 +153,7 @@ export default function InventoryItemEditPage() {
       />
 
       <div className="p-4 sm:p-6 xl:p-8">
-        {/* Back link */}
-        <div className="mb-6">
-          <Link
-            href={`/inventory/items/${sku}`}
-            className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Item
-          </Link>
-        </div>
+        <Breadcrumb items={[{ label: 'Items', href: '/inventory/items' }, { label: sku, href: `/inventory/items/${sku}` }, { label: 'Edit' }]} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content */}
