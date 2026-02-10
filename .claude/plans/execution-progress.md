@@ -39,7 +39,7 @@
 - [x] T21: Staff-on-behalf-of-customer quotes (API) (2026-02-10)
 - [x] T22: Staff-on-behalf-of-customer quotes (UI) (2026-02-10)
 - [x] T23: Standalone transfer UI (2026-02-10)
-- [ ] T24: Credit note schema + service + PDF
+- [x] T24: Credit note schema + service + PDF (2026-02-10)
 - [ ] T25: Credit note API + UI + auto-generate on RA completion
 
 ## Phase 3A — Safety Nets
@@ -66,17 +66,19 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T24
+- Current phase: Phase 2C, next T25
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
-- Completed T23: Standalone transfer UI
-  - Backend: `createStandaloneTransferRequest` now accepts `fromLocation` and `toLocation` params (defaults JHB/CT)
-  - Validation: `createStandaloneTransferRequestSchema` includes fromLocation/toLocation with refine to ensure different
-  - New component: `CreateStandaloneTransferModal` — from/to warehouse dropdowns, product search with stock at source, line items table, notes
-  - Transfer list page: "New Transfer" button (ADMIN/MANAGER/WAREHOUSE), opens modal, navigates to detail on success
-  - Updated subtitle and empty state to be direction-agnostic
-  - Supports both JHB→CT and CT→JHB directions
+- Completed T24: Credit note schema + service + PDF
+  - Schema: CreditNote, CreditNoteLine, CreditNoteCounter models added to Prisma schema
+  - CreditNote: id, creditNoteNumber (CN-YYYY-NNNNN), companyId, orderId, returnAuthorizationId, raNumber, customer snapshots, status (DRAFT/ISSUED/VOIDED), issueDate, subtotal/vatRate/vatAmount/total, pdfUrl, voiding fields, notes, issuedBy
+  - CreditNoteLine: product snapshot, quantity (quantityReceived), unitPrice (from original order line), lineTotal, resolution
+  - Service: createCreditNote(raId, userId), getCreditNoteById, getCreditNotesForRA, getCreditNotesByCompany, voidCreditNote, getCreditNotes (paginated list)
+  - PDF: generateCreditNotePDF in pdf.service.ts — red-themed "CREDIT NOTE" title, party info, details box (CN#, RA#, order#), line items with resolution column, totals, compliance statement
+  - Auto-generation: completeReturnAuthorization() now auto-calls createCreditNote() with try/catch — RA completion succeeds even if credit note fails
+  - Pricing: line totals calculated from quantityReceived × original order line unitPrice, with 15% VAT
+  - Migration: prisma db push successful
   - Both frontend and backend compile with zero TypeScript errors
-- Next: T24 — Credit note schema + service + PDF
+- Next: T25 — Credit note API + UI

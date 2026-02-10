@@ -1,6 +1,8 @@
 import { Prisma, Warehouse, ReturnAuthorizationStatus, ReturnReason } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
+import { createCreditNote } from './credit-note.service';
+import { logger } from '../utils/logger';
 import type {
   CreateReturnAuthorizationInput,
   RejectReturnAuthorizationInput,
@@ -642,6 +644,18 @@ export async function completeReturnAuthorization(
       },
     });
   });
+
+  // Auto-generate credit note — try/catch so RA completion succeeds even if credit note fails
+  try {
+    const cnResult = await createCreditNote(id, userId);
+    if (cnResult.success && cnResult.creditNote) {
+      logger.info(`Auto-generated credit note ${cnResult.creditNote.creditNoteNumber} for RA ${id}`);
+    } else if (!cnResult.success) {
+      logger.warn(`Failed to auto-generate credit note for RA ${id}: ${cnResult.error}`);
+    }
+  } catch (cnError) {
+    logger.error(`Error auto-generating credit note for RA ${id}:`, cnError);
+  }
 
   return { success: true };
 }

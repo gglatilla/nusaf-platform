@@ -3,6 +3,7 @@ import type { PurchaseOrderData } from './purchase-order.service';
 import type { ProformaInvoiceData } from './proforma-invoice.service';
 import type { TaxInvoiceData } from './tax-invoice.service';
 import type { PackingListData } from './packing-list.service';
+import type { CreditNoteData } from './credit-note.service';
 
 // ============================================
 // CONSTANTS
@@ -1437,6 +1438,339 @@ function drawTIBankingDetails(doc: PDFKit.PDFDocument, ti: TaxInvoiceData, total
 }
 
 function drawTIFooter(doc: PDFKit.PDFDocument): void {
+  const pageHeight = doc.page.height;
+  const footerY = pageHeight - 60;
+
+  doc.strokeColor(COLORS.mediumGray)
+    .lineWidth(0.5)
+    .moveTo(50, footerY)
+    .lineTo(doc.page.width - 50, footerY)
+    .stroke();
+
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text(
+      'Nusaf Dynamic Technologies (Pty) Ltd | Johannesburg, South Africa | www.nusaf.co.za',
+      50,
+      footerY + 10,
+      { align: 'center', width: doc.page.width - 100 }
+    );
+
+  doc.text(
+    'This is a computer-generated document. No signature required.',
+    50,
+    footerY + 22,
+    { align: 'center', width: doc.page.width - 100 }
+  );
+}
+
+// ============================================
+// CREDIT NOTE PDF
+// ============================================
+
+/**
+ * Generate a professional PDF for a credit note
+ */
+export async function generateCreditNotePDF(cn: CreditNoteData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        info: {
+          Title: `Credit Note ${cn.creditNoteNumber}`,
+          Author: 'Nusaf Dynamic Technologies',
+          Subject: `Credit Note for RA ${cn.raNumber}`,
+          Creator: 'Nusaf Platform',
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      drawCNHeader(doc, cn);
+      drawCNPartyInfo(doc, cn);
+      drawCNDetails(doc, cn);
+      const lastLineY = drawCNLineItems(doc, cn);
+      const totalsEndY = drawCNTotals(doc, cn, lastLineY);
+      drawCNNotes(doc, cn, totalsEndY);
+      drawCNFooter(doc);
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function drawCNHeader(doc: PDFKit.PDFDocument, cn: CreditNoteData): void {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Company header bar
+  doc.rect(50, 50, pageWidth, 60).fill(COLORS.primary);
+
+  // Company name
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(20)
+    .text('NUSAF DYNAMIC TECHNOLOGIES', 60, 65);
+
+  // Tagline
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text('Conveyor Components | Power Transmission | Industrial Supplies', 60, 90);
+
+  // CREDIT NOTE title — prominent and clear
+  doc.fillColor('#c62828') // Red tone for credit note
+    .font(FONTS.bold)
+    .fontSize(28)
+    .text('CREDIT NOTE', 50, 130, { align: 'center', width: pageWidth });
+
+  // Credit Note Number and Date
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(14)
+    .text(cn.creditNoteNumber, 50, 170, { align: 'center', width: pageWidth });
+
+  const dateStr = cn.issueDate.toLocaleDateString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  doc.font(FONTS.regular)
+    .fontSize(10)
+    .text(`Date of Issue: ${dateStr}`, 50, 190, { align: 'center', width: pageWidth });
+}
+
+function drawCNPartyInfo(doc: PDFKit.PDFDocument, cn: CreditNoteData): void {
+  const startY = 220;
+  const leftCol = 50;
+  const rightCol = 320;
+
+  // Seller (Nusaf) section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('FROM (SELLER)', leftCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text('Nusaf Dynamic Technologies (Pty) Ltd', leftCol, startY + 18);
+
+  doc.font(FONTS.regular)
+    .fontSize(9);
+
+  let sellerY = startY + 32;
+  doc.text('Reg: [Company Reg Number]', leftCol, sellerY);
+  sellerY += 12;
+  doc.text('VAT: [VAT Registration Number]', leftCol, sellerY);
+  sellerY += 12;
+  doc.text('Johannesburg, Gauteng, South Africa', leftCol, sellerY);
+
+  // Buyer (Customer) section
+  doc.fillColor(COLORS.primary)
+    .font(FONTS.bold)
+    .fontSize(11)
+    .text('TO (CUSTOMER)', rightCol, startY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(cn.customerName, rightCol, startY + 18);
+
+  doc.font(FONTS.regular)
+    .fontSize(9);
+
+  let buyerY = startY + 32;
+  if (cn.customerRegNumber) {
+    doc.text(`Reg: ${cn.customerRegNumber}`, rightCol, buyerY);
+    buyerY += 12;
+  }
+  if (cn.customerVatNumber) {
+    doc.text(`VAT: ${cn.customerVatNumber}`, rightCol, buyerY);
+    buyerY += 12;
+  }
+  if (cn.billingAddress) {
+    doc.text(cn.billingAddress, rightCol, buyerY, { width: 220 });
+  }
+}
+
+function drawCNDetails(doc: PDFKit.PDFDocument, cn: CreditNoteData): void {
+  const startY = 310;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Details box
+  doc.rect(50, startY, pageWidth, 40)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  const col1 = 60;
+  const col2 = 200;
+  const col3 = 340;
+  const col4 = 440;
+  const textY = startY + 6;
+
+  // Row: Credit Note Number, RA Number, Order Number, Currency
+  doc.fillColor(COLORS.darkGray)
+    .font(FONTS.regular)
+    .fontSize(8)
+    .text('Credit Note Number', col1, textY)
+    .text('Return Authorization', col2, textY)
+    .text('Original Order', col3, textY)
+    .text('Currency', col4, textY);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.bold)
+    .fontSize(10)
+    .text(cn.creditNoteNumber, col1, textY + 12)
+    .text(cn.raNumber, col2, textY + 12)
+    .text(cn.orderNumber ?? 'N/A', col3, textY + 12)
+    .text('ZAR', col4, textY + 12);
+}
+
+function drawCNLineItems(doc: PDFKit.PDFDocument, cn: CreditNoteData): number {
+  const startY = 370;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Table header
+  doc.rect(50, startY, pageWidth, 22).fill(COLORS.primary);
+
+  const cols = {
+    line: 55,
+    sku: 80,
+    description: 160,
+    resolution: 310,
+    qty: 370,
+    unit: 400,
+    unitPrice: 440,
+    total: 500,
+  };
+
+  doc.fillColor('white')
+    .font(FONTS.bold)
+    .fontSize(9)
+    .text('#', cols.line, startY + 6)
+    .text('SKU', cols.sku, startY + 6)
+    .text('Description', cols.description, startY + 6)
+    .text('Resolution', cols.resolution, startY + 6)
+    .text('Qty', cols.qty, startY + 6)
+    .text('UoM', cols.unit, startY + 6)
+    .text('Unit Price', cols.unitPrice, startY + 6)
+    .text('Total', cols.total, startY + 6);
+
+  // Table rows
+  let rowY = startY + 22;
+  const rowHeight = 24;
+
+  cn.lines.forEach((line, index) => {
+    if (rowY > doc.page.height - 180) {
+      doc.addPage();
+      rowY = 50;
+    }
+
+    // Alternating row background
+    if (index % 2 === 0) {
+      doc.rect(50, rowY, pageWidth, rowHeight).fill(COLORS.lightGray);
+    }
+
+    doc.rect(50, rowY, pageWidth, rowHeight).stroke(COLORS.mediumGray);
+
+    const resolutionLabel = line.resolution
+      ? line.resolution.charAt(0) + line.resolution.slice(1).toLowerCase()
+      : '';
+
+    doc.fillColor(COLORS.text)
+      .font(FONTS.regular)
+      .fontSize(9)
+      .text(line.lineNumber.toString(), cols.line, rowY + 7)
+      .text(truncateText(line.productSku, 12), cols.sku, rowY + 7)
+      .text(truncateText(line.productDescription, 22), cols.description, rowY + 7)
+      .text(resolutionLabel, cols.resolution, rowY + 7)
+      .text(line.quantity.toString(), cols.qty, rowY + 7)
+      .text(line.unitOfMeasure, cols.unit, rowY + 7)
+      .text(`R${Number(line.unitPrice).toFixed(2)}`, cols.unitPrice, rowY + 7)
+      .text(`R${Number(line.lineTotal).toFixed(2)}`, cols.total, rowY + 7);
+
+    rowY += rowHeight;
+  });
+
+  return rowY;
+}
+
+function drawCNTotals(doc: PDFKit.PDFDocument, cn: CreditNoteData, lastLineY: number): number {
+  const startY = lastLineY + 20;
+  const rightAlign = 545;
+
+  // Totals box
+  doc.rect(380, startY, 165, 75)
+    .fillAndStroke(COLORS.lightGray, COLORS.mediumGray);
+
+  doc.fillColor(COLORS.text)
+    .font(FONTS.regular)
+    .fontSize(10)
+    .text('Subtotal:', 390, startY + 10)
+    .text(`R${Number(cn.subtotal).toFixed(2)}`, rightAlign, startY + 10, { align: 'right', width: 90 });
+
+  doc.text(`VAT (${Number(cn.vatRate)}%):`, 390, startY + 28)
+    .text(`R${Number(cn.vatAmount).toFixed(2)}`, rightAlign, startY + 28, { align: 'right', width: 90 });
+
+  doc.font(FONTS.bold)
+    .fontSize(13)
+    .text('CREDIT TOTAL:', 390, startY + 50)
+    .fillColor('#c62828')
+    .text(`R${Number(cn.total).toFixed(2)}`, rightAlign, startY + 50, { align: 'right', width: 90 });
+
+  return startY + 85;
+}
+
+function drawCNNotes(doc: PDFKit.PDFDocument, cn: CreditNoteData, totalsEndY: number): void {
+  let startY = totalsEndY;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // Check if we need a new page
+  if (startY > doc.page.height - 150) {
+    doc.addPage();
+    startY = 50;
+  }
+
+  // Notes
+  if (cn.notes) {
+    doc.fillColor(COLORS.primary)
+      .font(FONTS.bold)
+      .fontSize(10)
+      .text('NOTES', 50, startY);
+
+    doc.fillColor(COLORS.text)
+      .font(FONTS.regular)
+      .fontSize(9)
+      .text(cn.notes, 50, startY + 15, { width: pageWidth, lineGap: 3 });
+
+    startY += 45;
+  }
+
+  // Credit note compliance statement
+  if (startY > doc.page.height - 100) {
+    doc.addPage();
+    startY = 50;
+  }
+
+  doc.rect(50, startY, pageWidth, 25)
+    .fillAndStroke('#fce4ec', '#c62828');
+
+  doc.fillColor('#c62828')
+    .font(FONTS.bold)
+    .fontSize(9)
+    .text('CREDIT NOTE', 60, startY + 4);
+
+  doc.font(FONTS.regular)
+    .fontSize(8)
+    .text('This credit note has been issued in respect of goods returned under the referenced return authorization.', 60, startY + 14, { width: pageWidth - 20 });
+}
+
+function drawCNFooter(doc: PDFKit.PDFDocument): void {
   const pageHeight = doc.page.height;
   const footerY = pageHeight - 60;
 

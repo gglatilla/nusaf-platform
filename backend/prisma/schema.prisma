@@ -2393,3 +2393,99 @@ model PackingListCounter {
 
   @@map("packing_list_counter")
 }
+
+// ============================================
+// CREDIT NOTE
+// ============================================
+
+enum CreditNoteStatus {
+  DRAFT
+  ISSUED
+  VOIDED
+}
+
+model CreditNote {
+  id               String           @id @default(cuid())
+  creditNoteNumber String           @unique @map("credit_note_number") // CN-YYYY-NNNNN
+  companyId        String           @map("company_id")
+  orderId          String?          @map("order_id")
+  orderNumber      String?          @map("order_number") // Snapshot
+  returnAuthorizationId String      @map("return_authorization_id")
+  raNumber         String           @map("ra_number") // Snapshot
+  customerName     String           @map("customer_name") // Snapshot
+  customerVatNumber String?         @map("customer_vat_number") // Snapshot
+  customerRegNumber String?         @map("customer_reg_number") // Snapshot
+  billingAddress   String?          @map("billing_address") // Snapshot
+  status           CreditNoteStatus @default(DRAFT)
+
+  // Dates
+  issueDate DateTime @map("issue_date")
+
+  // Totals (ZAR)
+  subtotal  Decimal @default(0) @db.Decimal(12, 2)
+  vatRate   Decimal @default(15) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount Decimal @default(0) @map("vat_amount") @db.Decimal(12, 2)
+  total     Decimal @default(0) @db.Decimal(12, 2)
+
+  // PDF
+  pdfUrl String? @map("pdf_url")
+
+  // Voiding
+  voidedAt   DateTime? @map("voided_at")
+  voidedBy   String?   @map("voided_by")
+  voidReason String?   @map("void_reason")
+
+  notes String?
+
+  // Issuer
+  issuedBy     String @map("issued_by")
+  issuedByName String @map("issued_by_name")
+
+  // Relations
+  lines CreditNoteLine[]
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([orderId])
+  @@index([returnAuthorizationId])
+  @@index([status])
+  @@map("credit_notes")
+}
+
+model CreditNoteLine {
+  id           String     @id @default(cuid())
+  creditNoteId String     @map("credit_note_id")
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+  lineNumber   Int        @map("line_number")
+
+  // RA line reference
+  returnAuthorizationLineId String? @map("return_authorization_line_id")
+
+  // Product snapshot
+  productId          String @map("product_id")
+  productSku         String @map("product_sku")
+  productDescription String @map("product_description")
+  unitOfMeasure      String @map("unit_of_measure")
+
+  // Pricing (ZAR — from original order line)
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
+  lineTotal Decimal @map("line_total") @db.Decimal(12, 2)
+
+  // Resolution applied
+  resolution String? // RESTOCK, SCRAP, REPLACE
+
+  @@index([creditNoteId])
+  @@map("credit_note_lines")
+}
+
+model CreditNoteCounter {
+  id    String @id @default("cn_counter")
+  year  Int
+  count Int    @default(0)
+
+  @@map("credit_note_counter")
+}
