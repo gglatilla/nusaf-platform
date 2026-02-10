@@ -57,7 +57,7 @@
 - [x] T35: PO detail role-based action buttons (2026-02-10)
 - [x] T36: Customer link to order after quote acceptance (2026-02-10)
 - [x] T37: Reorder report cost price fallback (2026-02-10)
-- [ ] T38: Job card reservation release on completion
+- [x] T38: Job card reservation release on completion (2026-02-10)
 
 ## Phase 4 — Automation Wiring
 - [ ] T39: Prepay payment triggers fulfillment

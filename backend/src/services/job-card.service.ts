@@ -762,7 +762,36 @@ export async function completeJobCard(
         }
       }
 
-      // 4. Propagate status to SalesOrder
+      // 4. Release hard reservations for this job card's components
+      const jobCardReservations = await tx.stockReservation.findMany({
+        where: {
+          referenceType: 'JobCard',
+          referenceId: jobCard.id,
+          reservationType: 'HARD',
+          releasedAt: null,
+        },
+      });
+
+      for (const reservation of jobCardReservations) {
+        await tx.stockReservation.update({
+          where: { id: reservation.id },
+          data: {
+            releasedAt: new Date(),
+            releasedBy: userId,
+            releaseReason: `Job card ${jobCard.jobCardNumber} completed`,
+          },
+        });
+
+        await updateStockLevel(
+          tx,
+          reservation.productId,
+          reservation.location,
+          { hardReserved: -reservation.quantity },
+          userId
+        );
+      }
+
+      // 5. Propagate status to SalesOrder
       const allJobCards = await tx.jobCard.findMany({
         where: { orderId: jobCard.orderId },
         select: { status: true },
