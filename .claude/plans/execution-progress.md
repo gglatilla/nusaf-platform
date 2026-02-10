@@ -50,7 +50,7 @@
 - [x] T30: Concurrent edit protection (version field on PO) (2026-02-10)
 
 ## Phase 3B — UX Improvements
-- [ ] T31: Order detail role-based action buttons
+- [x] T31: Order detail role-based action buttons (2026-02-10)
 - [ ] T32: Cycle count reconcile + apply in one step
 - [ ] T33: Confirmation dialog on adjustment approval
 - [ ] T34: Reorder report PO generation confirmation modal

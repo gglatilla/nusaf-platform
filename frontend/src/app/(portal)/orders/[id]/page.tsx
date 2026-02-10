@@ -130,25 +130,63 @@ export default function OrderDetailPage() {
     );
   }
 
-  const canConfirm = order.status === 'DRAFT';
-  const canHold = ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status);
-  const canRelease = order.status === 'ON_HOLD';
-  const canCancel = ['DRAFT', 'CONFIRMED', 'PROCESSING', 'ON_HOLD'].includes(order.status);
-  const canGeneratePickingSlips = order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
-  const canCreateJobCard = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
-  const canCreateTransferRequest = order.status === 'CONFIRMED' || order.status === 'PROCESSING';
+  // Role-based visibility groups
+  const userRole = user?.role;
+  const isAdmin = userRole === 'ADMIN';
+  const isManager = userRole === 'MANAGER';
+  const isSales = userRole === 'SALES';
+  const isWarehouse = userRole === 'WAREHOUSE';
+  const isAdminOrManager = isAdmin || isManager;
+
+  // Which role groups can see which action categories
+  const canSeeOrderActions = isAdminOrManager || isSales;           // confirm, hold, release, cancel
+  const canSeeFinancialActions = isAdminOrManager || isSales;       // payment, proforma, tax invoice
+  const canSeeWarehouseActions = isAdminOrManager || isWarehouse;   // picking, jobs, transfers, fulfillment plan
+  const canSeeShippingActions = isAdminOrManager || isSales || isWarehouse; // delivery note, packing list
+  const canSeeCloseAction = isAdminOrManager;                       // close order
+  const canSeeReturnAction = isAdminOrManager || isSales;           // request return
+
+  // Status + role combined checks
   const isPrepay = order.paymentTerms === 'PREPAY' || order.paymentTerms === 'COD';
-  const canGenerateFulfillmentPlan = order.status === 'CONFIRMED' && (!isPrepay || order.paymentStatus === 'PAID');
-  const fulfillmentBlockedByPayment = order.status === 'CONFIRMED' && isPrepay && order.paymentStatus !== 'PAID';
-  const canRecordPayment = order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'NOT_REQUIRED';
-  const canCreateDeliveryNote = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
-  const canCreatePackingList = ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
   const hasActiveProforma = proformaInvoices?.some((pi) => pi.status === 'ACTIVE');
-  const canCreateProformaInvoice = order.status === 'CONFIRMED' && isPrepay && !hasActiveProforma;
   const hasActiveTaxInvoice = taxInvoices?.some((ti) => ti.status === 'ISSUED');
-  const canCreateTaxInvoice = ['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && !hasActiveTaxInvoice;
-  const canRequestReturn = ['SHIPPED', 'DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status);
-  const canClose = order.status === 'INVOICED';
+
+  const canConfirm = canSeeOrderActions && order.status === 'DRAFT';
+  const canHold = canSeeOrderActions && ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status);
+  const canRelease = canSeeOrderActions && order.status === 'ON_HOLD';
+  const canCancel = canSeeOrderActions && ['DRAFT', 'CONFIRMED', 'PROCESSING', 'ON_HOLD'].includes(order.status);
+  const canGeneratePickingSlips = canSeeWarehouseActions && order.status === 'CONFIRMED' && (!pickingSlips || pickingSlips.length === 0);
+  const canCreateJobCard = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING');
+  const canCreateTransferRequest = canSeeWarehouseActions && (order.status === 'CONFIRMED' || order.status === 'PROCESSING');
+  const canGenerateFulfillmentPlan = canSeeWarehouseActions && order.status === 'CONFIRMED' && (!isPrepay || order.paymentStatus === 'PAID');
+  const fulfillmentBlockedByPayment = canSeeWarehouseActions && order.status === 'CONFIRMED' && isPrepay && order.paymentStatus !== 'PAID';
+  const canRecordPayment = canSeeFinancialActions && order.status !== 'CANCELLED' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'NOT_REQUIRED';
+  const canCreateDeliveryNote = canSeeShippingActions && ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
+  const canCreatePackingList = canSeeShippingActions && ['READY_TO_SHIP', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(order.status);
+  const canCreateProformaInvoice = canSeeFinancialActions && order.status === 'CONFIRMED' && isPrepay && !hasActiveProforma;
+  const canCreateTaxInvoice = canSeeFinancialActions && ['DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status) && !hasActiveTaxInvoice;
+  const canRequestReturn = canSeeReturnAction && ['SHIPPED', 'DELIVERED', 'INVOICED', 'CLOSED'].includes(order.status);
+  const canClose = canSeeCloseAction && order.status === 'INVOICED';
+
+  // Determine primary (next step) action for highlighting
+  type PrimaryAction = 'confirm' | 'release' | 'recordPayment' | 'fulfillmentPlan' | 'deliveryNote' | 'taxInvoice' | 'close' | null;
+  let primaryAction: PrimaryAction = null;
+  if (order.status === 'DRAFT') {
+    primaryAction = 'confirm';
+  } else if (order.status === 'ON_HOLD') {
+    primaryAction = 'release';
+  } else if (order.status === 'CONFIRMED' && isPrepay && order.paymentStatus !== 'PAID') {
+    primaryAction = 'recordPayment';
+  } else if (order.status === 'CONFIRMED' && (!isPrepay || order.paymentStatus === 'PAID')) {
+    primaryAction = 'fulfillmentPlan';
+  } else if (['READY_TO_SHIP', 'PARTIALLY_SHIPPED'].includes(order.status)) {
+    primaryAction = 'deliveryNote';
+  } else if (order.status === 'DELIVERED' && !hasActiveTaxInvoice) {
+    primaryAction = 'taxInvoice';
+  } else if (order.status === 'INVOICED') {
+    primaryAction = 'close';
+  }
+  const primaryRing = 'ring-2 ring-offset-2';
 
   const handleConfirm = async () => {
     if (window.confirm('Confirm this order? It will be sent for processing.')) {
@@ -316,7 +354,7 @@ export default function OrderDetailPage() {
           {canRecordPayment && (
             <button
               onClick={() => setShowRecordPaymentModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 ${primaryAction === 'recordPayment' ? `${primaryRing} ring-green-500` : ''}`}
             >
               <Banknote className="h-4 w-4" />
               Record Payment
@@ -325,7 +363,7 @@ export default function OrderDetailPage() {
           {canGenerateFulfillmentPlan && (
             <button
               onClick={() => setShowFulfillmentPlanModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 ${primaryAction === 'fulfillmentPlan' ? `${primaryRing} ring-primary-500` : ''}`}
             >
               <Boxes className="h-4 w-4" />
               Fulfillment Plan
@@ -372,7 +410,7 @@ export default function OrderDetailPage() {
             <button
               onClick={handleCreateDeliveryNote}
               disabled={createDeliveryNote.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-50 ${primaryAction === 'deliveryNote' ? `${primaryRing} ring-teal-500` : ''}`}
             >
               <FileOutput className="h-4 w-4" />
               {createDeliveryNote.isPending ? 'Creating...' : 'Delivery Note'}
@@ -400,7 +438,7 @@ export default function OrderDetailPage() {
             <button
               onClick={handleCreateTaxInvoice}
               disabled={createTaxInvoice.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50 ${primaryAction === 'taxInvoice' ? `${primaryRing} ring-emerald-500` : ''}`}
             >
               <Receipt className="h-4 w-4" />
               {createTaxInvoice.isPending ? 'Generating...' : 'Tax Invoice'}
@@ -410,7 +448,7 @@ export default function OrderDetailPage() {
             <button
               onClick={handleClose}
               disabled={close.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white text-sm font-medium rounded-md hover:bg-slate-700 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white text-sm font-medium rounded-md hover:bg-slate-700 disabled:opacity-50 ${primaryAction === 'close' ? `${primaryRing} ring-slate-500` : ''}`}
             >
               <Lock className="h-4 w-4" />
               {close.isPending ? 'Closing...' : 'Close Order'}
@@ -420,7 +458,7 @@ export default function OrderDetailPage() {
             <button
               onClick={handleConfirm}
               disabled={confirm.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50 ${primaryAction === 'confirm' ? `${primaryRing} ring-primary-500` : ''}`}
             >
               <Check className="h-4 w-4" />
               {confirm.isPending ? 'Confirming...' : 'Confirm'}
@@ -439,7 +477,7 @@ export default function OrderDetailPage() {
             <button
               onClick={handleRelease}
               disabled={release.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 ${primaryAction === 'release' ? `${primaryRing} ring-green-500` : ''}`}
             >
               <Play className="h-4 w-4" />
               {release.isPending ? 'Releasing...' : 'Release'}
@@ -502,11 +540,11 @@ export default function OrderDetailPage() {
           <PackingListsSection packingLists={packingLists ?? []} />
           <ProformaInvoicesSection
             proformaInvoices={proformaInvoices ?? []}
-            canVoid={true}
+            canVoid={isAdminOrManager}
           />
           <TaxInvoicesSection
             taxInvoices={taxInvoices ?? []}
-            canVoid={true}
+            canVoid={isAdminOrManager}
           />
           <PaymentsSection
             payments={payments ?? []}
@@ -514,7 +552,7 @@ export default function OrderDetailPage() {
             paymentTerms={order.paymentTerms}
             paymentStatus={order.paymentStatus}
             canRecordPayment={canRecordPayment}
-            canVoid={true}
+            canVoid={isAdminOrManager}
             onRecordPayment={() => setShowRecordPaymentModal(true)}
           />
           <ReturnAuthorizationsSection returnAuthorizations={returnAuthorizations ?? []} />
