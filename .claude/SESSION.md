@@ -48,14 +48,14 @@ COMPLETE (2026-02-10)
 - Issue 1 (login): Re-run db:seed on Railway after deployment — no code change needed
 
 ## Next Steps
-- Push all commits to remote
 - Deploy to Railway
-- Run npm run db:seed on Railway to apply migration + re-seed test data
+- Run `npx prisma migrate deploy` on Railway to apply migration
+- Run `npm run db:seed` on Railway to re-seed test data (fixes Issue 1 — login)
 - Test all 6 fixes in deployed environment
 - Check TASKS.md for backlog items (TASK-027 for cash customer quoting)
 
 ## Context for Next Session
-- TASK-026 is 6 commits ahead of remote, covering all 6 bug fixes
+- TASK-026 all pushed to remote (7 commits)
 - Migration `20260210100000_add_company_is_internal` needs to be applied on Railway
 - The order route now uses getEffectiveCompanyId() — same pattern as quotes route
 - ProductDetailModal no longer nests AddToQuoteModal — parent pages handle it
