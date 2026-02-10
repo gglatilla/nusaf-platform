@@ -419,12 +419,14 @@ router.post('/execute', async (req, res) => {
  */
 router.get('/suppliers', async (_req, res) => {
   try {
-    // For MVP, only Italian suppliers
-    const suppliers = [
-      { code: 'TECOM', name: 'Tecom', country: 'Italy' },
-      { code: 'CHIARAVALLI', name: 'Chiaravalli', country: 'Italy' },
-      { code: 'REGINA', name: 'Regina', country: 'Italy' },
-    ];
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const suppliers = await prisma.supplier.findMany({
+      where: { isActive: true },
+      select: { code: true, name: true, country: true },
+      orderBy: { name: 'asc' },
+    });
 
     res.json({
       success: true,
