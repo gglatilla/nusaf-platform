@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createTaxInvoiceSchema,
   voidTaxInvoiceSchema,
@@ -24,14 +24,14 @@ router.use(authenticate);
  */
 router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-    const isCustomer = authReq.user.role === 'CUSTOMER';
+
+    const isCustomer = req.user!.role === 'CUSTOMER';
     const { status, companyId, search, dateFrom, dateTo, paymentTerms, overdue, page, pageSize } = req.query;
 
     const result = await getTaxInvoices({
       // Customers can only see ISSUED invoices for their own company
       status: isCustomer ? 'ISSUED' : (status as string | undefined as 'ISSUED' | 'VOIDED' | 'DRAFT' | undefined),
-      companyId: isCustomer ? authReq.user.companyId : (companyId as string | undefined),
+      companyId: isCustomer ? req.user!.companyId : (companyId as string | undefined),
       search: search as string | undefined,
       dateFrom: dateFrom as string | undefined,
       dateTo: dateTo as string | undefined,
@@ -64,16 +64,16 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'CUSTOMER'), async (req
  */
 router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const invoices = await getTaxInvoicesForOrder(orderId, companyId);
 
     // For CUSTOMER role, only return ISSUED invoices
-    const filtered = authReq.user.role === 'CUSTOMER'
+    const filtered = req.user!.role === 'CUSTOMER'
       ? invoices.filter((ti) => ti.status === 'ISSUED')
       : invoices;
 
@@ -99,7 +99,7 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
  */
 router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     const bodyResult = createTaxInvoiceSchema.safeParse(req.body);
@@ -116,8 +116,8 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER'), async (req,
 
     const result = await createTaxInvoice(
       orderId,
-      authReq.user.id,
-      authReq.user.companyId,
+      req.user!.id,
+      req.user!.companyId,
       bodyResult.data.notes
     );
 
@@ -154,11 +154,11 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER'), async (req,
  */
 router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const taxInvoice = await getTaxInvoiceById(id, companyId);
 
@@ -170,7 +170,7 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
     }
 
     // Customers can only download ISSUED invoices
-    if (authReq.user.role === 'CUSTOMER' && taxInvoice.status !== 'ISSUED') {
+    if (req.user!.role === 'CUSTOMER' && taxInvoice.status !== 'ISSUED') {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Tax invoice not found' },
@@ -202,11 +202,11 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const taxInvoice = await getTaxInvoiceById(id, companyId);
 
@@ -218,7 +218,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
     }
 
     // Strip internal data for CUSTOMER role (Golden Rule 4)
-    if (authReq.user.role === 'CUSTOMER') {
+    if (req.user!.role === 'CUSTOMER') {
       if (taxInvoice.status !== 'ISSUED') {
         return res.status(404).json({
           success: false,
@@ -261,7 +261,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
  */
 router.post('/:id/void', requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = voidTaxInvoiceSchema.safeParse(req.body);
@@ -278,8 +278,8 @@ router.post('/:id/void', requireRole('ADMIN'), async (req, res) => {
 
     const result = await voidTaxInvoice(
       id,
-      authReq.user.id,
-      authReq.user.companyId,
+      req.user!.id,
+      req.user!.companyId,
       bodyResult.data.reason
     );
 

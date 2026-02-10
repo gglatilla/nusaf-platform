@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createJobCardSchema,
   assignJobCardSchema,
@@ -33,8 +33,6 @@ router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'));
  */
 router.get('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = jobCardListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -50,7 +48,7 @@ router.get('/', async (req, res) => {
     const { orderId, status, jobType, page, pageSize } = queryResult.data;
 
     const result = await getJobCards({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       orderId,
       status,
       jobType,
@@ -80,10 +78,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const jobCard = await getJobCardById(id, authReq.user.companyId);
+    const jobCard = await getJobCardById(id, req.user!.companyId);
 
     if (!jobCard) {
       return res.status(404).json({
@@ -114,10 +112,10 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/order/:orderId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const jobCards = await getJobCardsForOrder(orderId, authReq.user.companyId);
+    const jobCards = await getJobCardsForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -141,8 +139,6 @@ router.get('/order/:orderId', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     // Validate request body
     const bodyResult = createJobCardSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -158,8 +154,8 @@ router.post('/', async (req, res) => {
 
     const result = await createJobCard(
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -195,7 +191,7 @@ router.post('/', async (req, res) => {
  */
 router.post('/:id/assign', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -213,7 +209,7 @@ router.post('/:id/assign', async (req, res) => {
 
     const { assignedTo, assignedToName } = bodyResult.data;
 
-    const result = await assignJobCard(id, assignedTo, assignedToName, authReq.user.id, authReq.user.companyId);
+    const result = await assignJobCard(id, assignedTo, assignedToName, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -248,10 +244,10 @@ router.post('/:id/assign', async (req, res) => {
  */
 router.post('/:id/start', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await startJobCard(id, authReq.user.id, authReq.user.companyId);
+    const result = await startJobCard(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -289,7 +285,7 @@ router.post('/:id/start', async (req, res) => {
  */
 router.post('/:id/hold', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -307,7 +303,7 @@ router.post('/:id/hold', async (req, res) => {
 
     const { holdReason } = bodyResult.data;
 
-    const result = await putOnHold(id, holdReason, authReq.user.id, authReq.user.companyId);
+    const result = await putOnHold(id, holdReason, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -342,10 +338,10 @@ router.post('/:id/hold', async (req, res) => {
  */
 router.post('/:id/resume', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await resumeJobCard(id, authReq.user.id, authReq.user.companyId);
+    const result = await resumeJobCard(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -380,10 +376,10 @@ router.post('/:id/resume', async (req, res) => {
  */
 router.post('/:id/complete', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await completeJobCard(id, authReq.user.id, authReq.user.companyId);
+    const result = await completeJobCard(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -418,7 +414,7 @@ router.post('/:id/complete', async (req, res) => {
  */
 router.patch('/:id/notes', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -436,7 +432,7 @@ router.patch('/:id/notes', async (req, res) => {
 
     const { notes } = bodyResult.data;
 
-    const result = await updateNotes(id, notes, authReq.user.id, authReq.user.companyId);
+    const result = await updateNotes(id, notes, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;

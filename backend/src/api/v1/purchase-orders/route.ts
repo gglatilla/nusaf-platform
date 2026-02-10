@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createPurchaseOrderSchema,
   updatePurchaseOrderSchema,
@@ -42,8 +42,6 @@ router.post(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-
       const bodyResult = createPurchaseOrderSchema.safeParse(req.body);
       if (!bodyResult.success) {
         return res.status(400).json({
@@ -56,7 +54,7 @@ router.post(
         });
       }
 
-      const result = await createPurchaseOrder(bodyResult.data, authReq.user.id);
+      const result = await createPurchaseOrder(bodyResult.data, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -172,7 +170,7 @@ router.patch(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
       const bodyResult = updatePurchaseOrderSchema.safeParse(req.body);
@@ -187,7 +185,7 @@ router.patch(
         });
       }
 
-      const result = await updatePurchaseOrder(id, bodyResult.data, authReq.user.id);
+      const result = await updatePurchaseOrder(id, bodyResult.data, req.user!.id);
 
       if (!result.success) {
         const statusCode = result.error?.startsWith('VERSION_CONFLICT') ? 409 : 400;
@@ -225,10 +223,10 @@ router.delete(
   requireRole('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
-      const result = await cancelPurchaseOrder(id, authReq.user.id);
+      const result = await cancelPurchaseOrder(id, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -265,7 +263,7 @@ router.post(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
       const bodyResult = addPurchaseOrderLineSchema.safeParse(req.body);
@@ -280,7 +278,7 @@ router.post(
         });
       }
 
-      const result = await addPurchaseOrderLine(id, bodyResult.data, authReq.user.id);
+      const result = await addPurchaseOrderLine(id, bodyResult.data, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -316,7 +314,7 @@ router.patch(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id, lineId } = req.params;
 
       const bodyResult = updatePurchaseOrderLineSchema.safeParse(req.body);
@@ -331,7 +329,7 @@ router.patch(
         });
       }
 
-      const result = await updatePurchaseOrderLine(id, lineId, bodyResult.data, authReq.user.id);
+      const result = await updatePurchaseOrderLine(id, lineId, bodyResult.data, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -367,10 +365,10 @@ router.delete(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id, lineId } = req.params;
 
-      const result = await removePurchaseOrderLine(id, lineId, authReq.user.id);
+      const result = await removePurchaseOrderLine(id, lineId, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -407,10 +405,10 @@ router.post(
   requireRole('PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
-      const result = await submitForApproval(id, authReq.user.id);
+      const result = await submitForApproval(id, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -446,10 +444,10 @@ router.post(
   requireRole('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
-      const result = await approvePurchaseOrder(id, authReq.user.id);
+      const result = await approvePurchaseOrder(id, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -485,7 +483,7 @@ router.post(
   requireRole('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
       const bodyResult = rejectPurchaseOrderSchema.safeParse(req.body);
@@ -500,7 +498,7 @@ router.post(
         });
       }
 
-      const result = await rejectPurchaseOrder(id, bodyResult.data.reason, authReq.user.id);
+      const result = await rejectPurchaseOrder(id, bodyResult.data.reason, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -539,7 +537,7 @@ router.post(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
       // Validate optional send options
@@ -565,7 +563,7 @@ router.post(
       }
 
       // PURCHASER can only send if PO was approved
-      if (authReq.user.role === 'PURCHASER') {
+      if (req.user!.role === 'PURCHASER') {
         if (po.status !== 'PENDING_APPROVAL' || !po.approvedAt) {
           return res.status(403).json({
             success: false,
@@ -575,7 +573,7 @@ router.post(
       }
 
       // Send to supplier (generates PDF, sends email, updates status)
-      const result = await sendToSupplier(id, bodyResult.data, authReq.user.id);
+      const result = await sendToSupplier(id, bodyResult.data, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({
@@ -616,10 +614,10 @@ router.post(
   requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { id } = req.params;
 
-      const result = await acknowledgePurchaseOrder(id, authReq.user.id);
+      const result = await acknowledgePurchaseOrder(id, req.user!.id);
 
       if (!result.success) {
         return res.status(400).json({

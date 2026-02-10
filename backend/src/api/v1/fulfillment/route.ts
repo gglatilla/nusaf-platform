@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import { getFulfillmentDashboard } from '../../../services/fulfillment-dashboard.service';
 
 const router = Router();
@@ -14,8 +14,8 @@ router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'));
  */
 router.get('/dashboard', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-    const data = await getFulfillmentDashboard(authReq.user.companyId);
+
+    const data = await getFulfillmentDashboard(req.user!.companyId);
 
     return res.json({
       success: true,

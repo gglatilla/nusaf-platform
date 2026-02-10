@@ -8,7 +8,7 @@ import {
   getUserById,
   AuthError,
 } from '../../../services/auth.service';
-import { authenticate, AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import { authLimiter } from '../../../middleware/rate-limit';
 import { prisma } from '../../../config/database';
 import { verifyPassword, hashPassword } from '../../../utils/password';
@@ -151,11 +151,9 @@ router.post('/refresh', async (req: Request, res: Response) => {
  */
 router.post('/logout', authenticate, async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     // Get session ID from token (we'd need to track this)
     // For now, we'll clear all sessions for the user - simplified approach
-    await logout(authReq.user.id);
+    await logout(req.user!.id);
 
     res.json({
       success: true,
@@ -179,8 +177,8 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
  */
 router.get('/me', authenticate, async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const user = await getUserById(authReq.user.id);
+
+    const user = await getUserById(req.user!.id);
 
     if (!user) {
       res.status(404).json({
@@ -215,14 +213,12 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
  */
 router.post('/change-password', authenticate, async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     // Validate input
     const data = changePasswordSchema.parse(req.body);
 
     // Get user with password hash
     const user = await prisma.user.findUnique({
-      where: { id: authReq.user.id },
+      where: { id: req.user!.id },
       select: { id: true, password: true },
     });
 

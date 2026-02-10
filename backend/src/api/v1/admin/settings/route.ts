@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../../middleware/auth';
+import { authenticate, requireRole } from '../../../../middleware/auth';
 import { getSettings, updateEurZarRate } from '../../../../services/settings.service';
 import { recalculateProductPrices } from '../../../../services/pricing.service';
 
@@ -45,7 +45,7 @@ router.get('/', async (_req, res) => {
  */
 router.patch('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const parseResult = updateRateSchema.safeParse(req.body);
 
     if (!parseResult.success) {
@@ -60,11 +60,11 @@ router.patch('/', async (req, res) => {
     }
 
     const { eurZarRate } = parseResult.data;
-    const settings = await updateEurZarRate(eurZarRate, authReq.user.id);
+    const settings = await updateEurZarRate(eurZarRate, req.user!.id);
 
     // Auto-recalculate all product prices with the new EUR/ZAR rate
     try {
-      const result = await recalculateProductPrices({ userId: authReq.user.id });
+      const result = await recalculateProductPrices({ userId: req.user!.id });
       console.log(`EUR/ZAR rate updated: recalculated ${result.updated}/${result.total} products`);
     } catch (recalcError) {
       console.error('Price recalculation failed after EUR/ZAR rate update:', recalcError);

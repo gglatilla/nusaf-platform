@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import {
   uploadDocumentSchema,
   documentListQuerySchema,
@@ -41,8 +41,6 @@ const upload = multer({
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     const queryResult = documentListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -58,7 +56,7 @@ router.get('/', authenticate, async (req, res) => {
     const { orderId, type, search, startDate, endDate, page, pageSize } = queryResult.data;
 
     const result = await getDocuments({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       orderId,
       type,
       search,
@@ -90,10 +88,10 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/order/:orderId', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const documents = await getDocumentsForOrder(orderId, authReq.user.companyId);
+    const documents = await getDocumentsForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -117,10 +115,10 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
  */
 router.get('/:id/download', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await getDownloadUrl(id, authReq.user.companyId);
+    const result = await getDownloadUrl(id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Document not found' ? 404 : 500;
@@ -158,8 +156,6 @@ router.get('/:id/download', authenticate, async (req, res) => {
  */
 router.post('/upload', authenticate, upload.single('file'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     if (!isStorageConfigured()) {
       return res.status(503).json({
         success: false,
@@ -203,8 +199,8 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
         mimeType: req.file.mimetype,
         data: req.file.buffer,
       },
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -254,10 +250,10 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
  */
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await deleteDocument(id, authReq.user.id, authReq.user.companyId);
+    const result = await deleteDocument(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Document not found' ? 404 : 400;

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import {
   createTransferRequestFromOrderSchema,
   createStandaloneTransferRequestSchema,
@@ -29,8 +29,6 @@ const router = Router();
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     const queryResult = transferRequestListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -46,7 +44,7 @@ router.get('/', authenticate, async (req, res) => {
     const { orderId, status, page, pageSize } = queryResult.data;
 
     const result = await getTransferRequests({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       orderId,
       status,
       page,
@@ -75,10 +73,10 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/order/:orderId', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const transferRequests = await getTransferRequestsForOrder(orderId, authReq.user.companyId);
+    const transferRequests = await getTransferRequestsForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -102,10 +100,10 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
  */
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const transferRequest = await getTransferRequestById(id, authReq.user.companyId);
+    const transferRequest = await getTransferRequestById(id, req.user!.companyId);
 
     if (!transferRequest) {
       return res.status(404).json({
@@ -136,7 +134,7 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.post('/generate/:orderId', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     // Validate request body
@@ -155,8 +153,8 @@ router.post('/generate/:orderId', authenticate, async (req, res) => {
     const result = await createTransferRequest(
       orderId,
       bodyResult.data.lines,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -192,8 +190,6 @@ router.post('/generate/:orderId', authenticate, async (req, res) => {
  */
 router.post('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     // Validate request body
     const bodyResult = createStandaloneTransferRequestSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -210,8 +206,8 @@ router.post('/', authenticate, async (req, res) => {
     const result = await createStandaloneTransferRequest(
       bodyResult.data.lines,
       bodyResult.data.notes || null,
-      authReq.user.id,
-      authReq.user.companyId,
+      req.user!.id,
+      req.user!.companyId,
       bodyResult.data.fromLocation,
       bodyResult.data.toLocation
     );
@@ -248,7 +244,7 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.post('/:id/ship', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -266,7 +262,7 @@ router.post('/:id/ship', authenticate, async (req, res) => {
 
     const { shippedByName } = bodyResult.data;
 
-    const result = await shipTransfer(id, authReq.user.id, shippedByName, authReq.user.companyId);
+    const result = await shipTransfer(id, req.user!.id, shippedByName, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;
@@ -301,7 +297,7 @@ router.post('/:id/ship', authenticate, async (req, res) => {
  */
 router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id, lineId } = req.params;
 
     // Validate request body
@@ -319,7 +315,7 @@ router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
 
     const { receivedQuantity } = bodyResult.data;
 
-    const result = await updateLineReceived(id, lineId, receivedQuantity, authReq.user.id, authReq.user.companyId);
+    const result = await updateLineReceived(id, lineId, receivedQuantity, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -354,7 +350,7 @@ router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
  */
 router.post('/:id/receive', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -372,7 +368,7 @@ router.post('/:id/receive', authenticate, async (req, res) => {
 
     const { receivedByName } = bodyResult.data;
 
-    const result = await receiveTransfer(id, authReq.user.id, receivedByName, authReq.user.companyId);
+    const result = await receiveTransfer(id, req.user!.id, receivedByName, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;
@@ -407,7 +403,7 @@ router.post('/:id/receive', authenticate, async (req, res) => {
  */
 router.patch('/:id/notes', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -425,7 +421,7 @@ router.patch('/:id/notes', authenticate, async (req, res) => {
 
     const { notes } = bodyResult.data;
 
-    const result = await updateNotes(id, notes, authReq.user.id, authReq.user.companyId);
+    const result = await updateNotes(id, notes, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;

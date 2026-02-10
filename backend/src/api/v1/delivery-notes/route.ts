@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createDeliveryNoteSchema,
   confirmDeliverySchema,
@@ -27,8 +27,6 @@ router.use(authenticate);
  */
 router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = deliveryNoteListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -41,7 +39,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'
       });
     }
 
-    const result = await getDeliveryNotes(authReq.user.companyId, queryResult.data);
+    const result = await getDeliveryNotes(req.user!.companyId, queryResult.data);
 
     return res.json({
       success: true,
@@ -66,10 +64,10 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'
  */
 router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const deliveryNotes = await getDeliveryNotesForOrder(orderId, authReq.user.companyId);
+    const deliveryNotes = await getDeliveryNotesForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -93,10 +91,10 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const deliveryNote = await getDeliveryNoteById(id, authReq.user.companyId);
+    const deliveryNote = await getDeliveryNoteById(id, req.user!.companyId);
 
     if (!deliveryNote) {
       return res.status(404).json({
@@ -106,7 +104,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
     }
 
     // Strip internal data for CUSTOMER role (Golden Rule 4)
-    if (authReq.user.role === 'CUSTOMER') {
+    if (req.user!.role === 'CUSTOMER') {
       return res.json({
         success: true,
         data: {
@@ -140,7 +138,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
  */
 router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     const bodyResult = createDeliveryNoteSchema.safeParse(req.body);
@@ -158,8 +156,8 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
     const result = await createDeliveryNote(
       orderId,
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -194,17 +192,17 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
  */
 router.post('/:id/dispatch', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Fetch user name from database
     const user = await prisma.user.findUnique({
-      where: { id: authReq.user.id },
+      where: { id: req.user!.id },
       select: { firstName: true, lastName: true },
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await dispatchDeliveryNote(id, authReq.user.id, userName, authReq.user.companyId);
+    const result = await dispatchDeliveryNote(id, req.user!.id, userName, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;
@@ -239,7 +237,7 @@ router.post('/:id/dispatch', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async
  */
 router.post('/:id/confirm-delivery', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = confirmDeliverySchema.safeParse(req.body);
@@ -254,7 +252,7 @@ router.post('/:id/confirm-delivery', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'
       });
     }
 
-    const result = await confirmDelivery(id, bodyResult.data, authReq.user.id, authReq.user.companyId);
+    const result = await confirmDelivery(id, bodyResult.data, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;
@@ -289,10 +287,10 @@ router.post('/:id/confirm-delivery', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'
  */
 router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await cancelDeliveryNote(id, authReq.user.id, authReq.user.companyId);
+    const result = await cancelDeliveryNote(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;

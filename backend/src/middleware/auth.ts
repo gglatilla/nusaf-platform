@@ -2,14 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import type { UserRole } from '@prisma/client';
 
-export interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string;
-    role: UserRole;
-    companyId: string;
-  };
-}
+// AuthenticatedRequest kept for backwards compatibility during migration.
+// Prefer using req.user directly (via Express declaration merging in types/express.d.ts).
+export type AuthenticatedRequest = Request & {
+  user: NonNullable<Request['user']>;
+};
 
 /**
  * Middleware to authenticate requests using JWT
@@ -36,7 +33,7 @@ export function authenticate(
 
   try {
     const payload = verifyAccessToken(token);
-    (req as AuthenticatedRequest).user = {
+    req.user = {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
@@ -59,7 +56,7 @@ export function authenticate(
  */
 export function requireRole(...allowedRoles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const user = (req as AuthenticatedRequest).user;
+    const user = req.user;
 
     if (!user) {
       res.status(401).json({

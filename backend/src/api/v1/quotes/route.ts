@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { prisma } from '../../../config/database';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import type { UserRole } from '@prisma/client';
 import {
   addQuoteItemSchema,
@@ -37,8 +37,8 @@ function isQuoteStaff(role: UserRole): boolean {
  * - CUSTOMER: always own companyId (strict isolation)
  * - Staff (ADMIN/MANAGER/SALES): undefined (can access all quotes)
  */
-function getEffectiveCompanyId(authReq: AuthenticatedRequest): string | undefined {
-  return isQuoteStaff(authReq.user.role) ? undefined : authReq.user.companyId;
+function getEffectiveCompanyId(req: Request): string | undefined {
+  return isQuoteStaff(req.user!.role) ? undefined : req.user!.companyId;
 }
 
 // All routes require authentication
@@ -53,8 +53,8 @@ router.use(authenticate);
  */
 router.post('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-    const staff = isQuoteStaff(authReq.user.role);
+
+    const staff = isQuoteStaff(req.user!.role);
 
     let targetCompanyId: string;
 
@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
       targetCompanyId = companyId;
     } else {
       // CUSTOMER: always own company
-      targetCompanyId = authReq.user.companyId;
+      targetCompanyId = req.user!.companyId;
     }
 
     // Get target company for tier
@@ -87,7 +87,7 @@ router.post('/', async (req, res) => {
     }
 
     const result = await getOrCreateDraftQuote(
-      authReq.user.id,
+      req.user!.id,
       targetCompanyId,
       company.tier
     );
@@ -119,8 +119,6 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = quoteListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -135,15 +133,15 @@ router.get('/', async (req, res) => {
 
     const { status, page, pageSize } = queryResult.data;
 
-    const staff = isQuoteStaff(authReq.user.role);
+    const staff = isQuoteStaff(req.user!.role);
     // Staff can optionally filter by companyId query param; customers always see own
     const companyId = staff
       ? (req.query.companyId as string | undefined)
-      : authReq.user.companyId;
+      : req.user!.companyId;
 
     const result = await getQuotes({
       companyId,
-      userId: staff ? authReq.user.id : undefined,
+      userId: staff ? req.user!.id : undefined,
       status,
       page,
       pageSize,
@@ -172,13 +170,13 @@ router.get('/', async (req, res) => {
  */
 router.get('/active', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-    const staff = isQuoteStaff(authReq.user.role);
+
+    const staff = isQuoteStaff(req.user!.role);
 
     // Staff must specify which customer company's draft to fetch
     const targetCompanyId = staff
       ? (req.query.companyId as string | undefined)
-      : authReq.user.companyId;
+      : req.user!.companyId;
 
     if (staff && !targetCompanyId) {
       return res.status(400).json({
@@ -187,7 +185,7 @@ router.get('/active', async (req, res) => {
       });
     }
 
-    const draft = await getActiveDraftQuote(authReq.user.id, targetCompanyId!);
+    const draft = await getActiveDraftQuote(req.user!.id, targetCompanyId!);
 
     return res.json({
       success: true,
@@ -211,7 +209,7 @@ router.get('/active', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Prevent "active" from being treated as an ID
@@ -222,7 +220,7 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
 
     if (!quote) {
       return res.status(404).json({
@@ -253,7 +251,7 @@ router.get('/:id', async (req, res) => {
  */
 router.patch('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -270,7 +268,7 @@ router.patch('/:id', async (req, res) => {
     }
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -278,7 +276,7 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
-    const result = await updateQuoteNotes(id, bodyResult.data.customerNotes || '', authReq.user.id);
+    const result = await updateQuoteNotes(id, bodyResult.data.customerNotes || '', req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -309,10 +307,10 @@ router.patch('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await deleteQuote(id, authReq.user.id, getEffectiveCompanyId(authReq));
+    const result = await deleteQuote(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Quote not found' ? 404 : 400;
@@ -348,7 +346,7 @@ router.delete('/:id', async (req, res) => {
  */
 router.post('/:id/items', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -369,8 +367,8 @@ router.post('/:id/items', async (req, res) => {
       id,
       bodyResult.data.productId,
       bodyResult.data.quantity,
-      authReq.user.id,
-      getEffectiveCompanyId(authReq)
+      req.user!.id,
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -404,7 +402,7 @@ router.post('/:id/items', async (req, res) => {
  */
 router.patch('/:id/items/:itemId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id, itemId } = req.params;
 
     // Validate request body
@@ -421,7 +419,7 @@ router.patch('/:id/items/:itemId', async (req, res) => {
     }
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -433,7 +431,7 @@ router.patch('/:id/items/:itemId', async (req, res) => {
       id,
       itemId,
       bodyResult.data.quantity,
-      authReq.user.id
+      req.user!.id
     );
 
     if (!result.success) {
@@ -465,11 +463,11 @@ router.patch('/:id/items/:itemId', async (req, res) => {
  */
 router.delete('/:id/items/:itemId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id, itemId } = req.params;
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -477,7 +475,7 @@ router.delete('/:id/items/:itemId', async (req, res) => {
       });
     }
 
-    const result = await removeQuoteItem(id, itemId, authReq.user.id);
+    const result = await removeQuoteItem(id, itemId, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -508,11 +506,11 @@ router.delete('/:id/items/:itemId', async (req, res) => {
  */
 router.post('/:id/finalize', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -520,7 +518,7 @@ router.post('/:id/finalize', async (req, res) => {
       });
     }
 
-    const result = await finalizeQuote(id, authReq.user.id);
+    const result = await finalizeQuote(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -551,11 +549,11 @@ router.post('/:id/finalize', async (req, res) => {
  */
 router.post('/:id/accept', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -563,7 +561,7 @@ router.post('/:id/accept', async (req, res) => {
       });
     }
 
-    const result = await acceptQuote(id, authReq.user.id);
+    const result = await acceptQuote(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -600,11 +598,11 @@ router.post('/:id/accept', async (req, res) => {
  */
 router.post('/:id/reject', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Verify quote access (staff can access any company's quotes)
-    const quote = await getQuoteById(id, getEffectiveCompanyId(authReq));
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
     if (!quote) {
       return res.status(404).json({
         success: false,
@@ -612,7 +610,7 @@ router.post('/:id/reject', async (req, res) => {
       });
     }
 
-    const result = await rejectQuote(id, authReq.user.id);
+    const result = await rejectQuote(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({

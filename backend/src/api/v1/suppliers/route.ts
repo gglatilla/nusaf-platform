@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   listSuppliers,
   getSupplierById,
@@ -110,7 +110,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) =>
  */
 router.post('/', requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const parseResult = createSupplierSchema.safeParse(req.body);
 
     if (!parseResult.success) {
@@ -124,7 +124,7 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
       });
     }
 
-    const result = await createSupplier(parseResult.data, authReq.user.id);
+    const result = await createSupplier(parseResult.data, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -159,7 +159,7 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
  */
 router.patch('/:id', requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const parseResult = updateSupplierSchema.safeParse(req.body);
 
     if (!parseResult.success) {
@@ -173,7 +173,7 @@ router.patch('/:id', requireRole('ADMIN'), async (req, res) => {
       });
     }
 
-    const result = await updateSupplier(req.params.id, parseResult.data, authReq.user.id);
+    const result = await updateSupplier(req.params.id, parseResult.data, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Supplier not found' ? 404 : 400;
@@ -209,8 +209,8 @@ router.patch('/:id', requireRole('ADMIN'), async (req, res) => {
  */
 router.delete('/:id', requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const result = await softDeleteSupplier(req.params.id, authReq.user.id);
+
+    const result = await softDeleteSupplier(req.params.id, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Supplier not found' ? 404 : 400;

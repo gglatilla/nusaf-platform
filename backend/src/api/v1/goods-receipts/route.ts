@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import { prisma } from '../../../config/database';
 import {
   createGrvSchema,
@@ -30,8 +30,6 @@ router.post(
   requireRole('ADMIN', 'WAREHOUSE'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-
       const bodyResult = createGrvSchema.safeParse(req.body);
       if (!bodyResult.success) {
         return res.status(400).json({
@@ -46,7 +44,7 @@ router.post(
 
       // Fetch user name from database
       const user = await prisma.user.findUnique({
-        where: { id: authReq.user.id },
+        where: { id: req.user!.id },
         select: { firstName: true, lastName: true },
       });
 
@@ -54,7 +52,7 @@ router.post(
 
       const result = await createGoodsReceipt(
         bodyResult.data,
-        authReq.user.id,
+        req.user!.id,
         userName
       );
 

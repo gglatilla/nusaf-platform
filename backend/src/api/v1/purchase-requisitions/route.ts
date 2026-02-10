@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createPurchaseRequisitionSchema,
   rejectPurchaseRequisitionSchema,
@@ -37,9 +37,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE
         },
       });
     }
-
-    const authReq = req as unknown as AuthenticatedRequest;
-    const result = await getPurchaseRequisitions(authReq.user.companyId, queryResult.data);
+    const result = await getPurchaseRequisitions(req.user!.companyId, queryResult.data);
 
     return res.json({
       success: true,
@@ -63,10 +61,10 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const pr = await getPurchaseRequisitionById(id, authReq.user.companyId);
+    const pr = await getPurchaseRequisitionById(id, req.user!.companyId);
 
     if (!pr) {
       return res.status(404).json({
@@ -109,20 +107,18 @@ router.post('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUS
       });
     }
 
-    const authReq = req as unknown as AuthenticatedRequest;
-
     // Resolve user name
     const user = await prisma.user.findUnique({
-      where: { id: authReq.user.id },
+      where: { id: req.user!.id },
       select: { firstName: true, lastName: true },
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
     const result = await createPurchaseRequisition(
       bodyResult.data,
-      authReq.user.id,
+      req.user!.id,
       userName,
-      authReq.user.companyId
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -154,21 +150,21 @@ router.post('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUS
  */
 router.post('/:id/approve', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Resolve user name
     const user = await prisma.user.findUnique({
-      where: { id: authReq.user.id },
+      where: { id: req.user!.id },
       select: { firstName: true, lastName: true },
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
     const result = await approvePurchaseRequisition(
       id,
-      authReq.user.id,
+      req.user!.id,
       userName,
-      authReq.user.companyId
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -218,15 +214,13 @@ router.post('/:id/reject', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
         },
       });
     }
-
-    const authReq = req as unknown as AuthenticatedRequest;
     const { id } = req.params;
 
     const result = await rejectPurchaseRequisition(
       id,
       bodyResult.data.reason,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -262,13 +256,13 @@ router.post('/:id/reject', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
  */
 router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const result = await cancelPurchaseRequisition(
       id,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import multer from 'multer';
 import { prisma } from '../../../config/database';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   calculateProductPrice,
   calculateCustomerPrice,
@@ -76,7 +76,7 @@ const router = Router();
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const {
       categoryId,
       subCategoryId,
@@ -179,11 +179,11 @@ router.get('/', authenticate, async (req, res) => {
 
     // Get company tier
     const company = await prisma.company.findUnique({
-      where: { id: authReq.user.companyId },
+      where: { id: req.user!.companyId },
       select: { tier: true },
     });
 
-    const userRole = authReq.user.role;
+    const userRole = req.user!.role;
     const isCustomer = userRole === 'CUSTOMER';
     const isStaff = ['ADMIN', 'MANAGER', 'SALES'].includes(userRole);
 
@@ -360,7 +360,7 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
     const includeParam = (req.query.include as string) || '';
     const movementLimit = Math.min(100, Math.max(1, parseInt(req.query.movementLimit as string, 10) || 20));
@@ -462,7 +462,7 @@ router.get('/:id', authenticate, async (req, res) => {
         },
       }),
       prisma.company.findUnique({
-        where: { id: authReq.user.companyId },
+        where: { id: req.user!.companyId },
         select: { tier: true },
       }),
       prisma.globalSettings.findUnique({
@@ -480,7 +480,7 @@ router.get('/:id', authenticate, async (req, res) => {
       });
     }
 
-    const userRole = authReq.user.role;
+    const userRole = req.user!.role;
     const isCustomer = userRole === 'CUSTOMER';
     const tier = (company?.tier ?? 'END_USER') as CustomerTier;
 
@@ -686,8 +686,6 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     // Validate request body
     const bodyResult = createProductSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -701,7 +699,7 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
       });
     }
 
-    const result = await createProduct(bodyResult.data, authReq.user.id);
+    const result = await createProduct(bodyResult.data, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -733,7 +731,7 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
  */
 router.patch('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -749,7 +747,7 @@ router.patch('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
       });
     }
 
-    const result = await updateProduct(id, bodyResult.data, authReq.user.id);
+    const result = await updateProduct(id, bodyResult.data, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Product not found' ? 404 : 400;
@@ -781,10 +779,10 @@ router.patch('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
  */
 router.delete('/:id', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await softDeleteProduct(id, authReq.user.id);
+    const result = await softDeleteProduct(id, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Product not found' ? 404 : 400;
@@ -1104,7 +1102,7 @@ router.post('/bulk-publish', authenticate, requireRole('ADMIN'), async (req, res
  */
 router.get('/:id/price', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Get product
@@ -1124,7 +1122,7 @@ router.get('/:id/price', authenticate, async (req, res) => {
 
     // Get company tier for pricing
     const company = await prisma.company.findUnique({
-      where: { id: authReq.user.companyId },
+      where: { id: req.user!.companyId },
     });
 
     if (!company) {
@@ -1196,13 +1194,13 @@ router.post(
   requireRole('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { supplierId, categoryId } = req.body;
 
       const result = await recalculateProductPrices({
         supplierId: typeof supplierId === 'string' ? supplierId : undefined,
         categoryId: typeof categoryId === 'string' ? categoryId : undefined,
-        userId: authReq.user.id,
+        userId: req.user!.id,
       });
 
       return res.json({
@@ -1421,7 +1419,7 @@ router.get('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', '
  */
 router.post('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId } = req.params;
 
     // Validate request body
@@ -1446,7 +1444,7 @@ router.post('/:productId/stock/adjustments', authenticate, requireRole('ADMIN', 
       })),
     };
 
-    const result = await createStockAdjustment(adjustmentData, authReq.user.id);
+    const result = await createStockAdjustment(adjustmentData, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -1557,7 +1555,7 @@ router.get('/:productId/bom', authenticate, async (req, res) => {
  */
 router.post('/:productId/bom', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId } = req.params;
 
     const bodyResult = addBomComponentSchema.safeParse(req.body);
@@ -1572,7 +1570,7 @@ router.post('/:productId/bom', authenticate, requireRole('ADMIN'), async (req, r
       });
     }
 
-    const result = await addBomComponent(productId, bodyResult.data, authReq.user.id);
+    const result = await addBomComponent(productId, bodyResult.data, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -1604,7 +1602,7 @@ router.post('/:productId/bom', authenticate, requireRole('ADMIN'), async (req, r
  */
 router.patch('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId, componentId } = req.params;
 
     const bodyResult = updateBomComponentSchema.safeParse(req.body);
@@ -1619,7 +1617,7 @@ router.patch('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'),
       });
     }
 
-    const result = await updateBomComponent(productId, componentId, bodyResult.data, authReq.user.id);
+    const result = await updateBomComponent(productId, componentId, bodyResult.data, req.user!.id);
 
     if (!result.success) {
       return res.status(404).json({
@@ -1650,10 +1648,10 @@ router.patch('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'),
  */
 router.delete('/:productId/bom/:componentId', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId, componentId } = req.params;
 
-    const result = await removeBomComponent(productId, componentId, authReq.user.id);
+    const result = await removeBomComponent(productId, componentId, req.user!.id);
 
     if (!result.success) {
       return res.status(404).json({
@@ -1763,10 +1761,10 @@ router.get('/:productId/where-used', authenticate, async (req, res) => {
  */
 router.post('/:productId/bom/copy-from/:sourceId', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId, sourceId } = req.params;
 
-    const result = await copyBom(productId, sourceId, authReq.user.id);
+    const result = await copyBom(productId, sourceId, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -1859,7 +1857,7 @@ router.post(
   upload.single('file'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { productId } = req.params;
 
       if (!isR2Configured()) {
@@ -1929,7 +1927,7 @@ router.post(
           fileSize: file.size,
           mimeType: file.mimetype,
           sortOrder: bodyResult.data.sortOrder ?? 0,
-          createdBy: authReq.user.id,
+          createdBy: req.user!.id,
         },
       });
 
@@ -2060,7 +2058,7 @@ router.post(
   upload.single('file'),
   async (req, res) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+
       const { productId } = req.params;
 
       if (!isR2Configured()) {
@@ -2145,7 +2143,7 @@ router.post(
           caption: bodyResult.data.caption,
           isPrimary: bodyResult.data.isPrimary ?? false,
           sortOrder: bodyResult.data.sortOrder ?? 0,
-          createdBy: authReq.user.id,
+          createdBy: req.user!.id,
         },
       });
 
@@ -2329,7 +2327,7 @@ router.get('/:productId/cross-references', async (req, res) => {
  */
 router.post('/:productId/cross-references', authenticate, requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId } = req.params;
 
     const bodyResult = createCrossReferenceSchema.safeParse(req.body);
@@ -2380,7 +2378,7 @@ router.post('/:productId/cross-references', authenticate, requireRole('ADMIN'), 
         competitorSku: bodyResult.data.competitorSku,
         notes: bodyResult.data.notes,
         isExact: bodyResult.data.isExact ?? false,
-        createdBy: authReq.user.id,
+        createdBy: req.user!.id,
       },
     });
 

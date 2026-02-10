@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthenticatedRequest } from './auth';
 
-export interface ScopedRequest extends AuthenticatedRequest {
+// ScopedRequest kept for backwards compatibility during migration.
+// Prefer using req.companyScope directly (via Express declaration merging in types/express.d.ts).
+export type ScopedRequest = Request & {
+  user: NonNullable<Request['user']>;
   companyScope: string;
-}
+};
 
 /**
  * Middleware to enforce company scope for multi-tenant isolation
@@ -16,9 +18,7 @@ export function enforceCompanyScope(
   res: Response,
   next: NextFunction
 ): void {
-  const authReq = req as AuthenticatedRequest;
-
-  if (!authReq.user) {
+  if (!req.user) {
     res.status(401).json({
       success: false,
       error: {
@@ -31,7 +31,7 @@ export function enforceCompanyScope(
 
   // Admin users can optionally specify a company to scope to
   // For now, all users are scoped to their own company
-  (req as ScopedRequest).companyScope = authReq.user.companyId;
+  req.companyScope = req.user.companyId;
 
   next();
 }
@@ -40,6 +40,5 @@ export function enforceCompanyScope(
  * Helper to get company filter for Prisma queries
  */
 export function getCompanyFilter(req: Request): { companyId: string } {
-  const scopedReq = req as ScopedRequest;
-  return { companyId: scopedReq.companyScope };
+  return { companyId: req.companyScope! };
 }

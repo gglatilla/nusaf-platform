@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../../../../config/database';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../../middleware/auth';
+import { authenticate, requireRole } from '../../../../middleware/auth';
 import { recalculateProductPrices } from '../../../../services/pricing.service';
 
 const router = Router();
@@ -157,7 +157,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const parseResult = createPricingRuleSchema.safeParse(req.body);
 
     if (!parseResult.success) {
@@ -250,7 +250,7 @@ router.post('/', async (req, res) => {
         discountPercent: data.discountPercent != null ? new Decimal(data.discountPercent) : null,
         freightPercent: new Decimal(data.freightPercent),
         marginDivisor: new Decimal(data.marginDivisor),
-        createdBy: authReq.user.id,
+        createdBy: req.user!.id,
       },
       include: {
         supplier: { select: { id: true, code: true, name: true } },
@@ -263,7 +263,7 @@ router.post('/', async (req, res) => {
     recalculateProductPrices({
       supplierId: supplier.id,
       categoryId: category.id,
-      userId: authReq.user.id,
+      userId: req.user!.id,
     }).catch((recalcError) => {
       console.error('Price recalculation failed:', recalcError);
     });
@@ -301,7 +301,7 @@ router.post('/', async (req, res) => {
  */
 router.patch('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
     const parseResult = updatePricingRuleSchema.safeParse(req.body);
 
@@ -336,7 +336,7 @@ router.patch('/:id', async (req, res) => {
         }),
         ...(data.freightPercent !== undefined && { freightPercent: new Decimal(data.freightPercent) }),
         ...(data.marginDivisor !== undefined && { marginDivisor: new Decimal(data.marginDivisor) }),
-        updatedBy: authReq.user.id,
+        updatedBy: req.user!.id,
       },
       include: {
         supplier: { select: { id: true, code: true, name: true } },
@@ -349,7 +349,7 @@ router.patch('/:id', async (req, res) => {
     recalculateProductPrices({
       supplierId: existing.supplierId,
       categoryId: existing.categoryId,
-      userId: authReq.user.id,
+      userId: req.user!.id,
     }).catch((recalcError) => {
       console.error('Price recalculation failed:', recalcError);
     });
@@ -422,7 +422,7 @@ router.delete('/:id', async (req, res) => {
  */
 router.post('/recalculate', async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { supplierId, categoryId } = req.body;
 
     // Resolve supplier code to ID if provided
@@ -465,7 +465,7 @@ router.post('/recalculate', async (req, res) => {
     const result = await recalculateProductPrices({
       supplierId: resolvedSupplierId,
       categoryId: resolvedCategoryId,
-      userId: authReq.user.id,
+      userId: req.user!.id,
     });
 
     return res.json({

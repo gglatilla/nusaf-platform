@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import {
   createIssueFlagSchema,
   updateStatusSchema,
@@ -28,8 +28,6 @@ const router = Router();
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     const queryResult = issueFlagListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -45,7 +43,7 @@ router.get('/', authenticate, async (req, res) => {
     const { pickingSlipId, jobCardId, status, severity, category, page, pageSize } = queryResult.data;
 
     const result = await getIssueFlags({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       pickingSlipId,
       jobCardId,
       status,
@@ -77,9 +75,7 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/stats', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
-    const stats = await getIssueStats(authReq.user.companyId);
+    const stats = await getIssueStats(req.user!.companyId);
 
     return res.json({
       success: true,
@@ -103,10 +99,10 @@ router.get('/stats', authenticate, async (req, res) => {
  */
 router.get('/picking-slip/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const issues = await getIssuesForPickingSlip(id, authReq.user.companyId);
+    const issues = await getIssuesForPickingSlip(id, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -130,10 +126,10 @@ router.get('/picking-slip/:id', authenticate, async (req, res) => {
  */
 router.get('/job-card/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const issues = await getIssuesForJobCard(id, authReq.user.companyId);
+    const issues = await getIssuesForJobCard(id, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -157,10 +153,10 @@ router.get('/job-card/:id', authenticate, async (req, res) => {
  */
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const issueFlag = await getIssueFlagById(id, authReq.user.companyId);
+    const issueFlag = await getIssueFlagById(id, req.user!.companyId);
 
     if (!issueFlag) {
       return res.status(404).json({
@@ -191,8 +187,6 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.post('/', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     // Validate request body
     const bodyResult = createIssueFlagSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -208,8 +202,8 @@ router.post('/', authenticate, async (req, res) => {
 
     const result = await createIssueFlag(
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -245,7 +239,7 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -263,7 +257,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     const { status } = bodyResult.data;
 
-    const result = await updateStatus(id, status, authReq.user.id, authReq.user.companyId);
+    const result = await updateStatus(id, status, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -298,7 +292,7 @@ router.patch('/:id', authenticate, async (req, res) => {
  */
 router.post('/:id/comments', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -316,7 +310,7 @@ router.post('/:id/comments', authenticate, async (req, res) => {
 
     const { content } = bodyResult.data;
 
-    const result = await addComment(id, content, authReq.user.id, authReq.user.companyId);
+    const result = await addComment(id, content, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -351,7 +345,7 @@ router.post('/:id/comments', authenticate, async (req, res) => {
  */
 router.post('/:id/resolve', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -369,7 +363,7 @@ router.post('/:id/resolve', authenticate, async (req, res) => {
 
     const { resolution } = bodyResult.data;
 
-    const result = await resolveIssue(id, resolution, authReq.user.id, authReq.user.companyId);
+    const result = await resolveIssue(id, resolution, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -404,10 +398,10 @@ router.post('/:id/resolve', authenticate, async (req, res) => {
  */
 router.post('/:id/close', authenticate, async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await closeIssue(id, authReq.user.id, authReq.user.companyId);
+    const result = await closeIssue(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;

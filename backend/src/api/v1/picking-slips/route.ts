@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Warehouse } from '@prisma/client';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   generatePickingSlipsSchema,
   assignPickingSlipSchema,
@@ -32,8 +32,6 @@ router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'));
  */
 router.get('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = pickingSlipListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -49,7 +47,7 @@ router.get('/', async (req, res) => {
     const { orderId, location, status, page, pageSize } = queryResult.data;
 
     const result = await getPickingSlips({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       orderId,
       location,
       status,
@@ -79,10 +77,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const pickingSlip = await getPickingSlipById(id, authReq.user.companyId);
+    const pickingSlip = await getPickingSlipById(id, req.user!.companyId);
 
     if (!pickingSlip) {
       return res.status(404).json({
@@ -113,10 +111,10 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/order/:orderId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const pickingSlips = await getPickingSlipsForOrder(orderId, authReq.user.companyId);
+    const pickingSlips = await getPickingSlipsForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -140,7 +138,7 @@ router.get('/order/:orderId', async (req, res) => {
  */
 router.post('/generate/:orderId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     // Validate request body
@@ -184,8 +182,8 @@ router.post('/generate/:orderId', async (req, res) => {
         orderId,
         location,
         locationLines,
-        authReq.user.id,
-        authReq.user.companyId
+        req.user!.id,
+        req.user!.companyId
       );
 
       if (result.success && result.pickingSlip) {
@@ -234,7 +232,7 @@ router.post('/generate/:orderId', async (req, res) => {
  */
 router.post('/:id/assign', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -252,7 +250,7 @@ router.post('/:id/assign', async (req, res) => {
 
     const { assignedTo, assignedToName } = bodyResult.data;
 
-    const result = await assignPickingSlip(id, assignedTo, assignedToName, authReq.user.id, authReq.user.companyId);
+    const result = await assignPickingSlip(id, assignedTo, assignedToName, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;
@@ -287,10 +285,10 @@ router.post('/:id/assign', async (req, res) => {
  */
 router.post('/:id/start', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await startPicking(id, authReq.user.id, authReq.user.companyId);
+    const result = await startPicking(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;
@@ -325,7 +323,7 @@ router.post('/:id/start', async (req, res) => {
  */
 router.patch('/:id/lines/:lineId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id, lineId } = req.params;
 
     // Validate request body
@@ -343,7 +341,7 @@ router.patch('/:id/lines/:lineId', async (req, res) => {
 
     const { quantityPicked } = bodyResult.data;
 
-    const result = await updateLinePicked(id, lineId, quantityPicked, authReq.user.id, authReq.user.companyId);
+    const result = await updateLinePicked(id, lineId, quantityPicked, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -378,10 +376,10 @@ router.patch('/:id/lines/:lineId', async (req, res) => {
  */
 router.post('/:id/complete', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await completePicking(id, authReq.user.id, authReq.user.companyId);
+    const result = await completePicking(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;

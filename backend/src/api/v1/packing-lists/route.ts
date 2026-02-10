@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createPackingListSchema,
   packingListListQuerySchema,
@@ -27,8 +27,6 @@ router.use(authenticate);
  */
 router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = packingListListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -41,7 +39,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (re
       });
     }
 
-    const result = await getPackingLists(authReq.user.companyId, queryResult.data);
+    const result = await getPackingLists(req.user!.companyId, queryResult.data);
 
     return res.json({
       success: true,
@@ -66,10 +64,10 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (re
  */
 router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const packingLists = await getPackingListsForOrder(orderId, authReq.user.companyId);
+    const packingLists = await getPackingListsForOrder(orderId, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -94,10 +92,10 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
  */
 router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const packingList = await getPackingListById(id, authReq.user.companyId);
+    const packingList = await getPackingListById(id, req.user!.companyId);
 
     if (!packingList) {
       return res.status(404).json({
@@ -131,10 +129,10 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const packingList = await getPackingListById(id, authReq.user.companyId);
+    const packingList = await getPackingListById(id, req.user!.companyId);
 
     if (!packingList) {
       return res.status(404).json({
@@ -144,7 +142,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
     }
 
     // Strip internal data for CUSTOMER role (Golden Rule 4)
-    if (authReq.user.role === 'CUSTOMER') {
+    if (req.user!.role === 'CUSTOMER') {
       return res.json({
         success: true,
         data: {
@@ -179,7 +177,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
  */
 router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     const bodyResult = createPackingListSchema.safeParse(req.body);
@@ -197,8 +195,8 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
     const result = await createPackingList(
       orderId,
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -233,7 +231,7 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
  */
 router.put('/:id', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = createPackingListSchema.safeParse(req.body);
@@ -251,8 +249,8 @@ router.put('/:id', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res
     const result = await updatePackingList(
       id,
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -288,17 +286,17 @@ router.put('/:id', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res
  */
 router.post('/:id/finalize', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Fetch user name from database
     const user = await prisma.user.findUnique({
-      where: { id: authReq.user.id },
+      where: { id: req.user!.id },
       select: { firstName: true, lastName: true },
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await finalizePackingList(id, authReq.user.id, userName, authReq.user.companyId);
+    const result = await finalizePackingList(id, req.user!.id, userName, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Packing list not found' ? 404 : 400;
@@ -333,10 +331,10 @@ router.post('/:id/finalize', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async
  */
 router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await cancelPackingList(id, authReq.user.id, authReq.user.companyId);
+    const result = await cancelPackingList(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Packing list not found' ? 404 : 400;

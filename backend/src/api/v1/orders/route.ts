@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createOrderFromQuoteSchema,
   updateOrderNotesSchema,
@@ -52,8 +52,6 @@ const staffOnly = requireRole('ADMIN', 'MANAGER', 'SALES');
  */
 router.post('/from-quote', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     // Validate request body
     const bodyResult = createOrderFromQuoteSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -69,7 +67,7 @@ router.post('/from-quote', staffOnly, async (req, res) => {
 
     const { quoteId, customerPoNumber, customerPoDate, requiredDate, customerNotes } = bodyResult.data;
 
-    const result = await createOrderFromQuote(quoteId, authReq.user.id, authReq.user.companyId, {
+    const result = await createOrderFromQuote(quoteId, req.user!.id, req.user!.companyId, {
       customerPoNumber,
       customerPoDate,
       requiredDate,
@@ -105,8 +103,6 @@ router.post('/from-quote', staffOnly, async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
-
     const queryResult = orderListQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return res.status(400).json({
@@ -122,7 +118,7 @@ router.get('/', async (req, res) => {
     const { status, page, pageSize } = queryResult.data;
 
     const result = await getOrders({
-      companyId: authReq.user.companyId,
+      companyId: req.user!.companyId,
       status,
       page,
       pageSize,
@@ -150,10 +146,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const order = await getOrderById(id, authReq.user.companyId);
+    const order = await getOrderById(id, req.user!.companyId);
 
     if (!order) {
       return res.status(404).json({
@@ -163,7 +159,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Golden Rule 4: Strip internal data for CUSTOMER role
-    const isCustomer = authReq.user.role === 'CUSTOMER';
+    const isCustomer = req.user!.role === 'CUSTOMER';
     const responseData = isCustomer
       ? { ...order, internalNotes: undefined, warehouse: undefined }
       : order;
@@ -190,10 +186,10 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/:id/timeline', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const events = await getOrderTimeline(id, authReq.user.companyId);
+    const events = await getOrderTimeline(id, req.user!.companyId);
 
     return res.json({
       success: true,
@@ -218,11 +214,11 @@ router.get('/:id/timeline', async (req, res) => {
  */
 router.get('/:id/allocation-plan', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Verify order exists and belongs to company
-    const order = await getOrderById(id, authReq.user.companyId);
+    const order = await getOrderById(id, req.user!.companyId);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -261,7 +257,7 @@ router.get('/:id/allocation-plan', staffOnly, async (req, res) => {
  */
 router.patch('/:id', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -278,7 +274,7 @@ router.patch('/:id', staffOnly, async (req, res) => {
     }
 
     // Verify order exists and belongs to company
-    const order = await getOrderById(id, authReq.user.companyId);
+    const order = await getOrderById(id, req.user!.companyId);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -286,7 +282,7 @@ router.patch('/:id', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await updateOrderNotes(id, bodyResult.data, authReq.user.id, authReq.user.companyId);
+    const result = await updateOrderNotes(id, bodyResult.data, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       return res.status(400).json({
@@ -317,10 +313,10 @@ router.patch('/:id', staffOnly, async (req, res) => {
  */
 router.post('/:id/confirm', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await confirmOrder(id, authReq.user.id, authReq.user.companyId);
+    const result = await confirmOrder(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -355,7 +351,7 @@ router.post('/:id/confirm', staffOnly, async (req, res) => {
  */
 router.post('/:id/hold', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -371,7 +367,7 @@ router.post('/:id/hold', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await holdOrder(id, bodyResult.data.reason, authReq.user.id, authReq.user.companyId);
+    const result = await holdOrder(id, bodyResult.data.reason, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -406,10 +402,10 @@ router.post('/:id/hold', staffOnly, async (req, res) => {
  */
 router.post('/:id/release', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await releaseHold(id, authReq.user.id, authReq.user.companyId);
+    const result = await releaseHold(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -444,7 +440,7 @@ router.post('/:id/release', staffOnly, async (req, res) => {
  */
 router.post('/:id/cancel', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -460,7 +456,7 @@ router.post('/:id/cancel', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await cancelOrder(id, bodyResult.data.reason, authReq.user.id, authReq.user.companyId);
+    const result = await cancelOrder(id, bodyResult.data.reason, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -495,10 +491,10 @@ router.post('/:id/cancel', staffOnly, async (req, res) => {
  */
 router.post('/:id/close', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await closeOrder(id, authReq.user.id, authReq.user.companyId);
+    const result = await closeOrder(id, req.user!.id, req.user!.companyId);
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -537,7 +533,7 @@ router.post('/:id/close', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
  */
 router.post('/:id/fulfillment-plan', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body (optional)
@@ -555,7 +551,7 @@ router.post('/:id/fulfillment-plan', staffOnly, async (req, res) => {
 
     // Verify order belongs to company
     const order = await import('../../../config/database').then(m => m.prisma.salesOrder.findFirst({
-      where: { id, companyId: authReq.user.companyId, deletedAt: null },
+      where: { id, companyId: req.user!.companyId, deletedAt: null },
       select: { id: true },
     }));
 
@@ -600,7 +596,7 @@ router.post('/:id/fulfillment-plan', staffOnly, async (req, res) => {
  */
 router.post('/:id/fulfillment-plan/execute', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -628,8 +624,8 @@ router.post('/:id/fulfillment-plan/execute', staffOnly, async (req, res) => {
 
     const result = await executeFulfillmentPlan({
       plan: plan as OrchestrationPlan,
-      userId: authReq.user.id,
-      companyId: authReq.user.companyId,
+      userId: req.user!.id,
+      companyId: req.user!.companyId,
     });
 
     if (!result.success) {
@@ -661,7 +657,7 @@ router.post('/:id/fulfillment-plan/execute', staffOnly, async (req, res) => {
  */
 router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Validate request body
@@ -681,7 +677,7 @@ router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
 
     // Verify order belongs to company
     const order = await prisma.salesOrder.findFirst({
-      where: { id, companyId: authReq.user.companyId, deletedAt: null },
+      where: { id, companyId: req.user!.companyId, deletedAt: null },
       select: { id: true, status: true },
     });
 
@@ -708,7 +704,7 @@ router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
       where: { id },
       data: {
         fulfillmentPolicyOverride: bodyResult.data.fulfillmentPolicyOverride as 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION' | null,
-        updatedBy: authReq.user.id,
+        updatedBy: req.user!.id,
       },
       select: { id: true, fulfillmentPolicyOverride: true },
     });
@@ -739,7 +735,7 @@ router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
  */
 router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = recordPaymentSchema.safeParse(req.body);
@@ -755,7 +751,7 @@ router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (re
     }
 
     // Verify order belongs to company
-    const order = await getOrderById(id, authReq.user.companyId);
+    const order = await getOrderById(id, req.user!.companyId);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -766,8 +762,8 @@ router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (re
     const result = await recordPayment(
       id,
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.email
+      req.user!.id,
+      req.user!.email
     );
 
     if (!result.success) {
@@ -803,11 +799,11 @@ router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (re
  */
 router.get('/:id/payments', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // Verify order belongs to company
-    const order = await getOrderById(id, authReq.user.companyId);
+    const order = await getOrderById(id, req.user!.companyId);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -818,7 +814,7 @@ router.get('/:id/payments', async (req, res) => {
     const payments = await getPaymentsByOrder(id);
 
     // Golden Rule 4: Strip internal data for CUSTOMER role
-    const isCustomer = authReq.user.role === 'CUSTOMER';
+    const isCustomer = req.user!.role === 'CUSTOMER';
     const responseData = isCustomer
       ? payments
           .filter((p) => p.status !== 'VOIDED')
@@ -853,12 +849,12 @@ router.get('/:id/payments', async (req, res) => {
  */
 router.get('/payments/:paymentId', async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { paymentId } = req.params;
 
     const payment = await getPaymentById(paymentId);
 
-    if (!payment || payment.companyId !== authReq.user.companyId) {
+    if (!payment || payment.companyId !== req.user!.companyId) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Payment not found' },
@@ -887,7 +883,7 @@ router.get('/payments/:paymentId', async (req, res) => {
  */
 router.post('/payments/:paymentId/void', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { paymentId } = req.params;
 
     const bodyResult = voidPaymentSchema.safeParse(req.body);
@@ -904,14 +900,14 @@ router.post('/payments/:paymentId/void', requireRole('ADMIN', 'MANAGER'), async 
 
     // Verify payment belongs to company
     const payment = await getPaymentById(paymentId);
-    if (!payment || payment.companyId !== authReq.user.companyId) {
+    if (!payment || payment.companyId !== req.user!.companyId) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Payment not found' },
       });
     }
 
-    const result = await voidPayment(paymentId, bodyResult.data.reason, authReq.user.id);
+    const result = await voidPayment(paymentId, bodyResult.data.reason, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({

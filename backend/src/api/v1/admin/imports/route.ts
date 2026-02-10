@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { randomUUID } from 'crypto';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../../middleware/auth';
+import { authenticate, requireRole } from '../../../../middleware/auth';
 import {
   parseExcelFile,
   applyColumnMapping,
@@ -277,7 +277,7 @@ router.post('/execute', async (req, res) => {
   let batchId: string | null = null;
 
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const parseResult = executeImportSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
@@ -337,7 +337,7 @@ router.post('/execute', async (req, res) => {
         successRows: 0,
         errorRows: 0,
         columnMapping: columnMapping as Record<string, string>,
-        createdBy: authReq.user.id,
+        createdBy: req.user!.id,
       },
     });
     batchId = batch.id;
@@ -346,7 +346,7 @@ router.post('/execute', async (req, res) => {
     const result = await executeImport(
       validationResult.rows,
       supplierCode,
-      authReq.user.id,
+      req.user!.id,
       skipErrors
     );
 

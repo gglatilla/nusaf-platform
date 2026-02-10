@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   createProformaInvoiceSchema,
   voidProformaInvoiceSchema,
@@ -24,13 +24,13 @@ router.use(authenticate);
  */
 router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
-    const proformas = await getProformaInvoicesForOrder(orderId, authReq.user.companyId);
+    const proformas = await getProformaInvoicesForOrder(orderId, req.user!.companyId);
 
     // For CUSTOMER role, only return ACTIVE proformas
-    const filtered = authReq.user.role === 'CUSTOMER'
+    const filtered = req.user!.role === 'CUSTOMER'
       ? proformas.filter((pi) => pi.status === 'ACTIVE')
       : proformas;
 
@@ -57,10 +57,10 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
  */
 router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const proforma = await getProformaInvoiceById(id, authReq.user.companyId);
+    const proforma = await getProformaInvoiceById(id, req.user!.companyId);
 
     if (!proforma) {
       return res.status(404).json({
@@ -94,10 +94,10 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const proforma = await getProformaInvoiceById(id, authReq.user.companyId);
+    const proforma = await getProformaInvoiceById(id, req.user!.companyId);
 
     if (!proforma) {
       return res.status(404).json({
@@ -107,7 +107,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
     }
 
     // Strip internal data for CUSTOMER role (Golden Rule 4)
-    if (authReq.user.role === 'CUSTOMER') {
+    if (req.user!.role === 'CUSTOMER') {
       return res.json({
         success: true,
         data: {
@@ -142,7 +142,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
  */
 router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     const bodyResult = createProformaInvoiceSchema.safeParse(req.body);
@@ -160,8 +160,8 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES'), as
     const result = await createProformaInvoice(
       orderId,
       bodyResult.data,
-      authReq.user.id,
-      authReq.user.companyId
+      req.user!.id,
+      req.user!.companyId
     );
 
     if (!result.success) {
@@ -196,7 +196,7 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES'), as
  */
 router.post('/:id/void', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = voidProformaInvoiceSchema.safeParse(req.body);
@@ -213,8 +213,8 @@ router.post('/:id/void', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
 
     const result = await voidProformaInvoice(
       id,
-      authReq.user.id,
-      authReq.user.companyId,
+      req.user!.id,
+      req.user!.companyId,
       bodyResult.data.reason
     );
 

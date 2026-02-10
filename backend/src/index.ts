@@ -47,7 +47,7 @@ import publicCategoriesRoutes from './api/v1/public/categories/route';
 import publicContactRoutes from './api/v1/public/contact/route';
 import { releaseExpiredSoftReservations } from './services/reservation-cleanup.service';
 import { requestIdMiddleware } from './middleware/request-id';
-import { authenticate, requireRole, type AuthenticatedRequest } from './middleware/auth';
+import { authenticate, requireRole } from './middleware/auth';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -108,8 +108,8 @@ app.use('/api/v1/reports', reportsRoutes);
 // Admin cleanup endpoints
 app.post('/api/v1/admin/cleanup/expired-reservations', authenticate, requireRole('ADMIN'), async (req, res): Promise<void> => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const result = await releaseExpiredSoftReservations(authReq.user.id);
+
+    const result = await releaseExpiredSoftReservations(req.user!.id);
     res.json({
       success: true,
       data: result,

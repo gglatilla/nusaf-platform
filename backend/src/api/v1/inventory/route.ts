@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import {
   stockLevelListQuerySchema,
   stockMovementListQuerySchema,
@@ -232,7 +232,7 @@ router.get('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER', 'S
  */
 router.patch('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { productId } = req.params;
     const { location, reorderPoint, reorderQuantity, minimumStock, maximumStock } = req.body;
 
@@ -262,7 +262,7 @@ router.patch('/stock/:productId', authenticate, requireRole('ADMIN', 'MANAGER'),
       productId,
       location as Warehouse,
       { reorderPoint, reorderQuantity, minimumStock, maximumStock },
-      authReq.user.id
+      req.user!.id
     );
 
     if (!result.success) {
@@ -382,8 +382,6 @@ router.get('/movements/:productId', authenticate, requireRole('ADMIN', 'MANAGER'
  */
 router.post('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     const bodyResult = createStockAdjustmentSchema.safeParse(req.body);
     if (!bodyResult.success) {
       return res.status(400).json({
@@ -396,7 +394,7 @@ router.post('/adjustments', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREH
       });
     }
 
-    const result = await createStockAdjustment(bodyResult.data, authReq.user.id);
+    const result = await createStockAdjustment(bodyResult.data, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -496,10 +494,10 @@ router.get('/adjustments/:id', authenticate, requireRole('ADMIN', 'MANAGER', 'WA
  */
 router.post('/adjustments/:id/approve', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await approveStockAdjustment(id, authReq.user.id);
+    const result = await approveStockAdjustment(id, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Adjustment not found' ? 404 : 400;
@@ -534,7 +532,7 @@ router.post('/adjustments/:id/approve', authenticate, requireRole('ADMIN', 'MANA
  */
 router.post('/adjustments/:id/reject', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = rejectStockAdjustmentSchema.safeParse(req.body);
@@ -549,7 +547,7 @@ router.post('/adjustments/:id/reject', authenticate, requireRole('ADMIN', 'MANAG
       });
     }
 
-    const result = await rejectStockAdjustment(id, bodyResult.data.reason, authReq.user.id);
+    const result = await rejectStockAdjustment(id, bodyResult.data.reason, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Adjustment not found' ? 404 : 400;
@@ -658,7 +656,7 @@ router.get('/reservations/:productId', authenticate, requireRole('ADMIN', 'MANAG
  */
 router.post('/reservations/:id/release', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = releaseReservationSchema.safeParse(req.body);
@@ -673,7 +671,7 @@ router.post('/reservations/:id/release', authenticate, requireRole('ADMIN', 'MAN
       });
     }
 
-    const result = await releaseReservation(id, bodyResult.data.reason, authReq.user.id);
+    const result = await releaseReservation(id, bodyResult.data.reason, req.user!.id);
 
     if (!result.success) {
       const statusCode = result.error === 'Reservation not found' ? 404 : 400;
@@ -739,8 +737,6 @@ router.post('/reservations/cleanup-expired', authenticate, requireRole('ADMIN'),
  */
 router.post('/cycle-counts', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-
     const bodyResult = createCycleCountSchema.safeParse(req.body);
     if (!bodyResult.success) {
       return res.status(400).json({
@@ -757,7 +753,7 @@ router.post('/cycle-counts', authenticate, requireRole('ADMIN', 'MANAGER', 'WARE
       bodyResult.data.location as Warehouse,
       bodyResult.data.productIds,
       bodyResult.data.notes,
-      authReq.user.id
+      req.user!.id
     );
 
     if (!result.success) {
@@ -858,7 +854,7 @@ router.get('/cycle-counts/:id', authenticate, requireRole('ADMIN', 'MANAGER', 'W
  */
 router.patch('/cycle-counts/:id/count', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = submitCycleCountLinesSchema.safeParse(req.body);
@@ -873,7 +869,7 @@ router.patch('/cycle-counts/:id/count', authenticate, requireRole('ADMIN', 'MANA
       });
     }
 
-    const result = await submitCycleCountLines(id, bodyResult.data.lines, authReq.user.id);
+    const result = await submitCycleCountLines(id, bodyResult.data.lines, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -904,10 +900,10 @@ router.patch('/cycle-counts/:id/count', authenticate, requireRole('ADMIN', 'MANA
  */
 router.post('/cycle-counts/:id/complete', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await completeCycleCountSession(id, authReq.user.id);
+    const result = await completeCycleCountSession(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -938,10 +934,10 @@ router.post('/cycle-counts/:id/complete', authenticate, requireRole('ADMIN', 'MA
  */
 router.post('/cycle-counts/:id/reconcile', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await reconcileCycleCountSession(id, authReq.user.id);
+    const result = await reconcileCycleCountSession(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -978,10 +974,10 @@ router.post('/cycle-counts/:id/reconcile', authenticate, requireRole('ADMIN', 'M
  */
 router.post('/cycle-counts/:id/reconcile-and-apply', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await reconcileAndApplyCycleCount(id, authReq.user.id);
+    const result = await reconcileAndApplyCycleCount(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({
@@ -1021,10 +1017,10 @@ router.post('/cycle-counts/:id/reconcile-and-apply', authenticate, requireRole('
  */
 router.post('/cycle-counts/:id/cancel', authenticate, requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+
     const { id } = req.params;
 
-    const result = await cancelCycleCountSession(id, authReq.user.id);
+    const result = await cancelCycleCountSession(id, req.user!.id);
 
     if (!result.success) {
       return res.status(400).json({

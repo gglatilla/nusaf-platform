@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, requireRole, type AuthenticatedRequest } from '../../../middleware/auth';
+import { authenticate, requireRole } from '../../../middleware/auth';
 import { voidCreditNoteSchema } from '../../../utils/validation/credit-notes';
 import {
   getCreditNoteById,
@@ -56,16 +56,16 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
  */
 router.get('/ra/:raId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { raId } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const creditNotes = await getCreditNotesForRA(raId, companyId);
 
     // For CUSTOMER role, only return ISSUED credit notes
-    const filtered = authReq.user.role === 'CUSTOMER'
+    const filtered = req.user!.role === 'CUSTOMER'
       ? creditNotes.filter((cn) => cn.status === 'ISSUED')
       : creditNotes;
 
@@ -92,16 +92,16 @@ router.get('/ra/:raId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'C
  */
 router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { orderId } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const creditNotes = await getCreditNotesForOrder(orderId, companyId);
 
     // For CUSTOMER role, only return ISSUED credit notes
-    const filtered = authReq.user.role === 'CUSTOMER'
+    const filtered = req.user!.role === 'CUSTOMER'
       ? creditNotes.filter((cn) => cn.status === 'ISSUED')
       : creditNotes;
 
@@ -128,11 +128,11 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
  */
 router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const creditNote = await getCreditNoteById(id, companyId);
 
@@ -144,7 +144,7 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
     }
 
     // Customers can only download ISSUED credit notes
-    if (authReq.user.role === 'CUSTOMER' && creditNote.status !== 'ISSUED') {
+    if (req.user!.role === 'CUSTOMER' && creditNote.status !== 'ISSUED') {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Credit note not found' },
@@ -176,11 +176,11 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
  */
 router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     // For CUSTOMER role, scope to their company
-    const companyId = authReq.user.role === 'CUSTOMER' ? authReq.user.companyId : undefined;
+    const companyId = req.user!.role === 'CUSTOMER' ? req.user!.companyId : undefined;
 
     const creditNote = await getCreditNoteById(id, companyId);
 
@@ -192,7 +192,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
     }
 
     // Strip internal data for CUSTOMER role
-    if (authReq.user.role === 'CUSTOMER') {
+    if (req.user!.role === 'CUSTOMER') {
       if (creditNote.status !== 'ISSUED') {
         return res.status(404).json({
           success: false,
@@ -235,7 +235,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
  */
 router.post('/:id/void', requireRole('ADMIN'), async (req, res) => {
   try {
-    const authReq = req as unknown as AuthenticatedRequest;
+
     const { id } = req.params;
 
     const bodyResult = voidCreditNoteSchema.safeParse(req.body);
@@ -252,8 +252,8 @@ router.post('/:id/void', requireRole('ADMIN'), async (req, res) => {
 
     const result = await voidCreditNote(
       id,
-      authReq.user.id,
-      authReq.user.companyId,
+      req.user!.id,
+      req.user!.companyId,
       bodyResult.data.reason
     );
 
