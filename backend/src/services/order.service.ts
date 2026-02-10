@@ -8,6 +8,7 @@ import {
 } from './inventory.service';
 import { generateOrderNumber } from '../utils/number-generation';
 import { roundTo2 } from '../utils/math';
+import { pickCashCustomerFields } from '../utils/cash-customer';
 
 /**
  * VAT rate for South Africa (%)
@@ -292,6 +293,8 @@ export async function createOrderFromQuote(
         vatAmount: quote.vatAmount,
         total: quote.total,
         createdBy: userId,
+        // Copy cash customer details from quote
+        ...pickCashCustomerFields(quote),
       },
     });
 

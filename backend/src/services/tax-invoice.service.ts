@@ -2,6 +2,7 @@ import { Prisma, TaxInvoiceStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
 import { generateInvoiceNumber } from '../utils/number-generation';
+import { resolveCustomerName, resolveCustomerVat } from '../utils/cash-customer';
 
 // ============================================
 // TYPES
@@ -195,8 +196,8 @@ export async function createTaxInvoice(
         companyId,
         orderId,
         orderNumber: order.orderNumber,
-        customerName: order.company.name,
-        customerVatNumber: order.company.vatNumber,
+        customerName: resolveCustomerName(order),
+        customerVatNumber: resolveCustomerVat(order),
         customerRegNumber: order.company.registrationNumber,
         billingAddress,
         paymentTerms,

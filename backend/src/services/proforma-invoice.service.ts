@@ -4,6 +4,7 @@ import type {
   CreateProformaInvoiceInput,
 } from '../utils/validation/proforma-invoices';
 import { generateProformaNumber } from '../utils/number-generation';
+import { resolveCustomerName } from '../utils/cash-customer';
 
 // ============================================
 // TYPES
@@ -165,7 +166,7 @@ export async function createProformaInvoice(
         companyId,
         orderId,
         orderNumber: order.orderNumber,
-        customerName: order.company.name,
+        customerName: resolveCustomerName(order),
         customerPoNumber: order.customerPoNumber,
         billingAddress,
         status: 'ACTIVE',

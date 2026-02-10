@@ -8,6 +8,7 @@ import { generateFulfillmentPlan, executeFulfillmentPlan } from './orchestration
 import { createProformaInvoice } from './proforma-invoice.service';
 import { generateQuoteNumber } from '../utils/number-generation';
 import { roundTo2 } from '../utils/math';
+import { type CashCustomerDetails, pickCashCustomerFields } from '../utils/cash-customer';
 
 /**
  * VAT rate for South Africa (%)
@@ -51,7 +52,8 @@ export function calculateQuoteTotals(items: Array<{ unitPrice: Decimal | number;
 export async function getOrCreateDraftQuote(
   userId: string,
   companyId: string,
-  customerTier: CustomerTier
+  customerTier: CustomerTier,
+  cashCustomer?: Partial<CashCustomerDetails>
 ): Promise<{ id: string; quoteNumber: string; isNew: boolean }> {
   // Find existing draft
   const existingDraft = await prisma.quote.findFirst({
@@ -65,10 +67,13 @@ export async function getOrCreateDraftQuote(
   });
 
   if (existingDraft) {
-    // Update last activity
+    // Update last activity + cash customer details if provided
     await prisma.quote.update({
       where: { id: existingDraft.id },
-      data: { lastActivityAt: new Date() },
+      data: {
+        lastActivityAt: new Date(),
+        ...(cashCustomer ? pickCashCustomerFields(cashCustomer) : {}),
+      },
     });
     return { ...existingDraft, isNew: false };
   }
@@ -82,6 +87,7 @@ export async function getOrCreateDraftQuote(
       userId,
       customerTier,
       createdBy: userId,
+      ...(cashCustomer ? pickCashCustomerFields(cashCustomer) : {}),
     },
     select: { id: true, quoteNumber: true },
   });
@@ -392,7 +398,10 @@ export async function finalizeQuote(
 ): Promise<{ success: boolean; error?: string; quote?: { id: string; quoteNumber: string; validUntil: Date } }> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
-    include: { items: true },
+    include: {
+      items: true,
+      company: { select: { isCashAccount: true } },
+    },
   });
 
   if (!quote) {
@@ -405,6 +414,11 @@ export async function finalizeQuote(
 
   if (quote.items.length === 0) {
     return { success: false, error: 'Cannot finalize an empty quote' };
+  }
+
+  // Cash account quotes require a customer name
+  if (quote.company.isCashAccount && !quote.cashCustomerName?.trim()) {
+    return { success: false, error: 'Cash customer name is required before finalizing' };
   }
 
   // Calculate validity date (30 days from now)
@@ -658,6 +672,8 @@ export async function getQuotes(options: {
     validUntil: Date | null;
     createdAt: Date;
     companyName?: string;
+    cashCustomerName?: string | null;
+    isCashAccount?: boolean;
   }>;
   pagination: {
     page: number;
@@ -684,7 +700,7 @@ export async function getQuotes(options: {
       where,
       include: {
         _count: { select: { items: true } },
-        company: { select: { name: true } },
+        company: { select: { name: true, isCashAccount: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
@@ -702,6 +718,8 @@ export async function getQuotes(options: {
       validUntil: q.validUntil,
       createdAt: q.createdAt,
       companyName: q.company.name,
+      cashCustomerName: q.cashCustomerName,
+      isCashAccount: q.company.isCashAccount,
     })),
     pagination: {
       page,
@@ -728,7 +746,7 @@ export async function getQuoteById(quoteId: string, companyId?: string) {
         orderBy: { lineNumber: 'asc' },
       },
       company: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, isCashAccount: true },
       },
     },
   });
@@ -796,6 +814,12 @@ export async function getQuoteById(quoteId: string, companyId?: string) {
     vatAmount: Number(quote.vatAmount),
     total: Number(quote.total),
     customerNotes: quote.customerNotes,
+    cashCustomerName: quote.cashCustomerName,
+    cashCustomerPhone: quote.cashCustomerPhone,
+    cashCustomerEmail: quote.cashCustomerEmail,
+    cashCustomerCompany: quote.cashCustomerCompany,
+    cashCustomerVat: quote.cashCustomerVat,
+    cashCustomerAddress: quote.cashCustomerAddress,
     validUntil: quote.validUntil,
     finalizedAt: quote.finalizedAt,
     createdAt: quote.createdAt,
@@ -880,6 +904,43 @@ export async function updateQuoteNotes(
     where: { id: quoteId },
     data: {
       customerNotes: notes,
+      lastActivityAt: new Date(),
+      updatedBy: userId,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Update cash customer details on a DRAFT quote.
+ */
+export async function updateCashCustomerDetails(
+  quoteId: string,
+  details: Partial<CashCustomerDetails>,
+  userId: string,
+  companyId?: string
+): Promise<{ success: boolean; error?: string }> {
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      ...(companyId ? { companyId } : {}),
+      deletedAt: null,
+    },
+  });
+
+  if (!quote) {
+    return { success: false, error: 'Quote not found' };
+  }
+
+  if (quote.status !== 'DRAFT') {
+    return { success: false, error: 'Only DRAFT quotes can be modified' };
+  }
+
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: {
+      ...pickCashCustomerFields(details),
       lastActivityAt: new Date(),
       updatedBy: userId,
     },

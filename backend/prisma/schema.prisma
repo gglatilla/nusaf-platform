@@ -90,6 +90,7 @@ model Company {
   tier               CustomerTier @default(END_USER)
   isActive           Boolean      @default(true) @map("is_active")
   isInternal         Boolean      @default(false) @map("is_internal")
+  isCashAccount      Boolean      @default(false) @map("is_cash_account")
 
   // Primary warehouse for fulfillment (CT customers check CT stock first, spill to JHB)
   primaryWarehouse Warehouse? @map("primary_warehouse")
@@ -738,6 +739,14 @@ model Quote {
   // Notes
   customerNotes String? @map("customer_notes")
 
+  // Cash customer details (only populated for cash account companies)
+  cashCustomerName    String? @map("cash_customer_name") @db.VarChar(200)
+  cashCustomerPhone   String? @map("cash_customer_phone") @db.VarChar(30)
+  cashCustomerEmail   String? @map("cash_customer_email") @db.VarChar(254)
+  cashCustomerCompany String? @map("cash_customer_company") @db.VarChar(200)
+  cashCustomerVat     String? @map("cash_customer_vat") @db.VarChar(20)
+  cashCustomerAddress String? @map("cash_customer_address") @db.VarChar(500)
+
   // Document
   pdfUrl String? @map("pdf_url")
 
@@ -873,6 +882,14 @@ model SalesOrder {
   customerNotes String? @map("customer_notes")
   holdReason    String? @map("hold_reason")
   cancelReason  String? @map("cancel_reason")
+
+  // Cash customer details (copied from quote for cash account companies)
+  cashCustomerName    String? @map("cash_customer_name") @db.VarChar(200)
+  cashCustomerPhone   String? @map("cash_customer_phone") @db.VarChar(30)
+  cashCustomerEmail   String? @map("cash_customer_email") @db.VarChar(254)
+  cashCustomerCompany String? @map("cash_customer_company") @db.VarChar(200)
+  cashCustomerVat     String? @map("cash_customer_vat") @db.VarChar(20)
+  cashCustomerAddress String? @map("cash_customer_address") @db.VarChar(500)
 
   // Relations
   lines       SalesOrderLine[]

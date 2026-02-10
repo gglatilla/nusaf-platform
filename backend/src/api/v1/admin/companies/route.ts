@@ -80,6 +80,7 @@ router.get('/', async (req, res) => {
           vatNumber: true,
           tier: true,
           isActive: true,
+          isCashAccount: true,
           primaryWarehouse: true,
           fulfillmentPolicy: true,
           paymentTerms: true,

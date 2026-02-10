@@ -31,8 +31,21 @@ export const quoteListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+/**
+ * Schema for cash customer details on a quote
+ */
+export const cashCustomerSchema = z.object({
+  cashCustomerName: z.string().max(200).optional(),
+  cashCustomerPhone: z.string().max(30).optional(),
+  cashCustomerEmail: z.string().email().max(254).optional().or(z.literal('')),
+  cashCustomerCompany: z.string().max(200).optional(),
+  cashCustomerVat: z.string().max(20).optional(),
+  cashCustomerAddress: z.string().max(500).optional(),
+});
+
 // Type exports
 export type AddQuoteItemInput = z.infer<typeof addQuoteItemSchema>;
 export type UpdateQuoteItemInput = z.infer<typeof updateQuoteItemSchema>;
 export type UpdateQuoteNotesInput = z.infer<typeof updateQuoteNotesSchema>;
 export type QuoteListQuery = z.infer<typeof quoteListQuerySchema>;
+export type CashCustomerInput = z.infer<typeof cashCustomerSchema>;

@@ -7,6 +7,7 @@ import {
   updateQuoteItemSchema,
   updateQuoteNotesSchema,
   quoteListQuerySchema,
+  cashCustomerSchema,
 } from '../../../utils/validation/quotes';
 import {
   getOrCreateDraftQuote,
@@ -17,6 +18,7 @@ import {
   updateQuoteItemQuantity,
   removeQuoteItem,
   updateQuoteNotes,
+  updateCashCustomerDetails,
   finalizeQuote,
   acceptQuote,
   rejectQuote,
@@ -73,10 +75,10 @@ router.post('/', async (req, res) => {
       targetCompanyId = req.user!.companyId;
     }
 
-    // Get target company for tier
+    // Get target company for tier + cash account status
     const company = await prisma.company.findUnique({
       where: { id: targetCompanyId },
-      select: { id: true, name: true, tier: true },
+      select: { id: true, name: true, tier: true, isCashAccount: true },
     });
 
     if (!company) {
@@ -86,10 +88,15 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Parse optional cash customer details from body
+    const cashParsed = cashCustomerSchema.safeParse(req.body);
+    const cashCustomer = cashParsed.success ? cashParsed.data : undefined;
+
     const result = await getOrCreateDraftQuote(
       req.user!.id,
       targetCompanyId,
-      company.tier
+      company.tier,
+      cashCustomer
     );
 
     return res.status(result.isNew ? 201 : 200).json({
@@ -98,7 +105,7 @@ router.post('/', async (req, res) => {
         id: result.id,
         quoteNumber: result.quoteNumber,
         isNew: result.isNew,
-        ...(staff ? { companyName: company.name, companyTier: company.tier } : {}),
+        ...(staff ? { companyName: company.name, companyTier: company.tier, isCashAccount: company.isCashAccount } : {}),
       },
     });
   } catch (error) {
@@ -296,6 +303,57 @@ router.patch('/:id', async (req, res) => {
       error: {
         code: 'QUOTE_UPDATE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to update quote',
+      },
+    });
+  }
+});
+
+/**
+ * PATCH /api/v1/quotes/:id/cash-customer
+ * Update cash customer details on a DRAFT quote
+ */
+router.patch('/:id/cash-customer', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const bodyResult = cashCustomerSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid cash customer details',
+          details: bodyResult.error.errors,
+        },
+      });
+    }
+
+    const result = await updateCashCustomerDetails(
+      id,
+      bodyResult.data,
+      req.user!.id,
+      getEffectiveCompanyId(req)
+    );
+
+    if (!result.success) {
+      const statusCode = result.error === 'Quote not found' ? 404 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: { code: statusCode === 404 ? 'NOT_FOUND' : 'UPDATE_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: { message: 'Cash customer details updated' },
+    });
+  } catch (error) {
+    console.error('Update cash customer error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CASH_CUSTOMER_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to update cash customer details',
       },
     });
   }

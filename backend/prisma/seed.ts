@@ -334,6 +334,39 @@ async function main() {
     },
   });
 
+  // Create cash sales companies (for walk-in / phone customers)
+  await prisma.company.upsert({
+    where: { id: 'cash-sales-jhb' },
+    update: { isCashAccount: true },
+    create: {
+      id: 'cash-sales-jhb',
+      name: 'Cash Sales - Johannesburg',
+      tradingName: 'Cash Sales JHB',
+      tier: 'END_USER',
+      isActive: true,
+      isInternal: false,
+      isCashAccount: true,
+      primaryWarehouse: 'JHB',
+      paymentTerms: 'COD',
+    },
+  });
+
+  await prisma.company.upsert({
+    where: { id: 'cash-sales-ct' },
+    update: { isCashAccount: true },
+    create: {
+      id: 'cash-sales-ct',
+      name: 'Cash Sales - Cape Town',
+      tradingName: 'Cash Sales CT',
+      tier: 'END_USER',
+      isActive: true,
+      isInternal: false,
+      isCashAccount: true,
+      primaryWarehouse: 'CT',
+      paymentTerms: 'COD',
+    },
+  });
+
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', BCRYPT_ROUNDS);
 

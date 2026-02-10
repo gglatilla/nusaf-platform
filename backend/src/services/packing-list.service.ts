@@ -5,6 +5,7 @@ import type {
   PackingListListQuery,
 } from '../utils/validation/packing-lists';
 import { generatePackingListNumber } from '../utils/number-generation';
+import { resolveCustomerName } from '../utils/cash-customer';
 
 // ============================================
 // TYPES
@@ -140,7 +141,7 @@ export async function createPackingList(
         orderNumber: order.orderNumber,
         deliveryNoteId: input.deliveryNoteId || null,
         deliveryNoteNumber,
-        customerName: order.company.name,
+        customerName: resolveCustomerName(order),
         location,
         status: 'DRAFT',
         handlingInstructions: input.handlingInstructions || null,

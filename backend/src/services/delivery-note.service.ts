@@ -8,6 +8,7 @@ import type {
   DeliveryNoteListQuery,
 } from '../utils/validation/delivery-notes';
 import { generateDeliveryNoteNumber } from '../utils/number-generation';
+import { resolveCustomerName } from '../utils/cash-customer';
 
 // ============================================
 // TYPES
@@ -122,7 +123,7 @@ export async function createDeliveryNote(
         companyId,
         orderId,
         orderNumber: order.orderNumber,
-        customerName: order.company.name,
+        customerName: resolveCustomerName(order),
         deliveryAddress: input.deliveryAddress || null,
         location,
         status: 'DRAFT',
