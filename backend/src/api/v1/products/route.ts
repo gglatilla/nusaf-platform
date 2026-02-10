@@ -823,10 +823,20 @@ router.post('/:id/publish', authenticate, requireRole('ADMIN'), async (req, res)
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const whereClause = isUUID ? { id } : { nusafSku: id };
 
-    // Check product exists
+    // Check product exists with content fields for validation
     const product = await prisma.product.findFirst({
       where: { ...whereClause, isActive: true, deletedAt: null },
-      select: { id: true, isActive: true, deletedAt: true, isPublished: true },
+      select: {
+        id: true,
+        isActive: true,
+        deletedAt: true,
+        isPublished: true,
+        marketingTitle: true,
+        marketingDescription: true,
+        metaTitle: true,
+        metaDescription: true,
+        _count: { select: { productImages: true } },
+      },
     });
 
     if (!product) {
@@ -840,6 +850,25 @@ router.post('/:id/publish', authenticate, requireRole('ADMIN'), async (req, res)
       return res.status(400).json({
         success: false,
         error: { code: 'ALREADY_PUBLISHED', message: 'Product is already published' },
+      });
+    }
+
+    // Validate publishing requirements
+    const missingFields: string[] = [];
+    if (!product.marketingTitle?.trim()) missingFields.push('marketingTitle');
+    if (!product.marketingDescription?.trim()) missingFields.push('marketingDescription');
+    if (!product.metaTitle?.trim()) missingFields.push('metaTitle');
+    if (!product.metaDescription?.trim()) missingFields.push('metaDescription');
+    if (product._count.productImages < 1) missingFields.push('images');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INCOMPLETE_CONTENT',
+          message: 'Product does not meet publishing requirements',
+          details: { missingFields },
+        },
       });
     }
 
@@ -966,14 +995,25 @@ router.post('/bulk-publish', authenticate, requireRole('ADMIN'), async (req, res
       });
     }
 
-    // Verify all products exist and are active
+    // Verify all products exist and are active, include content fields for publish validation
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
         isActive: true,
         deletedAt: null,
       },
-      select: { id: true, nusafSku: true, isPublished: true },
+      select: {
+        id: true,
+        nusafSku: true,
+        isPublished: true,
+        ...(action === 'publish' && {
+          marketingTitle: true,
+          marketingDescription: true,
+          metaTitle: true,
+          metaDescription: true,
+          _count: { select: { productImages: true } },
+        }),
+      },
     });
 
     const foundIds = products.map(p => p.id);
@@ -990,26 +1030,60 @@ router.post('/bulk-publish', authenticate, requireRole('ADMIN'), async (req, res
       });
     }
 
-    // Perform bulk update
-    const updateData = action === 'publish'
-      ? { isPublished: true, publishedAt: new Date() }
-      : { isPublished: false };
+    // For publish action, validate content requirements and separate eligible from skipped
+    let eligibleIds = productIds;
+    const skipped: Array<{ id: string; nusafSku: string; missingFields: string[] }> = [];
 
-    const result = await prisma.product.updateMany({
-      where: {
-        id: { in: productIds },
-        isActive: true,
-        deletedAt: null,
-      },
-      data: updateData,
-    });
+    if (action === 'publish') {
+      eligibleIds = [];
+      for (const product of products) {
+        const p = product as typeof product & {
+          marketingTitle: string | null;
+          marketingDescription: string | null;
+          metaTitle: string | null;
+          metaDescription: string | null;
+          _count: { productImages: number };
+        };
+        const missingFields: string[] = [];
+        if (!p.marketingTitle?.trim()) missingFields.push('marketingTitle');
+        if (!p.marketingDescription?.trim()) missingFields.push('marketingDescription');
+        if (!p.metaTitle?.trim()) missingFields.push('metaTitle');
+        if (!p.metaDescription?.trim()) missingFields.push('metaDescription');
+        if (p._count.productImages < 1) missingFields.push('images');
+
+        if (missingFields.length > 0) {
+          skipped.push({ id: p.id, nusafSku: p.nusafSku, missingFields });
+        } else {
+          eligibleIds.push(p.id);
+        }
+      }
+    }
+
+    // Perform bulk update on eligible products only
+    let updatedCount = 0;
+    if (eligibleIds.length > 0) {
+      const updateData = action === 'publish'
+        ? { isPublished: true, publishedAt: new Date() }
+        : { isPublished: false };
+
+      const result = await prisma.product.updateMany({
+        where: {
+          id: { in: eligibleIds },
+          isActive: true,
+          deletedAt: null,
+        },
+        data: updateData,
+      });
+      updatedCount = result.count;
+    }
 
     return res.json({
       success: true,
       data: {
         action,
-        updated: result.count,
-        productIds,
+        updated: updatedCount,
+        productIds: eligibleIds,
+        ...(skipped.length > 0 && { skipped }),
       },
     });
   } catch (error) {
