@@ -1,62 +1,33 @@
 # Current Session
 
 ## Active Task
-[TASK-026] Bug Fixes (6 Issues) + Internal Company Cleanup
+[TASK-027] Fix Customer Portal View Details Crash + isPublished Filter
 
 ## Status
 COMPLETE (2026-02-10)
 
 ## Completed This Session
 
-### Issue 6: Fix order creation company mismatch
-- Staff's 'nusaf-internal' companyId was passed to createOrderFromQuote instead of the quote's companyId
-- Added getEffectiveCompanyId() pattern — staff gets undefined (no isolation), customers get their companyId
-- Updated all order service functions + timeline service to accept optional companyId
-- Commit: ff8f525
+### Fix 1: ProductDetailModal crash for CUSTOMER role
+- Root cause: `product.supplier.code` accessed unconditionally in `supplierBadgeClass` computation
+- Backend strips `supplier` from response for CUSTOMER role (Golden Rule 4)
+- Fix: optional chaining `product.supplier?.code` + conditional `supplierBadgeClass`
+- File: `frontend/src/components/products/ProductDetailModal.tsx`
 
-### Issue 4: Fix hardcoded import suppliers list
-- Replaced hardcoded 3-supplier array with prisma.supplier.findMany({ isActive: true })
-- New suppliers now appear in import dropdown automatically
-- Commit: 9b39ed3
+### Fix 2: isPublished param not sent in getProducts()
+- Customer page passes `isPublished: 'true'` but `api.getProducts()` never added it to URL query string
+- Customers saw ALL products (published + unpublished) instead of only published
+- Fix: added `if (params.isPublished) searchParams.set('isPublished', params.isPublished)`
+- File: `frontend/src/lib/api.ts`
 
-### Issue 7: Internal company cleanup
-- Added isInternal Boolean field to Company model
-- Created migration + updated seed to mark 'nusaf-internal' as internal
-- Admin companies list now filters out internal companies
-- Staff pricing already correctly showed list prices (no change needed)
-- Commit: 64288f3
-
-### Issue 3: Fix customer portal View Details + Add to Quote
-- Customer detail page now uses authenticated API instead of public API (which required isPublished)
-- Removed nested Radix Dialog — AddToQuoteModal rendered as sibling at page level
-- ProductDetailModal uses onAddToQuote callback prop
-- Updated both customer products page and catalog page
-- Added images/documents/crossReferences to ProductWithInventory type
-- Commit: 92e15a2
-
-### Issue 2: Fix backend inventory SKU lookup
-- Restructured Promise.all to fetch product first, then use resolved UUID for inventory/movement queries
-- Commit: ffa5084
-
-### Issue 5: Add company creation feature
-- POST /api/v1/admin/companies endpoint (ADMIN only)
-- createCompany() API method on frontend
-- "Add Company" button + CreateCompanyModal form on admin companies page
-- Commit: 21b80e5
-
-## Remaining
-- Issue 1 (login): Re-run db:seed on Railway after deployment — no code change needed
-
-## Next Steps
-- Deploy to Railway
-- Run `npx prisma migrate deploy` on Railway to apply migration
-- Run `npm run db:seed` on Railway to re-seed test data (fixes Issue 1 — login)
-- Test all 6 fixes in deployed environment
-- Check TASKS.md for backlog items (TASK-027 for cash customer quoting)
+## Remaining (Deployment — NOT code changes)
+- Sales login (`sales@nusaf.co.za` / `sales123`) — needs Railway deployment steps:
+  1. `npx prisma migrate deploy` — apply `add_company_is_internal` migration
+  2. `npm run db:seed` — re-seed test user data
+- This is NOT a code bug — the seed file and auth logic are correct
 
 ## Context for Next Session
-- TASK-026 all pushed to remote (7 commits)
-- Migration `20260210100000_add_company_is_internal` needs to be applied on Railway
-- The order route now uses getEffectiveCompanyId() — same pattern as quotes route
-- ProductDetailModal no longer nests AddToQuoteModal — parent pages handle it
-- Customer detail page uses authenticated API (no isPublished requirement)
+- TASK-027 fixes pushed to remote
+- Customer portal products page now correctly filters by isPublished
+- ProductDetailModal safely handles missing supplier (CUSTOMER role)
+- Railway still needs migrate + seed for sales login to work

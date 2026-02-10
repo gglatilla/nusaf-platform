@@ -53,15 +53,18 @@ export function ProductDetailModal({
       }).format(product.price)
     : null;
 
-  const supplierBadgeClass = cn(
-    'inline-flex px-2 py-1 text-xs font-medium rounded',
-    product.supplier.code === 'TECOM' && 'bg-blue-100 text-blue-700',
-    product.supplier.code === 'CHIARAVALLI' && 'bg-green-100 text-green-700',
-    product.supplier.code === 'REGINA' && 'bg-purple-100 text-purple-700',
-    product.supplier.code === 'NUSAF' && 'bg-orange-100 text-orange-700',
-    !['TECOM', 'CHIARAVALLI', 'REGINA', 'NUSAF'].includes(product.supplier.code) &&
-      'bg-slate-100 text-slate-700'
-  );
+  const supplierCode = product.supplier?.code;
+  const supplierBadgeClass = supplierCode
+    ? cn(
+        'inline-flex px-2 py-1 text-xs font-medium rounded',
+        supplierCode === 'TECOM' && 'bg-blue-100 text-blue-700',
+        supplierCode === 'CHIARAVALLI' && 'bg-green-100 text-green-700',
+        supplierCode === 'REGINA' && 'bg-purple-100 text-purple-700',
+        supplierCode === 'NUSAF' && 'bg-orange-100 text-orange-700',
+        !['TECOM', 'CHIARAVALLI', 'REGINA', 'NUSAF'].includes(supplierCode) &&
+          'bg-slate-100 text-slate-700'
+      )
+    : '';
 
   const handleAddToQuote = () => {
     if (onAddToQuote && product) {
@@ -115,7 +118,7 @@ export function ProductDetailModal({
                   Supplier
                 </dt>
                 <dd>
-                  <span className={supplierBadgeClass}>{product.supplier.name}</span>
+                  <span className={supplierBadgeClass}>{product.supplier?.name}</span>
                 </dd>
               </div>
             )}

@@ -3424,6 +3424,7 @@ class ApiClient {
     if (params.stockStatus) searchParams.set('stockStatus', params.stockStatus);
     if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
     if (params.customerTier) searchParams.set('customerTier', params.customerTier);
+    if (params.isPublished) searchParams.set('isPublished', params.isPublished);
 
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/products?${queryString}` : '/products';
