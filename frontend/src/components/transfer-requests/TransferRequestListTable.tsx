@@ -95,15 +95,9 @@ export function TransferRequestListTable({ transferRequests, isLoading }: Transf
       <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
         <div className="text-slate-400 text-5xl mb-4">🚚</div>
         <h3 className="text-lg font-semibold text-slate-900 mb-2">No transfer requests yet</h3>
-        <p className="text-sm text-slate-600 mb-4">
-          Transfer requests are created to move stock from Johannesburg to Cape Town.
+        <p className="text-sm text-slate-600">
+          Transfer requests are created to move stock between warehouses.
         </p>
-        <Link
-          href="/orders"
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
-        >
-          View Orders
-        </Link>
       </div>
     );
   }

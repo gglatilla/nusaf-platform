@@ -211,7 +211,9 @@ router.post('/', authenticate, async (req, res) => {
       bodyResult.data.lines,
       bodyResult.data.notes || null,
       authReq.user.id,
-      authReq.user.companyId
+      authReq.user.companyId,
+      bodyResult.data.fromLocation,
+      bodyResult.data.toLocation
     );
 
     if (!result.success) {

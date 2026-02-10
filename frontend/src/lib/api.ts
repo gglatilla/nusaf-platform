@@ -2228,6 +2228,8 @@ export interface CreateStandaloneTransferRequestLineInput {
 }
 
 export interface CreateStandaloneTransferRequestData {
+  fromLocation?: Warehouse;
+  toLocation?: Warehouse;
   lines: CreateStandaloneTransferRequestLineInput[];
   notes?: string | null;
 }

@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Truck } from 'lucide-react';
-import { useTransferRequests } from '@/hooks/useTransferRequests';
+import { Truck, Plus } from 'lucide-react';
+import { useTransferRequests, useCreateStandaloneTransferRequest } from '@/hooks/useTransferRequests';
 import { TransferRequestListTable } from '@/components/transfer-requests/TransferRequestListTable';
+import { CreateStandaloneTransferModal } from '@/components/transfer-requests/CreateStandaloneTransferModal';
 import { Pagination } from '@/components/products/Pagination';
-import type { TransferRequestStatus } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth-store';
+import type { TransferRequestStatus, Warehouse, CreateStandaloneTransferRequestLineInput } from '@/lib/api';
 
 const STATUS_OPTIONS: Array<{ value: TransferRequestStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: 'All Statuses' },
@@ -15,17 +17,24 @@ const STATUS_OPTIONS: Array<{ value: TransferRequestStatus | 'ALL'; label: strin
   { value: 'RECEIVED', label: 'Received' },
 ];
 
+const TRANSFER_CREATE_ROLES = ['ADMIN', 'MANAGER', 'WAREHOUSE'];
+
 export default function TransferRequestsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const user = useAuthStore((s) => s.user);
 
   const statusParam = searchParams.get('status') as TransferRequestStatus | null;
   const pageParam = searchParams.get('page');
 
   const [status, setStatus] = useState<TransferRequestStatus | undefined>(statusParam || undefined);
   const [page, setPage] = useState(pageParam ? parseInt(pageParam) : 1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data, isLoading } = useTransferRequests({ status, page, pageSize: 20 });
+  const createTransfer = useCreateStandaloneTransferRequest();
+
+  const canCreate = user && TRANSFER_CREATE_ROLES.includes(user.role);
 
   const updateUrl = (newStatus?: TransferRequestStatus, newPage?: number) => {
     const params = new URLSearchParams();
@@ -48,6 +57,19 @@ export default function TransferRequestsPage() {
     updateUrl(status, newPage);
   };
 
+  const handleCreateTransfer = async (data: {
+    fromLocation: Warehouse;
+    toLocation: Warehouse;
+    lines: CreateStandaloneTransferRequestLineInput[];
+    notes?: string | null;
+  }) => {
+    const result = await createTransfer.mutateAsync(data);
+    setShowCreateModal(false);
+    if (result?.id) {
+      router.push(`/transfer-requests/${result.id}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -56,9 +78,18 @@ export default function TransferRequestsPage() {
           <Truck className="h-8 w-8 text-slate-400" />
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Transfer Requests</h1>
-            <p className="text-sm text-slate-600">Inter-branch stock movements (JHB → Cape Town)</p>
+            <p className="text-sm text-slate-600">Inter-branch stock movements</p>
           </div>
         </div>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
+          >
+            <Plus className="h-4 w-4" />
+            New Transfer
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -101,6 +132,14 @@ export default function TransferRequestsPage() {
           onPageChange={handlePageChange}
         />
       )}
+
+      {/* Create Modal */}
+      <CreateStandaloneTransferModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateTransfer}
+        isSubmitting={createTransfer.isPending}
+      />
     </div>
   );
 }

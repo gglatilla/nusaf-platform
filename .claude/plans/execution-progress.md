@@ -38,7 +38,7 @@
 - [x] T20: Auto-generate proforma — verify and harden (2026-02-10)
 - [x] T21: Staff-on-behalf-of-customer quotes (API) (2026-02-10)
 - [x] T22: Staff-on-behalf-of-customer quotes (UI) (2026-02-10)
-- [ ] T23: Standalone transfer UI
+- [x] T23: Standalone transfer UI (2026-02-10)
 - [ ] T24: Credit note schema + service + PDF
 - [ ] T25: Credit note API + UI + auto-generate on RA completion
 
@@ -66,19 +66,17 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T23
+- Current phase: Phase 2C, next T24
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
-- Completed T22: Staff-on-behalf-of-customer quotes (UI)
-  - Created `CustomerCompanyPicker` component — searchable dropdown showing company name, tier badge, payment terms
-  - Created `useQuoteCompanyStore` Zustand store (sessionStorage) — persists selected company across navigations
-  - Backend: `GET /products` accepts `customerTier` query param — staff sees tier-adjusted prices for selected customer
-  - Catalog page: company picker in header, passes `customerTier` to product query
-  - QuoteCart: shows "Creating quote for: [Company] ([Tier])" banner when company selected
-  - AddToQuoteModal: blocks "Add to Quote" if staff hasn't selected a company
-  - `useCreateQuote` hook: passes selected company's ID to `POST /quotes`
-  - `useActiveQuote` hook: passes company ID for staff, returns null if no company selected
+- Completed T23: Standalone transfer UI
+  - Backend: `createStandaloneTransferRequest` now accepts `fromLocation` and `toLocation` params (defaults JHB/CT)
+  - Validation: `createStandaloneTransferRequestSchema` includes fromLocation/toLocation with refine to ensure different
+  - New component: `CreateStandaloneTransferModal` — from/to warehouse dropdowns, product search with stock at source, line items table, notes
+  - Transfer list page: "New Transfer" button (ADMIN/MANAGER/WAREHOUSE), opens modal, navigates to detail on success
+  - Updated subtitle and empty state to be direction-agnostic
+  - Supports both JHB→CT and CT→JHB directions
   - Both frontend and backend compile with zero TypeScript errors
-- Next: T23 — Standalone transfer UI
+- Next: T24 — Credit note schema + service + PDF

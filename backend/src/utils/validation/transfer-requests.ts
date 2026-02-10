@@ -36,11 +36,21 @@ const standaloneTransferRequestLineSchema = z.object({
 });
 
 /**
+ * Valid warehouse locations for transfers
+ */
+const warehouseEnum = z.enum(['JHB', 'CT']);
+
+/**
  * Schema for creating a standalone transfer request
  */
 export const createStandaloneTransferRequestSchema = z.object({
+  fromLocation: warehouseEnum.default('JHB'),
+  toLocation: warehouseEnum.default('CT'),
   lines: z.array(standaloneTransferRequestLineSchema).min(1, 'At least one line is required'),
   notes: z.string().optional().nullable(),
+}).refine((data) => data.fromLocation !== data.toLocation, {
+  message: 'Source and destination warehouses must be different',
+  path: ['toLocation'],
 });
 
 /**

@@ -164,10 +164,16 @@ export async function createStandaloneTransferRequest(
   lines: CreateStandaloneTransferRequestLineInput[],
   notes: string | null,
   userId: string,
-  companyId: string
+  companyId: string,
+  fromLocation: Warehouse = 'JHB',
+  toLocation: Warehouse = 'CT'
 ): Promise<{ success: boolean; transferRequest?: { id: string; transferNumber: string }; error?: string }> {
   if (lines.length === 0) {
     return { success: false, error: 'At least one line item is required' };
+  }
+
+  if (fromLocation === toLocation) {
+    return { success: false, error: 'Source and destination warehouses must be different' };
   }
 
   // Generate transfer request number
@@ -181,8 +187,8 @@ export async function createStandaloneTransferRequest(
         companyId,
         orderId: null,
         orderNumber: null,
-        fromLocation: 'JHB',
-        toLocation: 'CT',
+        fromLocation,
+        toLocation,
         status: 'PENDING',
         notes: notes || null,
         createdBy: userId,
