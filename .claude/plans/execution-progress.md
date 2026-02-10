@@ -55,7 +55,7 @@
 - [x] T33: Confirmation dialog on adjustment approval (2026-02-10)
 - [x] T34: Reorder report PO generation confirmation modal (2026-02-10)
 - [x] T35: PO detail role-based action buttons (2026-02-10)
-- [ ] T36: Customer link to order after quote acceptance
+- [x] T36: Customer link to order after quote acceptance (2026-02-10)
 - [ ] T37: Reorder report cost price fallback
 - [ ] T38: Job card reservation release on completion
 
