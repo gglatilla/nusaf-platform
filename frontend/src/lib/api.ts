@@ -2726,6 +2726,26 @@ export interface CompanyDetail {
 }
 
 // ============================================
+// STAFF USER TYPES
+// ============================================
+
+export type StaffRole = 'ADMIN' | 'MANAGER' | 'SALES' | 'PURCHASER' | 'WAREHOUSE';
+
+export interface StaffUserListItem {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: StaffRole;
+  employeeCode: string | null;
+  primaryWarehouse: string | null;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  company: { id: string; name: string };
+}
+
+// ============================================
 // PURCHASE ORDER TYPES
 // ============================================
 
@@ -5409,6 +5429,62 @@ class ApiClient {
   }): Promise<ApiResponse<CompanyDetail>> {
     return this.request('/admin/companies', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ============================================
+  // STAFF USERS (Admin)
+  // ============================================
+
+  async getStaffUsers(params?: {
+    search?: string;
+    role?: StaffRole;
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<{
+    users: StaffUserListItem[];
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.role) searchParams.set('role', params.role);
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+    const query = searchParams.toString();
+    return this.request(`/admin/users${query ? '?' + query : ''}`);
+  }
+
+  async createStaffUser(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: StaffRole;
+    employeeCode?: string;
+    primaryWarehouse?: 'JHB' | 'CT';
+    companyId: string;
+  }): Promise<ApiResponse<StaffUserListItem>> {
+    return this.request('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStaffUser(
+    id: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      role?: StaffRole;
+      employeeCode?: string | null;
+      primaryWarehouse?: 'JHB' | 'CT' | null;
+      isActive?: boolean;
+      password?: string;
+    }
+  ): Promise<ApiResponse<StaffUserListItem>> {
+    return this.request(`/admin/users/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }

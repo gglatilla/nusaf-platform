@@ -21,6 +21,7 @@ import {
   Boxes,
   BarChart3,
   CreditCard,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -102,6 +103,7 @@ export const catalogNavigation: NavItem[] = [
  */
 export const adminNavigation: NavItem[] = [
   { name: 'Companies', href: '/admin/companies', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
+  { name: 'Users', href: '/admin/users', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { name: 'Suppliers', href: '/admin/suppliers', icon: Factory, roles: ['ADMIN', 'MANAGER', 'SALES'] },
   { name: 'Pricing', href: '/admin/settings', icon: Euro, roles: ['ADMIN', 'MANAGER'] },
 ];
