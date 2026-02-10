@@ -24,6 +24,7 @@ const createCompanySchema = z.object({
   primaryWarehouse: z.enum(['JHB', 'CT']).optional(),
   fulfillmentPolicy: z.enum(['SHIP_PARTIAL', 'SHIP_COMPLETE', 'SALES_DECISION']).optional().default('SHIP_COMPLETE'),
   paymentTerms: z.enum(['PREPAY', 'COD', 'NET_30', 'NET_60', 'NET_90']).optional().default('NET_30'),
+  assignedSalesRepId: z.string().cuid().optional(),
 });
 
 const updateCompanySchema = z.object({
@@ -32,6 +33,7 @@ const updateCompanySchema = z.object({
   isActive: z.boolean().optional(),
   primaryWarehouse: z.enum(['JHB', 'CT']).nullish(),
   fulfillmentPolicy: z.enum(['SHIP_PARTIAL', 'SHIP_COMPLETE', 'SALES_DECISION']).optional(),
+  assignedSalesRepId: z.string().cuid().nullish(),
 });
 
 /**
@@ -83,6 +85,16 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
           primaryWarehouse: true,
           fulfillmentPolicy: true,
           paymentTerms: true,
+          assignedSalesRepId: true,
+          assignedSalesRep: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              employeeCode: true,
+            },
+          },
           createdAt: true,
           _count: {
             select: {
@@ -117,6 +129,43 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
       error: {
         code: 'INTERNAL_ERROR',
         message: error instanceof Error ? error.message : 'Failed to list companies',
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/v1/admin/companies/staff-users
+ * List staff users eligible for sales rep assignment (ADMIN, MANAGER, SALES roles)
+ * Used to populate the sales rep dropdown on the companies page
+ * NOTE: Must be defined BEFORE /:id to avoid Express matching "staff-users" as an :id param
+ */
+router.get('/staff-users', requireRole('ADMIN', 'MANAGER', 'SALES'), async (_req, res) => {
+  try {
+    const staffUsers = await prisma.user.findMany({
+      where: {
+        role: { in: ['ADMIN', 'MANAGER', 'SALES'] },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        employeeCode: true,
+        role: true,
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+
+    return res.json({ success: true, data: staffUsers });
+  } catch (error) {
+    console.error('List staff users error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to list staff users',
       },
     });
   }
@@ -169,6 +218,9 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) =>
       include: {
         users: {
           select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+        },
+        assignedSalesRep: {
+          select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },
         },
         _count: {
           select: { orders: true, quotes: true },
