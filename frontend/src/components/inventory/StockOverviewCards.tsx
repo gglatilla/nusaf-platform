@@ -78,8 +78,8 @@ export function StockOverviewCards({
     warehouseLabel = WAREHOUSE_NAMES[primaryWarehouseData.warehouseId] || primaryWarehouseData.warehouseName;
 
     if (view === 'D') {
-      // Customer view - friendly language, no warehouse name
-      heroLabel = `${heroNumber} Available`;
+      // Customer view - friendly language with warehouse name
+      heroLabel = warehouseLabel ? `${heroNumber} Available at ${warehouseLabel}` : `${heroNumber} Available`;
       heroSubtitle = 'Ready for immediate dispatch';
     } else {
       // Internal user with primary warehouse (VIEW B or C)

@@ -276,14 +276,9 @@ router.get('/', authenticate, async (req, res) => {
         primaryImage,
       };
 
-      // Add stock summary if requested
-      // Golden Rule 4: CUSTOMER only sees status badge, not quantities
+      // Add stock summary if requested (all users see quantities)
       if (includeStockSummary) {
-        if (isCustomer) {
-          result.stockSummary = { status: stockSummary.status };
-        } else {
-          result.stockSummary = stockSummary;
-        }
+        result.stockSummary = stockSummary;
       }
 
       // Internal field for filtering/sorting (not returned to client unless includeStockSummary)
@@ -623,10 +618,29 @@ router.get('/:id', authenticate, async (req, res) => {
     // Add inventory if requested (transform to match frontend ProductInventory type)
     if (includeInventory) {
       if (isCustomer) {
-        // Golden Rule 4: CUSTOMER only sees stock status badge, not quantities
-        responseData.inventory = {
-          stockStatus: inventoryResult?.status ?? 'OUT_OF_STOCK',
-        };
+        // Customers see available quantities + per-warehouse breakdown, but not reserved/onOrder
+        responseData.inventory = inventoryResult
+          ? {
+              onHand: inventoryResult.totalOnHand,
+              available: inventoryResult.totalAvailable,
+              reserved: 0,
+              onOrder: 0,
+              stockStatus: inventoryResult.status,
+              byLocation: inventoryResult.byLocation.map((loc) => ({
+                ...loc,
+                softReserved: 0,
+                hardReserved: 0,
+                onOrder: 0,
+              })),
+            }
+          : {
+              onHand: 0,
+              available: 0,
+              reserved: 0,
+              onOrder: 0,
+              stockStatus: 'OUT_OF_STOCK' as const,
+              byLocation: [],
+            };
       } else if (inventoryResult) {
         responseData.inventory = {
           onHand: inventoryResult.totalOnHand,

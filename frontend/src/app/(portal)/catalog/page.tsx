@@ -37,7 +37,7 @@ export default function ProductsPage() {
   // Role-based feature flags
   const isInternal = user && ['ADMIN', 'MANAGER', 'SALES'].includes(user.role);
   const isAdmin = user?.role === 'ADMIN';
-  const showQuantity = !!isInternal; // Internal users see numbers, customers see text
+  const showQuantity = true; // All authenticated users see stock quantities
 
   // Staff quote company picker
   const { selectedCompany } = useQuoteCompanyStore();
