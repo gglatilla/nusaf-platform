@@ -18,6 +18,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LowStockProduct } from '@/lib/api';
@@ -75,6 +76,7 @@ export default function ReorderReportPage() {
   // PO generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPOs, setGeneratedPOs] = useState<{ poId: string; poNumber: string; supplierName: string }[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Data
   const { data, isLoading, error } = useLowStockProducts(locationFilter || undefined);
@@ -159,11 +161,44 @@ export default function ReorderReportPage() {
     });
   };
 
+  // Preview data for the confirmation modal
+  const previewGroups = useMemo(() => {
+    const selected = filteredItems.filter((i) => selectedIds.has(i.id));
+    if (selected.length === 0) return [];
+
+    const bySupplier: Record<string, { supplier: LowStockProduct['supplier']; items: LowStockProduct[] }> = {};
+    for (const item of selected) {
+      const key = item.supplier.id;
+      if (!bySupplier[key]) bySupplier[key] = { supplier: item.supplier, items: [] };
+      bySupplier[key].items.push(item);
+    }
+
+    return Object.values(bySupplier)
+      .sort((a, b) => a.supplier.name.localeCompare(b.supplier.name))
+      .map((group) => {
+        const lines = group.items.map((item) => {
+          const qty = item.reorderQuantity ?? item.shortfall;
+          const cost = item.costPrice;
+          return {
+            sku: item.product.nusafSku,
+            description: item.product.description,
+            quantity: qty,
+            costPrice: cost,
+            lineTotal: cost != null ? qty * cost : null,
+          };
+        });
+        const supplierTotal = lines.reduce((sum, l) => sum + (l.lineTotal ?? 0), 0);
+        const hasMissingCost = lines.some((l) => l.costPrice == null || l.costPrice === 0);
+        return { supplier: group.supplier, lines, supplierTotal, hasMissingCost };
+      });
+  }, [filteredItems, selectedIds]);
+
   // Generate PO(s) from selected items
   const handleGeneratePOs = async () => {
     const selected = filteredItems.filter((i) => selectedIds.has(i.id));
     if (selected.length === 0) return;
 
+    setShowPreview(false);
     setIsGenerating(true);
     setGeneratedPOs([]);
 
@@ -484,7 +519,7 @@ export default function ReorderReportPage() {
             {' supplier(s)'}
           </span>
           <button
-            onClick={handleGeneratePOs}
+            onClick={() => setShowPreview(true)}
             disabled={isGenerating}
             className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
           >
@@ -496,6 +531,15 @@ export default function ReorderReportPage() {
             {isGenerating ? 'Generating...' : 'Generate Draft PO(s)'}
           </button>
         </div>
+      )}
+
+      {/* PO Preview Confirmation Modal */}
+      {showPreview && previewGroups.length > 0 && (
+        <POPreviewModal
+          groups={previewGroups}
+          onConfirm={handleGeneratePOs}
+          onCancel={() => setShowPreview(false)}
+        />
       )}
     </div>
   );
@@ -525,6 +569,174 @@ function SummaryCard({
         <div>
           <p className="text-2xl font-semibold text-slate-900">{value.toLocaleString()}</p>
           <p className="text-xs text-slate-500">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PreviewLine {
+  sku: string;
+  description: string;
+  quantity: number;
+  costPrice: number | null;
+  lineTotal: number | null;
+}
+
+interface PreviewGroup {
+  supplier: LowStockProduct['supplier'];
+  lines: PreviewLine[];
+  supplierTotal: number;
+  hasMissingCost: boolean;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
+function POPreviewModal({
+  groups,
+  onConfirm,
+  onCancel,
+}: {
+  groups: PreviewGroup[];
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const totalItems = groups.reduce((sum, g) => sum + g.lines.length, 0);
+  const grandTotal = groups.reduce((sum, g) => sum + g.supplierTotal, 0);
+  const anyMissingCost = groups.some((g) => g.hasMissingCost);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onCancel} />
+
+      {/* Modal */}
+      <div className="relative min-h-screen flex items-center justify-center p-4">
+        <div className="relative bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Review Purchase Orders
+              </h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {groups.length} PO{groups.length !== 1 ? 's' : ''} will be created with {totalItems} line item{totalItems !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button
+              onClick={onCancel}
+              className="p-2 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-6 py-4 overflow-y-auto max-h-[60vh] space-y-5">
+            {anyMissingCost && (
+              <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Some items have no cost price set. These will be added with R0.00 unit cost — update them on the PO before sending to supplier.</span>
+              </div>
+            )}
+
+            {groups.map((group) => (
+              <div key={group.supplier.id} className="rounded-lg border border-slate-200 overflow-hidden">
+                {/* Supplier Header */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">{group.supplier.name}</span>
+                    <span className="text-xs text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">
+                      {group.supplier.code}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700">
+                    {group.lines.length} item{group.lines.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* Lines Table */}
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase">
+                      <th className="px-4 py-2">SKU</th>
+                      <th className="px-4 py-2">Description</th>
+                      <th className="px-4 py-2 text-right">Qty</th>
+                      <th className="px-4 py-2 text-right">Unit Cost</th>
+                      <th className="px-4 py-2 text-right">Line Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {group.lines.map((line) => (
+                      <tr key={line.sku}>
+                        <td className="px-4 py-2 font-mono text-xs text-slate-700">{line.sku}</td>
+                        <td className="px-4 py-2 text-slate-700 max-w-[200px] truncate" title={line.description}>
+                          {line.description}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">{line.quantity}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {line.costPrice != null && line.costPrice > 0 ? (
+                            formatCurrency(line.costPrice)
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+                              <AlertTriangle className="h-3 w-3" />
+                              Cost TBD
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {line.lineTotal != null ? formatCurrency(line.lineTotal) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-slate-200 bg-slate-50">
+                      <td colSpan={4} className="px-4 py-2 text-right text-xs font-semibold text-slate-600 uppercase">
+                        Supplier Total
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-900">
+                        {formatCurrency(group.supplierTotal)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ))}
+
+            {/* Grand Total */}
+            {groups.length > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-100 rounded-lg">
+                <span className="text-sm font-semibold text-slate-700 uppercase">Grand Total</span>
+                <span className="text-lg font-semibold text-slate-900 tabular-nums">
+                  {formatCurrency(grandTotal)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Create {groups.length} Draft PO{groups.length !== 1 ? 's' : ''}
+            </button>
+          </div>
         </div>
       </div>
     </div>
