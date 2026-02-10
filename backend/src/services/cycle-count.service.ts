@@ -1,6 +1,6 @@
 import { Prisma, Warehouse, CycleCountStatus } from '@prisma/client';
 import { prisma } from '../config/database';
-import { createStockAdjustment } from './inventory.service';
+import { createStockAdjustment, approveStockAdjustment } from './inventory.service';
 
 // ============================================
 // NUMBER GENERATION
@@ -445,6 +445,54 @@ export async function reconcileCycleCountSession(
       error: error instanceof Error ? error.message : 'Failed to reconcile session',
     };
   }
+}
+
+// ============================================
+// RECONCILE AND APPLY (ONE-STEP)
+// ============================================
+
+export async function reconcileAndApplyCycleCount(
+  sessionId: string,
+  userId: string
+): Promise<{
+  success: boolean;
+  adjustmentId?: string;
+  adjustmentNumber?: string;
+  applied: boolean;
+  error?: string;
+}> {
+  // Step 1: Reconcile (creates adjustment in PENDING)
+  const reconcileResult = await reconcileCycleCountSession(sessionId, userId);
+
+  if (!reconcileResult.success) {
+    return { success: false, applied: false, error: reconcileResult.error };
+  }
+
+  // No variances — nothing to approve
+  if (!reconcileResult.adjustmentId) {
+    return { success: true, applied: false };
+  }
+
+  // Step 2: Auto-approve the adjustment
+  const approveResult = await approveStockAdjustment(reconcileResult.adjustmentId, userId);
+
+  if (!approveResult.success) {
+    // Reconcile succeeded but approval failed — adjustment stays PENDING for manual approval
+    return {
+      success: true,
+      adjustmentId: reconcileResult.adjustmentId,
+      adjustmentNumber: reconcileResult.adjustmentNumber,
+      applied: false,
+      error: `Reconciled but auto-approval failed: ${approveResult.error}. Adjustment requires manual approval.`,
+    };
+  }
+
+  return {
+    success: true,
+    adjustmentId: reconcileResult.adjustmentId,
+    adjustmentNumber: reconcileResult.adjustmentNumber,
+    applied: true,
+  };
 }
 
 // ============================================

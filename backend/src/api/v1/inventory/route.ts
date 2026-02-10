@@ -38,6 +38,7 @@ import {
   submitCycleCountLines,
   completeCycleCountSession,
   reconcileCycleCountSession,
+  reconcileAndApplyCycleCount,
   cancelCycleCountSession,
 } from '../../../services/cycle-count.service';
 import { getInventoryDashboard } from '../../../services/inventory-dashboard.service';
@@ -966,6 +967,49 @@ router.post('/cycle-counts/:id/reconcile', authenticate, requireRole('ADMIN', 'M
       error: {
         code: 'RECONCILE_ERROR',
         message: error instanceof Error ? error.message : 'Failed to reconcile cycle count',
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/v1/inventory/cycle-counts/:id/reconcile-and-apply
+ * Reconcile variances AND auto-approve adjustment in one step
+ */
+router.post('/cycle-counts/:id/reconcile-and-apply', authenticate, requireRole('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+
+    const result = await reconcileAndApplyCycleCount(id, authReq.user.id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'RECONCILE_APPLY_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        message: result.applied
+          ? 'Cycle count reconciled and stock adjustment applied'
+          : result.adjustmentId
+            ? `Reconciled but auto-approval failed. ${result.error}`
+            : 'Cycle count reconciled — no variances found',
+        adjustmentId: result.adjustmentId,
+        adjustmentNumber: result.adjustmentNumber,
+        applied: result.applied,
+      },
+    });
+  } catch (error) {
+    console.error('Reconcile and apply cycle count error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'RECONCILE_APPLY_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to reconcile and apply cycle count',
       },
     });
   }

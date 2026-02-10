@@ -3628,6 +3628,15 @@ class ApiClient {
     );
   }
 
+  async reconcileAndApplyCycleCount(
+    id: string
+  ): Promise<ApiResponse<{ message: string; adjustmentId?: string; adjustmentNumber?: string; applied: boolean }>> {
+    return this.request<ApiResponse<{ message: string; adjustmentId?: string; adjustmentNumber?: string; applied: boolean }>>(
+      `/inventory/cycle-counts/${id}/reconcile-and-apply`,
+      { method: 'POST' }
+    );
+  }
+
   async cancelCycleCount(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<ApiResponse<{ message: string }>>(`/inventory/cycle-counts/${id}/cancel`, {
       method: 'POST',

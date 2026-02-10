@@ -10,6 +10,7 @@ import {
   useSubmitCycleCountLines,
   useCompleteCycleCount,
   useReconcileCycleCount,
+  useReconcileAndApplyCycleCount,
   useCancelCycleCount,
 } from '@/hooks/useInventory';
 import {
@@ -48,6 +49,7 @@ export default function CycleCountDetailPage() {
   const submitMutation = useSubmitCycleCountLines();
   const completeMutation = useCompleteCycleCount();
   const reconcileMutation = useReconcileCycleCount();
+  const reconcileAndApplyMutation = useReconcileAndApplyCycleCount();
   const cancelMutation = useCancelCycleCount();
 
   // Local state for counting
@@ -55,6 +57,7 @@ export default function CycleCountDetailPage() {
   const [lineNotes, setLineNotes] = useState<Record<string, string>>({});
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showReconcileConfirm, setShowReconcileConfirm] = useState(false);
+  const [showReconcileAndApplyConfirm, setShowReconcileAndApplyConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const isCountingMode = session?.status === 'OPEN' || session?.status === 'IN_PROGRESS';
@@ -181,6 +184,19 @@ export default function CycleCountDetailPage() {
       }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to reconcile');
+    }
+  };
+
+  const handleReconcileAndApply = async () => {
+    setActionError(null);
+    setShowReconcileAndApplyConfirm(false);
+    try {
+      const result = await reconcileAndApplyMutation.mutateAsync(sessionId);
+      if (result?.adjustmentId && !result.applied) {
+        setActionError(result.message || 'Reconciled but auto-approval failed. Adjustment requires manual approval.');
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to reconcile and apply');
     }
   };
 
@@ -619,17 +635,50 @@ export default function CycleCountDetailPage() {
                       Back
                     </button>
                   </div>
+                ) : showReconcileAndApplyConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-600">
+                      {varianceSummary.withVariance > 0
+                        ? `Reconcile and immediately apply stock changes for ${varianceSummary.withVariance} line(s)?`
+                        : 'Close session (no variances found)?'}
+                    </span>
+                    <button
+                      onClick={handleReconcileAndApply}
+                      disabled={reconcileAndApplyMutation.isPending}
+                      className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
+                    >
+                      {reconcileAndApplyMutation.isPending ? 'Applying...' : 'Confirm & Apply'}
+                    </button>
+                    <button
+                      onClick={() => setShowReconcileAndApplyConfirm(false)}
+                      className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900"
+                    >
+                      Back
+                    </button>
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => setShowReconcileConfirm(true)}
-                    className={cn(
-                      'inline-flex items-center gap-2 px-6 py-2 text-sm font-medium text-white rounded-md transition-colors',
-                      'bg-primary-600 hover:bg-primary-700'
-                    )}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                    Reconcile
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowReconcileConfirm(true)}
+                      className={cn(
+                        'inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-md transition-colors',
+                        'text-slate-700 border border-slate-300 hover:bg-slate-50'
+                      )}
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                      Reconcile
+                    </button>
+                    <button
+                      onClick={() => setShowReconcileAndApplyConfirm(true)}
+                      className={cn(
+                        'inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white rounded-md transition-colors',
+                        'bg-green-600 hover:bg-green-700'
+                      )}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Reconcile &amp; Apply
+                    </button>
+                  </div>
                 )}
               </>
             )}

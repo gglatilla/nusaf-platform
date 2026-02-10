@@ -338,6 +338,27 @@ export function useReconcileCycleCount() {
   });
 }
 
+export function useReconcileAndApplyCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.reconcileAndApplyCycleCount(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to reconcile and apply cycle count');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'cycleCount'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'stockLevels'] });
+    },
+  });
+}
+
 export function useCancelCycleCount() {
   const queryClient = useQueryClient();
 
