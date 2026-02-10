@@ -122,6 +122,10 @@ export interface ProductWithInventory extends CatalogProduct {
   // Relations
   inventory?: ProductInventory;
   movements?: StockMovement[];
+  // Optional includes
+  images?: { id: string; url: string; thumbnailUrl: string | null; altText: string | null; caption: string | null; isPrimary: boolean }[];
+  documents?: { id: string; type: string; name: string; fileUrl: string; fileSize: number | null }[];
+  crossReferences?: { id: string; competitorBrand: string; competitorSku: string; notes: string | null; isExact: boolean }[];
 }
 
 export interface CreateProductData {

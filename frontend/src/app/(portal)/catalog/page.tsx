@@ -18,6 +18,7 @@ import {
   ProductTable,
   PublishFilterChips,
 } from '@/components/products';
+import { AddToQuoteModal } from '@/components/quotes/AddToQuoteModal';
 import { useProducts, useCategories, useBulkPublishProducts } from '@/hooks/useProducts';
 import { useAuthStore } from '@/stores/auth-store';
 import { useQuoteCompanyStore } from '@/stores/quote-company-store';
@@ -71,6 +72,7 @@ export default function ProductsPage() {
 
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [addToQuoteProduct, setAddToQuoteProduct] = useState<CatalogProduct | null>(null);
 
   // Selection state for bulk actions (admin only, table view only)
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -377,6 +379,14 @@ export default function ProductsPage() {
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
         showStockQuantity={showQuantity}
+        onAddToQuote={(product) => setAddToQuoteProduct(product)}
+      />
+
+      {/* Add to Quote modal — rendered as sibling (not nested) */}
+      <AddToQuoteModal
+        product={addToQuoteProduct}
+        isOpen={addToQuoteProduct !== null}
+        onClose={() => setAddToQuoteProduct(null)}
       />
 
       {/* Bulk actions bar - appears when items are selected */}

@@ -16,7 +16,7 @@ import { getUomLabel } from '@/lib/constants/unit-of-measure';
 import { formatCurrency } from '@/lib/formatting';
 
 interface AddToQuoteModalProps {
-  product: CatalogProduct;
+  product: CatalogProduct | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -34,7 +34,9 @@ export function AddToQuoteModal({ product, isOpen, onClose }: AddToQuoteModalPro
   const addItem = useAddQuoteItem();
 
   const isLoading = createQuote.isPending || addItem.isPending;
-  const lineTotal = product.price ? product.price * quantity : 0;
+  const lineTotal = product?.price ? product.price * quantity : 0;
+
+  if (!product) return null;
 
   const handleQuantityChange = (value: number) => {
     if (value >= 1) {

@@ -17,11 +17,9 @@ import {
   Download,
   ArrowRightLeft,
   Check,
-  Info,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { PublicProductDetail, PublicProductImage } from '@/lib/api';
-import { useProducts } from '@/hooks/useProducts';
+import type { ProductWithInventory, PublicProductImage } from '@/lib/api';
 import { useCreateQuote, useAddQuoteItem } from '@/hooks/useQuotes';
 import { StockStatusBadge } from '@/components/inventory';
 import { getUomLabel } from '@/lib/constants/unit-of-measure';
@@ -30,38 +28,26 @@ export default function CustomerProductDetailPage() {
   const params = useParams();
   const sku = params.sku as string;
 
-  // Fetch rich marketing content (images, specs, docs, cross-refs) — public API
+  // Fetch product via authenticated API — includes pricing, images, docs, cross-refs
   const {
-    data: publicProduct,
-    isLoading: isLoadingPublic,
-    error: publicError,
+    data: product,
+    isLoading,
+    error: productError,
   } = useQuery({
-    queryKey: ['publicProduct', sku],
+    queryKey: ['productDetail', sku],
     queryFn: async () => {
-      const response = await api.getPublicProduct(sku);
+      const response = await api.getProductWithInventory(sku, 'images,documents,crossReferences');
       return response.success ? response.data : null;
     },
     enabled: !!sku,
-    staleTime: 5 * 60 * 1000, // 5 min — marketing content doesn't change often
+    staleTime: 5 * 60 * 1000,
   });
-
-  // Fetch tier pricing + stock badge — authenticated catalog API
-  const { data: productsData, isLoading: isLoadingCatalog } = useProducts(
-    { search: sku, pageSize: 5 },
-    { enabled: !!sku }
-  );
-  // Find exact SKU match from search results
-  const catalogProduct = productsData?.products?.find(
-    (p) => p.nusafSku === sku
-  );
-
-  const isLoading = isLoadingPublic || isLoadingCatalog;
 
   if (isLoading) {
     return <CustomerProductDetailSkeleton />;
   }
 
-  if (publicError || !publicProduct) {
+  if (productError || !product) {
     return (
       <div className="text-center py-12">
         <Package className="h-12 w-12 text-slate-300 mx-auto mb-4" />
@@ -82,6 +68,9 @@ export default function CustomerProductDetailPage() {
     );
   }
 
+  const productTitle = product.marketingTitle || product.description;
+  const productDescription = product.marketingDescription || product.longDescription;
+
   return (
     <>
       {/* Back link + breadcrumb */}
@@ -93,69 +82,73 @@ export default function CustomerProductDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Products
         </Link>
-        <nav className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/my/products" className="hover:text-primary-600">
-            Products
-          </Link>
-          <span>/</span>
-          <Link
-            href={`/my/products?categoryId=${publicProduct.category.id}`}
-            className="hover:text-primary-600"
-          >
-            {publicProduct.category.name}
-          </Link>
-          {publicProduct.subCategory && (
-            <>
-              <span>/</span>
-              <Link
-                href={`/my/products?categoryId=${publicProduct.category.id}&subCategoryId=${publicProduct.subCategory.id}`}
-                className="hover:text-primary-600"
-              >
-                {publicProduct.subCategory.name}
-              </Link>
-            </>
-          )}
-          <span>/</span>
-          <span className="text-slate-900 font-medium">{publicProduct.sku}</span>
-        </nav>
+        {product.category && (
+          <nav className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+            <Link href="/my/products" className="hover:text-primary-600">
+              Products
+            </Link>
+            <span>/</span>
+            <Link
+              href={`/my/products?categoryId=${product.category.id}`}
+              className="hover:text-primary-600"
+            >
+              {product.category.name}
+            </Link>
+            {product.subCategory && (
+              <>
+                <span>/</span>
+                <Link
+                  href={`/my/products?categoryId=${product.category.id}&subCategoryId=${product.subCategory.id}`}
+                  className="hover:text-primary-600"
+                >
+                  {product.subCategory.name}
+                </Link>
+              </>
+            )}
+            <span>/</span>
+            <span className="text-slate-900 font-medium">{product.nusafSku}</span>
+          </nav>
+        )}
       </div>
 
       {/* Main product section — two column */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Left: Image gallery */}
         <ProductImageGallery
-          images={publicProduct.images}
-          productTitle={publicProduct.title}
+          images={product.images || []}
+          productTitle={productTitle}
         />
 
         {/* Right: Product info */}
         <div className="space-y-5">
           {/* Category badge */}
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-primary-50 text-primary-700">
-              {publicProduct.category.name}
-            </span>
-            {publicProduct.subCategory && (
+            {product.category && (
+              <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-primary-50 text-primary-700">
+                {product.category.name}
+              </span>
+            )}
+            {product.subCategory && (
               <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600">
-                {publicProduct.subCategory.name}
+                {product.subCategory.name}
               </span>
             )}
           </div>
 
           {/* SKU */}
           <p className="text-sm text-slate-500 font-mono">
-            SKU: {publicProduct.sku}
+            SKU: {product.nusafSku}
           </p>
 
           {/* Product title */}
           <h1 className="text-xl font-bold text-slate-900">
-            {publicProduct.title}
+            {productTitle}
           </h1>
 
           {/* Description */}
-          {publicProduct.description && (
+          {productDescription && (
             <p className="text-sm text-slate-600 leading-relaxed">
-              {publicProduct.description}
+              {productDescription}
             </p>
           )}
 
@@ -163,22 +156,22 @@ export default function CustomerProductDetailPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Sold per:</span>
             <span className="px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-700">
-              {getUomLabel(publicProduct.unitOfMeasure)}
+              {getUomLabel(product.unitOfMeasure)}
             </span>
           </div>
 
-          {/* Pricing — tier-appropriate from catalog API */}
+          {/* Pricing */}
           <div className="pt-4 border-t border-slate-200">
-            {catalogProduct?.hasPrice ? (
+            {product.hasPrice ? (
               <div>
                 <span className="text-2xl font-bold text-slate-900">
                   {new Intl.NumberFormat('en-ZA', {
                     style: 'currency',
                     currency: 'ZAR',
-                  }).format(catalogProduct.price!)}
+                  }).format(product.price!)}
                 </span>
                 <span className="ml-2 text-sm text-slate-500">
-                  {catalogProduct.priceLabel}
+                  {product.priceLabel}
                 </span>
               </div>
             ) : (
@@ -189,38 +182,19 @@ export default function CustomerProductDetailPage() {
           </div>
 
           {/* Availability badge — no quantities shown (Golden Rule 4) */}
-          {catalogProduct?.stockSummary && (
+          {product.stockSummary && (
             <div className="flex items-center gap-2">
-              <StockStatusBadge status={catalogProduct.stockSummary.status} />
+              <StockStatusBadge status={product.stockSummary.status} />
             </div>
           )}
 
           {/* Add to Quote */}
-          {catalogProduct && (
-            <AddToQuoteSection product={catalogProduct} />
-          )}
-
-          {/* No pricing fallback — still allow quote request */}
-          {!catalogProduct && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-amber-900">
-                    Pricing unavailable
-                  </p>
-                  <p className="text-sm text-amber-700 mt-1">
-                    Please contact our sales team for pricing and availability.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <AddToQuoteSection product={product} />
         </div>
       </div>
 
       {/* Tabs: Specifications, Documents, Cross-References */}
-      <ProductDetailTabs product={publicProduct} />
+      <ProductDetailTabs product={product} />
     </>
   );
 }
@@ -324,7 +298,7 @@ function ProductImageGallery({
 function AddToQuoteSection({
   product,
 }: {
-  product: import('@/lib/api').CatalogProduct;
+  product: Pick<ProductWithInventory, 'id' | 'price' | 'hasPrice'>;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -452,7 +426,7 @@ function AddToQuoteSection({
 function ProductDetailTabs({
   product,
 }: {
-  product: PublicProductDetail;
+  product: ProductWithInventory;
 }) {
   const [activeTab, setActiveTab] = useState<
     'specs' | 'documents' | 'crossref'
@@ -521,7 +495,7 @@ function ProductDetailTabs({
 
         {currentTab === 'documents' && hasDocs && (
           <div className="space-y-3">
-            {product.documents.map((doc) => (
+            {product.documents!.map((doc) => (
               <a
                 key={doc.id}
                 href={doc.fileUrl}
@@ -564,7 +538,7 @@ function ProductDetailTabs({
                 </tr>
               </thead>
               <tbody>
-                {product.crossReferences.map((ref) => (
+                {product.crossReferences!.map((ref) => (
                   <tr
                     key={ref.id}
                     className="border-b border-slate-100 last:border-0"

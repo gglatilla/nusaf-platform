@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import {
   Dialog,
@@ -12,7 +11,6 @@ import {
   DialogCloseButton,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { AddToQuoteModal } from '@/components/quotes/AddToQuoteModal';
 import { StockStatusBadge } from '@/components/inventory';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import type { CatalogProduct } from '@/lib/api';
@@ -25,6 +23,7 @@ interface ProductDetailModalProps {
   showStockQuantity?: boolean; // Internal users see numbers, customers see badges only
   hideSupplier?: boolean; // Hide supplier info for customer views (Golden Rule 4)
   detailLinkPrefix?: string; // Override detail link prefix (default: '/catalog')
+  onAddToQuote?: (product: CatalogProduct) => void; // Callback to open AddToQuote at parent level
 }
 
 export function ProductDetailModal({
@@ -34,8 +33,8 @@ export function ProductDetailModal({
   showStockQuantity = true,
   hideSupplier = false,
   detailLinkPrefix = '/catalog',
+  onAddToQuote,
 }: ProductDetailModalProps) {
-  const [showAddToQuote, setShowAddToQuote] = useState(false);
 
   // Fetch inventory data when modal is open
   const { data: productWithInventory, isLoading: isLoadingInventory } = useProductWithInventory(
@@ -65,12 +64,10 @@ export function ProductDetailModal({
   );
 
   const handleAddToQuote = () => {
-    setShowAddToQuote(true);
-  };
-
-  const handleAddToQuoteClose = () => {
-    setShowAddToQuote(false);
-    onOpenChange(false); // Close both modals after adding
+    if (onAddToQuote && product) {
+      onOpenChange(false); // Close detail modal first
+      onAddToQuote(product); // Notify parent to open AddToQuote
+    }
   };
 
   return (
@@ -234,23 +231,18 @@ export function ProductDetailModal({
           >
             Close
           </button>
-          <button
-            type="button"
-            onClick={handleAddToQuote}
-            disabled={!product.hasPrice}
-            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Add to Quote
-          </button>
+          {onAddToQuote && (
+            <button
+              type="button"
+              onClick={handleAddToQuote}
+              disabled={!product.hasPrice}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add to Quote
+            </button>
+          )}
         </DialogFooter>
       </DialogContent>
-
-      {/* Add to Quote Modal */}
-      <AddToQuoteModal
-        product={product}
-        isOpen={showAddToQuote}
-        onClose={handleAddToQuoteClose}
-      />
     </Dialog>
   );
 }

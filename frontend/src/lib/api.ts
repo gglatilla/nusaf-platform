@@ -518,6 +518,12 @@ export interface ProductWithInventory extends CatalogProduct {
   inventory?: ProductInventory;
   // Movements (when ?include=movements)
   movements?: StockMovement[];
+  // Images (when ?include=images)
+  images?: PublicProductImage[];
+  // Documents (when ?include=documents)
+  documents?: PublicProductDocument[];
+  // Cross-references (when ?include=crossReferences)
+  crossReferences?: PublicCrossReference[];
 }
 
 // Product create/update types

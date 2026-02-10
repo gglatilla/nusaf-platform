@@ -12,6 +12,7 @@ import {
   ProductSort,
   StockFilterChips,
 } from '@/components/products';
+import { AddToQuoteModal } from '@/components/quotes/AddToQuoteModal';
 import { useProducts, useCategories } from '@/hooks/useProducts';
 import type { CatalogProduct } from '@/lib/api';
 import type { StockFilterValue } from '@/components/products/StockFilterChips';
@@ -44,6 +45,7 @@ export default function CustomerProductsPage() {
 
   // Modal state
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [addToQuoteProduct, setAddToQuoteProduct] = useState<CatalogProduct | null>(null);
 
   // Data hooks — always filter to published products only
   const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
@@ -265,6 +267,14 @@ export default function CustomerProductsPage() {
         showStockQuantity={false}
         hideSupplier={true}
         detailLinkPrefix="/my/products"
+        onAddToQuote={(product) => setAddToQuoteProduct(product)}
+      />
+
+      {/* Add to Quote modal — rendered as sibling (not nested) */}
+      <AddToQuoteModal
+        product={addToQuoteProduct}
+        isOpen={addToQuoteProduct !== null}
+        onClose={() => setAddToQuoteProduct(null)}
       />
     </>
   );
