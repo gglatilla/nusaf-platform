@@ -162,6 +162,13 @@ export async function createReturnAuthorization(
     if (!order) {
       return { success: false, error: 'Order not found' };
     }
+
+    // Only allow returns for orders that have been shipped/delivered
+    const allowedStatuses = ['DELIVERED', 'SHIPPED', 'INVOICED', 'CLOSED'];
+    if (!allowedStatuses.includes(order.status)) {
+      return { success: false, error: `Cannot create a return for an order with status ${order.status}. Order must be shipped or delivered first.` };
+    }
+
     orderNumber = order.orderNumber;
     if (!customerName) customerName = order.company.name;
   }

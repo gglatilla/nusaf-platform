@@ -44,7 +44,7 @@
 
 ## Phase 3A — Safety Nets
 - [x] T26: Backend return quantity validation (cumulative check) (2026-02-10)
-- [ ] T27: Return order status validation (DELIVERED only)
+- [x] T27: Return order status validation (DELIVERED only) (2026-02-10)
 - [ ] T28: Overselling warning on quote line items
 - [ ] T29: PO cancel with existing GRVs (block or reverse)
 - [ ] T30: Concurrent edit protection (version field on PO)
