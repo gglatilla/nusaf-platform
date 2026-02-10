@@ -20,7 +20,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-function NavLink({ item, isCollapsed }: { item: NavItem; isCollapsed: boolean }) {
+function NavLink({ item, isCollapsed }: { item: NavItem; isCollapsed: boolean }): JSX.Element {
   const pathname = usePathname();
   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
@@ -45,7 +45,7 @@ function NavLink({ item, isCollapsed }: { item: NavItem; isCollapsed: boolean })
 export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: SidebarProps) {
   const { user, logout } = useAuthStore();
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     await logout();
     window.location.href = '/login';
   };

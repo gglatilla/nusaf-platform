@@ -46,7 +46,7 @@ export default function CustomerOrdersPage() {
     totalPages: 0,
   };
 
-  const updateUrl = (params: { status?: StatusFilter; page?: number }) => {
+  const updateUrl = (params: { status?: StatusFilter; page?: number }): void => {
     const newParams = new URLSearchParams();
     const newStatus = params.status ?? statusFilter;
     const newPage = params.page ?? page;
@@ -56,13 +56,13 @@ export default function CustomerOrdersPage() {
     router.push(query ? `/my/orders?${query}` : '/my/orders', { scroll: false });
   };
 
-  const handleStatusChange = (status: StatusFilter) => {
+  const handleStatusChange = (status: StatusFilter): void => {
     setStatusFilter(status);
     setPage(1);
     updateUrl({ status, page: 1 });
   };
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = (newPage: number): void => {
     setPage(newPage);
     updateUrl({ page: newPage });
     window.scrollTo({ top: 0, behavior: 'smooth' });

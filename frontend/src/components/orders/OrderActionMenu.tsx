@@ -60,7 +60,7 @@ export function OrderActionMenu({ primaryAction, nextStepText, groups }: OrderAc
 
   // Close on outside click
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent): void {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -73,7 +73,7 @@ export function OrderActionMenu({ primaryAction, nextStepText, groups }: OrderAc
 
   // Close on Escape
   useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
+    function handleEscape(event: KeyboardEvent): void {
       if (event.key === 'Escape') setIsOpen(false);
     }
     if (isOpen) {

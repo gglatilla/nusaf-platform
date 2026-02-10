@@ -20,7 +20,7 @@ export default function CustomerInvoicesPage() {
   const invoices = data?.data ?? [];
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
 
-  const handleDownload = async (invoiceId: string, invoiceNumber: string) => {
+  const handleDownload = async (invoiceId: string, invoiceNumber: string): Promise<void> => {
     try {
       await download.mutateAsync({ id: invoiceId, invoiceNumber });
     } catch {

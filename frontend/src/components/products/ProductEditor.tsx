@@ -31,7 +31,7 @@ function Section({
   icon?: React.ElementType;
   children: React.ReactNode;
   defaultOpen?: boolean;
-}) {
+}): JSX.Element {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -67,7 +67,7 @@ function Field({
   error?: string;
   hint?: React.ReactNode;
   children: React.ReactNode;
-}) {
+}): JSX.Element {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -82,7 +82,7 @@ function Field({
 }
 
 // Character counter for SEO fields
-function CharCounter({ current, max }: { current: number; max: number }) {
+function CharCounter({ current, max }: { current: number; max: number }): JSX.Element {
   const isOver = current > max;
   return (
     <span className={cn('text-xs', isOver ? 'text-red-500' : 'text-slate-400')}>

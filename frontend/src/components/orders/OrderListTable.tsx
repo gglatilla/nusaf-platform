@@ -13,7 +13,7 @@ interface OrderListTableProps {
   quotesHref?: string; // Default: '/quotes' — use '/my/quotes' for customer portal
 }
 
-function SkeletonRow() {
+function SkeletonRow(): JSX.Element {
   return (
     <tr className="animate-pulse">
       <td className="px-4 lg:px-6 py-4">

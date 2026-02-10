@@ -29,7 +29,7 @@ function Section({
   icon?: React.ElementType;
   children: React.ReactNode;
   defaultOpen?: boolean;
-}) {
+}): JSX.Element {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -65,7 +65,7 @@ function Field({
   error?: string;
   hint?: React.ReactNode;
   children: React.ReactNode;
-}) {
+}): JSX.Element {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -80,7 +80,7 @@ function Field({
 }
 
 // Character counter for SEO fields
-function CharCounter({ current, max }: { current: number; max: number }) {
+function CharCounter({ current, max }: { current: number; max: number }): JSX.Element {
   const isOver = current > max;
   return (
     <span className={cn('text-xs', isOver ? 'text-red-500' : 'text-slate-400')}>
@@ -163,14 +163,14 @@ export function ProductContentEditor({ product, onSave, isLoading, onCompletenes
     });
   }, [formData, images.length, documents.length, onCompletenessInputChange]);
 
-  const handleChange = (field: keyof ProductContentFormData, value: unknown) => {
+  const handleChange = (field: keyof ProductContentFormData, value: unknown): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     setIsSubmitting(true);
     try {
       await onSave(formData);
@@ -182,23 +182,23 @@ export function ProductContentEditor({ product, onSave, isLoading, onCompletenes
   };
 
   // Media handlers
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (file: File): Promise<void> => {
     await uploadImage.mutateAsync({ file, isPrimary: images.length === 0 });
   };
 
-  const handleSetPrimaryImage = async (imageId: string) => {
+  const handleSetPrimaryImage = async (imageId: string): Promise<void> => {
     await setPrimaryImage.mutateAsync(imageId);
   };
 
-  const handleDeleteImage = async (imageId: string) => {
+  const handleDeleteImage = async (imageId: string): Promise<void> => {
     await deleteImage.mutateAsync(imageId);
   };
 
-  const handleDocumentUpload = async (file: File, type: ProductDocumentType, name: string) => {
+  const handleDocumentUpload = async (file: File, type: ProductDocumentType, name: string): Promise<void> => {
     await uploadDocument.mutateAsync({ file, type, name });
   };
 
-  const handleDeleteDocument = async (documentId: string) => {
+  const handleDeleteDocument = async (documentId: string): Promise<void> => {
     await deleteDocument.mutateAsync(documentId);
   };
 
