@@ -43,7 +43,7 @@
 - [x] T25: Credit note API + UI + auto-generate on RA completion (2026-02-10)
 
 ## Phase 3A — Safety Nets
-- [ ] T26: Backend return quantity validation (cumulative check)
+- [x] T26: Backend return quantity validation (cumulative check) (2026-02-10)
 - [ ] T27: Return order status validation (DELIVERED only)
 - [ ] T28: Overselling warning on quote line items
 - [ ] T29: PO cancel with existing GRVs (block or reverse)

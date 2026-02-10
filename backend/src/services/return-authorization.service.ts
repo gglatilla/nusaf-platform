@@ -181,6 +181,49 @@ export async function createReturnAuthorization(
     return { success: false, error: 'Customer name could not be determined' };
   }
 
+  // Validate cumulative return quantities against shipped quantities
+  const orderLineIds = input.lines
+    .filter((line) => line.orderLineId)
+    .map((line) => line.orderLineId!);
+
+  if (orderLineIds.length > 0) {
+    // Fetch shipped quantities for all referenced order lines
+    const orderLines = await prisma.salesOrderLine.findMany({
+      where: { id: { in: orderLineIds } },
+      select: { id: true, quantityShipped: true, productSku: true },
+    });
+    const shippedMap = new Map(orderLines.map((ol) => [ol.id, { quantityShipped: ol.quantityShipped, productSku: ol.productSku }]));
+
+    // Sum existing active RA returns per order line
+    const existingReturns = await prisma.returnAuthorizationLine.groupBy({
+      by: ['orderLineId'],
+      where: {
+        orderLineId: { in: orderLineIds },
+        returnAuthorization: {
+          status: { notIn: ['REJECTED', 'CANCELLED'] },
+        },
+      },
+      _sum: { quantityReturned: true },
+    });
+    const returnedMap = new Map(existingReturns.map((er) => [er.orderLineId!, er._sum.quantityReturned ?? 0]));
+
+    for (const line of input.lines) {
+      if (!line.orderLineId) continue;
+      const shipped = shippedMap.get(line.orderLineId);
+      if (!shipped) continue;
+
+      const alreadyReturned = returnedMap.get(line.orderLineId) ?? 0;
+      const totalAfter = alreadyReturned + line.quantityReturned;
+
+      if (totalAfter > shipped.quantityShipped) {
+        return {
+          success: false,
+          error: `Cannot return ${line.quantityReturned} units of ${shipped.productSku} — ${alreadyReturned} already returned of ${shipped.quantityShipped} shipped`,
+        };
+      }
+    }
+  }
+
   const raNumber = await generateRANumber();
   const isStaffCreated = userRole !== 'CUSTOMER';
   const now = new Date();
