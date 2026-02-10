@@ -56,7 +56,7 @@
 - [x] T34: Reorder report PO generation confirmation modal (2026-02-10)
 - [x] T35: PO detail role-based action buttons (2026-02-10)
 - [x] T36: Customer link to order after quote acceptance (2026-02-10)
-- [ ] T37: Reorder report cost price fallback
+- [x] T37: Reorder report cost price fallback (2026-02-10)
 - [ ] T38: Job card reservation release on completion
 
 ## Phase 4 — Automation Wiring

@@ -76,6 +76,7 @@ export default function ReorderReportPage() {
   // PO generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPOs, setGeneratedPOs] = useState<{ poId: string; poNumber: string; supplierName: string }[]>([]);
+  const [skippedItems, setSkippedItems] = useState<{ sku: string; description: string }[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
   // Data
@@ -201,11 +202,29 @@ export default function ReorderReportPage() {
     setShowPreview(false);
     setIsGenerating(true);
     setGeneratedPOs([]);
+    setSkippedItems([]);
 
     try {
-      // Group selected by supplier
+      // Filter out items with null/zero costPrice
+      const skipped: { sku: string; description: string }[] = [];
+      const validItems = selected.filter((item) => {
+        if (item.costPrice == null || item.costPrice <= 0) {
+          skipped.push({ sku: item.product.nusafSku, description: item.product.description });
+          return false;
+        }
+        return true;
+      });
+      setSkippedItems(skipped);
+
+      if (validItems.length === 0) {
+        // All items skipped — nothing to generate
+        setIsGenerating(false);
+        return;
+      }
+
+      // Group valid items by supplier
       const bySupplier: Record<string, LowStockProduct[]> = {};
-      for (const item of selected) {
+      for (const item of validItems) {
         const key = item.supplier.id;
         if (!bySupplier[key]) bySupplier[key] = [];
         bySupplier[key].push(item);
@@ -232,7 +251,7 @@ export default function ReorderReportPage() {
                 data: {
                   productId: item.productId,
                   quantityOrdered: qty,
-                  unitCost: item.costPrice ?? 0,
+                  unitCost: item.costPrice!,
                 },
               });
             }
@@ -353,6 +372,27 @@ export default function ReorderReportPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Skipped Items Warning */}
+      {skippedItems.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-amber-700 font-medium mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            {skippedItems.length} item{skippedItems.length !== 1 ? 's' : ''} skipped — no cost price set
+          </div>
+          <div className="space-y-1">
+            {skippedItems.map((item) => (
+              <div key={item.sku} className="text-sm text-amber-700">
+                <span className="font-mono text-xs">{item.sku}</span>
+                {' — '}{item.description}
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-amber-600 mt-2">
+            Set a cost price on these products before including them in purchase orders.
+          </p>
         </div>
       )}
 
