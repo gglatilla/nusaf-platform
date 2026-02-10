@@ -779,7 +779,11 @@ router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (re
 
     return res.status(201).json({
       success: true,
-      data: result.payment,
+      data: {
+        ...result.payment,
+        fulfillmentTriggered: result.fulfillmentTriggered ?? false,
+        fulfillmentError: result.fulfillmentError,
+      },
     });
   } catch (error) {
     console.error('Record payment error:', error);

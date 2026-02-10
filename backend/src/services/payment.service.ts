@@ -1,5 +1,6 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../config/database';
+import { generateFulfillmentPlan, executeFulfillmentPlan } from './orchestration.service';
 
 /**
  * Generate the next payment number in format PAY-YYYY-NNNNN
@@ -102,7 +103,13 @@ export async function recordPayment(
   },
   userId: string,
   userName: string
-): Promise<{ success: boolean; payment?: { id: string; paymentNumber: string }; error?: string }> {
+): Promise<{
+  success: boolean;
+  payment?: { id: string; paymentNumber: string };
+  fulfillmentTriggered?: boolean;
+  fulfillmentError?: string;
+  error?: string;
+}> {
   // Verify order exists
   const order = await prisma.salesOrder.findUnique({
     where: { id: orderId },
@@ -159,9 +166,57 @@ export async function recordPayment(
   // Sync the cached payment status on the order
   await syncOrderPaymentStatus(orderId);
 
+  // Check if this payment tipped status to PAID for a prepay order → auto-trigger fulfillment
+  let fulfillmentTriggered = false;
+  let fulfillmentError: string | undefined;
+
+  const updatedOrder = await prisma.salesOrder.findUnique({
+    where: { id: orderId },
+    select: { paymentTerms: true, paymentStatus: true, status: true, orderNumber: true, companyId: true },
+  });
+
+  if (
+    updatedOrder &&
+    updatedOrder.paymentStatus === 'PAID' &&
+    ['PREPAY', 'COD'].includes(updatedOrder.paymentTerms ?? '') &&
+    updatedOrder.status === 'CONFIRMED'
+  ) {
+    try {
+      const planResult = await generateFulfillmentPlan({ orderId });
+
+      if (planResult.success && planResult.data) {
+        const execResult = await executeFulfillmentPlan({
+          plan: planResult.data,
+          userId,
+          companyId: updatedOrder.companyId,
+        });
+
+        if (execResult.success) {
+          fulfillmentTriggered = true;
+          const docs = execResult.data?.createdDocuments;
+          console.log(
+            `Prepay order ${updatedOrder.orderNumber}: payment received, fulfillment triggered — ` +
+            `${docs?.pickingSlips.length ?? 0} picking slips, ${docs?.jobCards.length ?? 0} job cards, ${docs?.transferRequests.length ?? 0} transfers`
+          );
+        } else {
+          fulfillmentError = execResult.error || 'Fulfillment execution failed';
+          console.error(`Prepay order ${updatedOrder.orderNumber}: fulfillment execution failed — ${execResult.error}`);
+        }
+      } else {
+        fulfillmentError = planResult.error || 'Fulfillment plan generation failed';
+        console.error(`Prepay order ${updatedOrder.orderNumber}: fulfillment plan failed — ${planResult.error}`);
+      }
+    } catch (error) {
+      fulfillmentError = error instanceof Error ? error.message : 'Fulfillment error';
+      console.error(`Prepay order ${updatedOrder.orderNumber}: fulfillment error:`, error);
+    }
+  }
+
   return {
     success: true,
     payment: { id: payment.id, paymentNumber: payment.paymentNumber },
+    fulfillmentTriggered,
+    fulfillmentError,
   };
 }
 

@@ -4848,8 +4848,8 @@ class ApiClient {
     return this.request<ApiResponse<Payment[]>>(`/orders/${orderId}/payments`);
   }
 
-  async recordPayment(orderId: string, data: RecordPaymentData): Promise<ApiResponse<{ id: string; paymentNumber: string }>> {
-    return this.request<ApiResponse<{ id: string; paymentNumber: string }>>(`/orders/${orderId}/payments`, {
+  async recordPayment(orderId: string, data: RecordPaymentData): Promise<ApiResponse<{ id: string; paymentNumber: string; fulfillmentTriggered?: boolean; fulfillmentError?: string }>> {
+    return this.request<ApiResponse<{ id: string; paymentNumber: string; fulfillmentTriggered?: boolean; fulfillmentError?: string }>>(`/orders/${orderId}/payments`, {
       method: 'POST',
       body: JSON.stringify(data),
     });

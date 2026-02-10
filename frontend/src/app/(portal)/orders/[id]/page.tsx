@@ -114,6 +114,7 @@ export default function OrderDetailPage() {
   const [showCreateTransferRequestModal, setShowCreateTransferRequestModal] = useState(false);
   const [showFulfillmentPlanModal, setShowFulfillmentPlanModal] = useState(false);
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  const [paymentSuccessBanner, setPaymentSuccessBanner] = useState<string | null>(null);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -283,6 +284,13 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Payment success banner */}
+      {paymentSuccessBanner && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+          <p className="text-sm text-green-800">{paymentSuccessBanner}</p>
+          <button onClick={() => setPaymentSuccessBanner(null)} className="text-green-600 hover:text-green-800 text-sm font-medium">Dismiss</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
@@ -790,6 +798,16 @@ export default function OrderDetailPage() {
               .filter((p) => p.status === 'CONFIRMED')
               .reduce((sum, p) => sum + Number(p.amount), 0)
         )}
+        onSuccess={({ fulfillmentTriggered, fulfillmentError }) => {
+          if (fulfillmentTriggered) {
+            setPaymentSuccessBanner('Payment recorded. Fulfillment has been automatically initiated.');
+          } else if (fulfillmentError) {
+            setPaymentSuccessBanner(`Payment recorded. Fulfillment could not be auto-triggered: ${fulfillmentError}. Staff can trigger manually.`);
+          } else {
+            setPaymentSuccessBanner('Payment recorded successfully.');
+          }
+          setTimeout(() => setPaymentSuccessBanner(null), 8000);
+        }}
       />
     </div>
   );

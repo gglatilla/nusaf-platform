@@ -10,6 +10,7 @@ interface RecordPaymentModalProps {
   onClose: () => void;
   orderId: string;
   balanceRemaining: number;
+  onSuccess?: (data: { fulfillmentTriggered?: boolean; fulfillmentError?: string }) => void;
 }
 
 function formatCurrency(amount: number): string {
@@ -33,6 +34,7 @@ export function RecordPaymentModal({
   onClose,
   orderId,
   balanceRemaining,
+  onSuccess,
 }: RecordPaymentModalProps) {
   const [amount, setAmount] = useState(balanceRemaining.toFixed(2));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('EFT');
@@ -52,7 +54,7 @@ export function RecordPaymentModal({
   const handleSubmit = async () => {
     if (!canSubmit) return;
     try {
-      await recordPayment.mutateAsync({
+      const result = await recordPayment.mutateAsync({
         orderId,
         data: {
           amount: parsedAmount,
@@ -61,6 +63,10 @@ export function RecordPaymentModal({
           paymentDate,
           notes: notes.trim() || undefined,
         },
+      });
+      onSuccess?.({
+        fulfillmentTriggered: result?.fulfillmentTriggered,
+        fulfillmentError: result?.fulfillmentError,
       });
       handleClose();
     } catch {

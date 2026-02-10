@@ -60,7 +60,7 @@
 - [x] T38: Job card reservation release on completion (2026-02-10)
 
 ## Phase 4 — Automation Wiring
-- [ ] T39: Prepay payment triggers fulfillment
+- [x] T39: Prepay payment triggers fulfillment (2026-02-10)
 - [ ] T40: End-to-end flow verification
 
 ## Notes
