@@ -42,6 +42,7 @@ export function AdjustmentApproveModal({ adjustmentId, canApprove, onClose }: Ad
   const rejectMutation = useRejectStockAdjustment();
 
   const handleApprove = async () => {
+    if (!window.confirm('Approve this stock adjustment? This will update stock levels immediately and cannot be undone.')) return;
     try {
       setError(null);
       await approveMutation.mutateAsync(adjustmentId);

@@ -52,7 +52,7 @@
 ## Phase 3B — UX Improvements
 - [x] T31: Order detail role-based action buttons (2026-02-10)
 - [x] T32: Cycle count reconcile + apply in one step (2026-02-10)
-- [ ] T33: Confirmation dialog on adjustment approval
+- [x] T33: Confirmation dialog on adjustment approval (2026-02-10)
 - [ ] T34: Reorder report PO generation confirmation modal
 - [ ] T35: PO detail role-based action buttons
 - [ ] T36: Customer link to order after quote acceptance

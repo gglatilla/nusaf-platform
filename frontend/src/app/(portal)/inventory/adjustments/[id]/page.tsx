@@ -82,6 +82,7 @@ export default function StockAdjustmentDetailPage() {
   const isProcessing = approveMutation.isPending || rejectMutation.isPending;
 
   const handleApprove = async () => {
+    if (!window.confirm('Approve this stock adjustment? This will update stock levels immediately and cannot be undone.')) return;
     try {
       setActionError(null);
       await approveMutation.mutateAsync(id);
