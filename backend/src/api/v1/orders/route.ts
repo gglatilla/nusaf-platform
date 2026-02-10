@@ -46,6 +46,17 @@ router.use(authenticate);
 // Staff-only middleware for write operations
 const staffOnly = requireRole('ADMIN', 'MANAGER', 'SALES');
 
+const STAFF_ROLES = ['ADMIN', 'MANAGER', 'SALES'];
+
+/**
+ * Get the effective companyId for order access.
+ * Staff can access all orders (returns undefined = no company filter).
+ * Customers are strictly isolated to their own company.
+ */
+function getEffectiveCompanyId(req: { user?: { role: string; companyId: string } }): string | undefined {
+  return STAFF_ROLES.includes(req.user!.role) ? undefined : req.user!.companyId;
+}
+
 /**
  * POST /api/v1/orders/from-quote
  * Create a new order from an accepted quote
@@ -67,7 +78,26 @@ router.post('/from-quote', staffOnly, async (req, res) => {
 
     const { quoteId, customerPoNumber, customerPoDate, requiredDate, customerNotes } = bodyResult.data;
 
-    const result = await createOrderFromQuote(quoteId, req.user!.id, req.user!.companyId, {
+    // Staff users operate on behalf of customers — use the quote's companyId, not staff's own
+    const isStaff = ['ADMIN', 'MANAGER', 'SALES'].includes(req.user!.role);
+    let targetCompanyId = req.user!.companyId;
+
+    if (isStaff) {
+      const { prisma } = await import('../../../config/database');
+      const quote = await prisma.quote.findFirst({
+        where: { id: quoteId, deletedAt: null },
+        select: { companyId: true },
+      });
+      if (!quote) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Quote not found' },
+        });
+      }
+      targetCompanyId = quote.companyId;
+    }
+
+    const result = await createOrderFromQuote(quoteId, req.user!.id, targetCompanyId, {
       customerPoNumber,
       customerPoDate,
       requiredDate,
@@ -118,7 +148,7 @@ router.get('/', async (req, res) => {
     const { status, page, pageSize } = queryResult.data;
 
     const result = await getOrders({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       status,
       page,
       pageSize,
@@ -149,7 +179,7 @@ router.get('/:id', async (req, res) => {
 
     const { id } = req.params;
 
-    const order = await getOrderById(id, req.user!.companyId);
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
 
     if (!order) {
       return res.status(404).json({
@@ -189,7 +219,7 @@ router.get('/:id/timeline', async (req, res) => {
 
     const { id } = req.params;
 
-    const events = await getOrderTimeline(id, req.user!.companyId);
+    const events = await getOrderTimeline(id, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -217,8 +247,8 @@ router.get('/:id/allocation-plan', staffOnly, async (req, res) => {
 
     const { id } = req.params;
 
-    // Verify order exists and belongs to company
-    const order = await getOrderById(id, req.user!.companyId);
+    // Verify order exists
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -273,8 +303,8 @@ router.patch('/:id', staffOnly, async (req, res) => {
       });
     }
 
-    // Verify order exists and belongs to company
-    const order = await getOrderById(id, req.user!.companyId);
+    // Verify order exists
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -282,7 +312,7 @@ router.patch('/:id', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await updateOrderNotes(id, bodyResult.data, req.user!.id, req.user!.companyId);
+    const result = await updateOrderNotes(id, bodyResult.data, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       return res.status(400).json({
@@ -316,7 +346,7 @@ router.post('/:id/confirm', staffOnly, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await confirmOrder(id, req.user!.id, req.user!.companyId);
+    const result = await confirmOrder(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -367,7 +397,7 @@ router.post('/:id/hold', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await holdOrder(id, bodyResult.data.reason, req.user!.id, req.user!.companyId);
+    const result = await holdOrder(id, bodyResult.data.reason, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -405,7 +435,7 @@ router.post('/:id/release', staffOnly, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await releaseHold(id, req.user!.id, req.user!.companyId);
+    const result = await releaseHold(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -456,7 +486,7 @@ router.post('/:id/cancel', staffOnly, async (req, res) => {
       });
     }
 
-    const result = await cancelOrder(id, bodyResult.data.reason, req.user!.id, req.user!.companyId);
+    const result = await cancelOrder(id, bodyResult.data.reason, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -494,7 +524,7 @@ router.post('/:id/close', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await closeOrder(id, req.user!.id, req.user!.companyId);
+    const result = await closeOrder(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Order not found' ? 404 : 400;
@@ -549,11 +579,8 @@ router.post('/:id/fulfillment-plan', staffOnly, async (req, res) => {
       });
     }
 
-    // Verify order belongs to company
-    const order = await import('../../../config/database').then(m => m.prisma.salesOrder.findFirst({
-      where: { id, companyId: req.user!.companyId, deletedAt: null },
-      select: { id: true },
-    }));
+    // Verify order exists
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
 
     if (!order) {
       return res.status(404).json({
@@ -625,7 +652,7 @@ router.post('/:id/fulfillment-plan/execute', staffOnly, async (req, res) => {
     const result = await executeFulfillmentPlan({
       plan: plan as OrchestrationPlan,
       userId: req.user!.id,
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req) ?? req.user!.companyId,
     });
 
     if (!result.success) {
@@ -675,9 +702,13 @@ router.patch('/:id/fulfillment-policy', staffOnly, async (req, res) => {
 
     const { prisma } = await import('../../../config/database');
 
-    // Verify order belongs to company
+    // Verify order exists
+    const effectiveCompanyId = getEffectiveCompanyId(req);
+    const orderWhere: Record<string, unknown> = { id, deletedAt: null };
+    if (effectiveCompanyId) orderWhere.companyId = effectiveCompanyId;
+
     const order = await prisma.salesOrder.findFirst({
-      where: { id, companyId: req.user!.companyId, deletedAt: null },
+      where: orderWhere,
       select: { id: true, status: true },
     });
 
@@ -750,8 +781,8 @@ router.post('/:id/payments', requireRole('ADMIN', 'MANAGER', 'SALES'), async (re
       });
     }
 
-    // Verify order belongs to company
-    const order = await getOrderById(id, req.user!.companyId);
+    // Verify order exists
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -802,8 +833,8 @@ router.get('/:id/payments', async (req, res) => {
 
     const { id } = req.params;
 
-    // Verify order belongs to company
-    const order = await getOrderById(id, req.user!.companyId);
+    // Verify order exists
+    const order = await getOrderById(id, getEffectiveCompanyId(req));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -854,7 +885,8 @@ router.get('/payments/:paymentId', async (req, res) => {
 
     const payment = await getPaymentById(paymentId);
 
-    if (!payment || payment.companyId !== req.user!.companyId) {
+    const effectiveId = getEffectiveCompanyId(req);
+    if (!payment || (effectiveId && payment.companyId !== effectiveId)) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Payment not found' },
@@ -898,9 +930,10 @@ router.post('/payments/:paymentId/void', requireRole('ADMIN', 'MANAGER'), async 
       });
     }
 
-    // Verify payment belongs to company
+    // Verify payment exists (staff can access all, customers isolated)
     const payment = await getPaymentById(paymentId);
-    if (!payment || payment.companyId !== req.user!.companyId) {
+    const effectivePaymentCompanyId = getEffectiveCompanyId(req);
+    if (!payment || (effectivePaymentCompanyId && payment.companyId !== effectivePaymentCompanyId)) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Payment not found' },

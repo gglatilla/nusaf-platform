@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 
 /**
@@ -50,11 +51,14 @@ export interface TimelineEvent {
  */
 export async function getOrderTimeline(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<TimelineEvent[]> {
   // Verify order exists and belongs to company
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
   const order = await prisma.salesOrder.findFirst({
-    where: { id: orderId, companyId, deletedAt: null },
+    where,
     select: {
       id: true,
       orderNumber: true,

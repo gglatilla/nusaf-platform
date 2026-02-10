@@ -61,7 +61,7 @@ export function calculateOrderTotals(lines: Array<{ unitPrice: Decimal | number;
  * Get orders for a company with pagination and filtering
  */
 export async function getOrders(options: {
-  companyId: string;
+  companyId?: string;
   status?: SalesOrderStatus;
   page?: number;
   pageSize?: number;
@@ -88,9 +88,12 @@ export async function getOrders(options: {
   const { companyId, status, page = 1, pageSize = 20 } = options;
 
   const where: Prisma.SalesOrderWhereInput = {
-    companyId,
     deletedAt: null,
   };
+
+  if (companyId) {
+    where.companyId = companyId;
+  }
 
   if (status) {
     where.status = status;
@@ -136,13 +139,17 @@ export async function getOrders(options: {
 /**
  * Get order details
  */
-export async function getOrderById(orderId: string, companyId: string) {
+export async function getOrderById(orderId: string, companyId?: string) {
+  const where: Prisma.SalesOrderWhereInput = {
+    id: orderId,
+    deletedAt: null,
+  };
+  if (companyId) {
+    where.companyId = companyId;
+  }
+
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId, // Company isolation
-      deletedAt: null,
-    },
+    where,
     include: {
       lines: {
         orderBy: { lineNumber: 'asc' },
@@ -357,15 +364,12 @@ function isValidTransition(currentStatus: SalesOrderStatus, newStatus: SalesOrde
 export async function confirmOrder(
   orderId: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
@@ -395,15 +399,12 @@ export async function holdOrder(
   orderId: string,
   reason: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
@@ -432,14 +433,13 @@ export async function holdOrder(
 export async function releaseHold(
   orderId: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where,
     include: {
       lines: {
         select: { quantityPicked: true },
@@ -483,15 +483,12 @@ export async function cancelOrder(
   orderId: string,
   reason: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
@@ -575,15 +572,12 @@ export async function cancelOrder(
 export async function closeOrder(
   orderId: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
@@ -613,15 +607,12 @@ export async function updateOrderStatus(
   orderId: string,
   newStatus: SalesOrderStatus,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
@@ -667,15 +658,12 @@ export async function updateOrderNotes(
   orderId: string,
   notes: { internalNotes?: string; customerNotes?: string },
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
-  });
+  const where: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) where.companyId = companyId;
+
+  const order = await prisma.salesOrder.findFirst({ where });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
