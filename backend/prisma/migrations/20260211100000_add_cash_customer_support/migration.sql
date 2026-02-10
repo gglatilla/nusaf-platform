@@ -1,3 +1,24 @@
+-- Create PaymentTerms enum (was applied directly to production, adding here for shadow DB replay)
+DO $$ BEGIN
+    CREATE TYPE "PaymentTerms" AS ENUM ('PREPAY', 'COD', 'NET_30', 'NET_60', 'NET_90');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Create OrderPaymentStatus enum
+DO $$ BEGIN
+    CREATE TYPE "OrderPaymentStatus" AS ENUM ('UNPAID', 'PARTIALLY_PAID', 'PAID', 'NOT_REQUIRED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Add payment_terms to companies (was applied directly to production)
+ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "payment_terms" "PaymentTerms" NOT NULL DEFAULT 'NET_30';
+
+-- Add payment columns to sales_orders (was applied directly to production)
+ALTER TABLE "sales_orders" ADD COLUMN IF NOT EXISTS "payment_terms" "PaymentTerms" NOT NULL DEFAULT 'NET_30';
+ALTER TABLE "sales_orders" ADD COLUMN IF NOT EXISTS "payment_status" "OrderPaymentStatus" NOT NULL DEFAULT 'UNPAID';
+
 -- Add isCashAccount flag to companies
 ALTER TABLE "companies" ADD COLUMN "is_cash_account" BOOLEAN NOT NULL DEFAULT false;
 

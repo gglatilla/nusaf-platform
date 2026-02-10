@@ -1,42 +1,49 @@
 # Current Session
 
 ## Active Task
-None — session saved (2026-02-10)
+Order-to-Fulfillment Workflow Completion — Phase 1.1 COMPLETE, starting 1.2
 
-## Completed This Session
+## Plan
+See `.claude/plans/ticklish-yawning-pretzel.md` for full 4-phase plan.
 
-### Bug Fix: Sales role company picker (e89f1f5)
-- `/api/v1/admin/companies` had router-level `requireRole('ADMIN', 'MANAGER')` blocking SALES users
-- Changed to per-route: GET allows SALES, POST stays ADMIN, PATCH stays ADMIN/MANAGER
+**Phase 1**: Sales Rep Assignment (DB + API + UI) — 3 micro-tasks
+**Phase 2**: Customer Checkout Flow (Backend + Modal) — 2 micro-tasks
+**Phase 3**: Backorder Visibility (DB + Orchestration + UI) — 3 micro-tasks
+**Phase 4**: Notification System (DB + Service + API + Events + UI) — 5 micro-tasks
 
-### Seed: Stock levels for all products (6f86d42, optimized in 6e0d04e)
-- Added stock level seeding to `backend/prisma/seed.ts` using batch `createMany`
-- Seeded 7,132 stock levels for 3,566 products (JHB + CT per product)
-- Distribution: ~20% out of stock (728), ~15% low (531), rest normal
-- Ran seed against Railway production DB via public proxy
-- **To remove**: delete the "STOCK LEVELS" section from seed.ts, truncate `stock_levels` table
+## Completed Micro-tasks
 
-### Customer stock visibility (e89c47d, 8bce934, 525e6c9)
-- **Backend**: Removed Golden Rule 4 restriction — customers now get `totalOnHand`, `totalAvailable`, and `byLocation` data (reserved/onOrder still hidden as 0)
-- **Backend**: Always return supplier in product API (was omitting for customers, causing frontend crash)
-- **Staff catalog** (`/catalog`): `showQuantity=true` for all users, `hideSupplier` for non-internal
-- **Customer catalog** (`/my/products`): Changed `showQuantity={false}` → `true` and `showStockQuantity={false}` → `true`
-- **StockOverviewCards VIEW D**: Shows warehouse name ("15 Available at Johannesburg")
-- **ProductCard**: Added null-safe `product.supplier &&` check
+### Phase 1.1: DB Migration — Add assignedSalesRepId + employeeCode
+- Added `employeeCode` (unique, optional) to User model
+- Added `assignedSalesRepId` + `assignedSalesRep` relation to Company model
+- Added `assignedCompanies` inverse relation on User model
+- Added index on `assignedSalesRepId`
+- Fixed cash customer migration (added missing PaymentTerms enum + column for shadow DB)
+- Baselined all 33 existing migrations on local dev DB
+- Applied migration `20260211120000_add_sales_rep_assignment`
+- Prisma client regenerated, TypeScript compiles clean
 
-## Commits
-- e89f1f5: Fix sales role company picker
-- 6f86d42: Add stock level seeding
-- 6e0d04e: Optimize seed with batch createMany
-- e89c47d: Show stock quantities to customers (backend + staff catalog)
-- 8bce934: Fix customer catalog crash — always send supplier, add hideSupplier
-- 525e6c9: Show stock quantities on customer product page /my/products
+## Pending Micro-tasks
+- [ ] Phase 1.2: Backend API — Company CRUD + Sales Rep field
+- [ ] Phase 1.3: Frontend — Sales Rep Assignment UI
+- [ ] Phase 2.1: Backend — Accept Quote with Checkout Data
+- [ ] Phase 2.2: Frontend — Checkout Modal Component
+- [ ] Phase 3.1: DB Migration — Add BACKORDERED line status
+- [ ] Phase 3.2: Backend — Set Line Statuses During Fulfillment
+- [ ] Phase 3.3: Frontend — Show Line Status to Customers
+- [ ] Phase 4.1: DB Migration — Notification Model
+- [ ] Phase 4.2: Backend — Notification Service
+- [ ] Phase 4.3: Backend — Notification API Routes
+- [ ] Phase 4.4: Backend — Wire Order Events to Notifications + Email
+- [ ] Phase 4.5: Frontend — Notification Bell + Dropdown
 
-## Next Steps
-- Verify on deployed site: customer sees "15 available" on /my/products
-- Check TASKS.md backlog for next feature work
+## Commits This Session
+(pending commit for Phase 1.1)
 
 ## Context for Next Session
-- Stock level seed data in `backend/prisma/seed.ts` — user may ask to remove later
-- Customer portal is `(customer)/my/products/page.tsx`, staff portal is `(portal)/catalog/page.tsx` — different pages!
+- Plan file: `.claude/plans/ticklish-yawning-pretzel.md`
+- Key discovery: `acceptQuote()` already auto-chains order creation + confirmation + fulfillment execution. Gap is just missing checkout data pass-through.
+- Migration baseline done for local dev DB — all 33 prior migrations marked as applied
+- Cash customer migration fixed to include PaymentTerms enum creation (for shadow DB)
 - TASK-027 cash customer migration still needs `npx prisma migrate deploy` on Railway
+- New migration `20260211120000_add_sales_rep_assignment` also needs deploy on Railway

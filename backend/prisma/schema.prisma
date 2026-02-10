@@ -26,10 +26,16 @@ model User {
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])
 
+  // Employee code for internal staff (e.g., "SR001", "WH003")
+  employeeCode String? @unique @map("employee_code")
+
   // Primary warehouse for stock display (user sees their warehouse stock as hero metric)
   primaryWarehouse Warehouse? @map("primary_warehouse")
 
   sessions Session[]
+
+  // Companies assigned to this user as sales rep
+  assignedCompanies Company[] @relation("AssignedSalesRep")
 
   // Issue Flag relations
   createdIssues  IssueFlag[]    @relation("CreatedIssues")
@@ -101,6 +107,10 @@ model Company {
   // Payment terms — determines fulfillment flow (account vs prepay)
   paymentTerms PaymentTerms @default(NET_30) @map("payment_terms")
 
+  // Assigned sales rep for this company
+  assignedSalesRepId String? @map("assigned_sales_rep_id")
+  assignedSalesRep   User?   @relation("AssignedSalesRep", fields: [assignedSalesRepId], references: [id])
+
   users      User[]
   addresses  CompanyAddress[]
   contacts   CompanyContact[]
@@ -113,6 +123,7 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([assignedSalesRepId])
   @@map("companies")
 }
 
