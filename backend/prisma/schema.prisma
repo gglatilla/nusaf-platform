@@ -148,6 +148,14 @@ model Company {
   @@map("companies")
 }
 
+model CompanyCounter {
+  id    String @id @default("company_counter")
+  year  Int    @default(0)
+  count Int    @default(0)
+
+  @@map("company_counter")
+}
+
 model CompanyAddress {
   id         String      @id @default(cuid())
   companyId  String      @map("company_id")

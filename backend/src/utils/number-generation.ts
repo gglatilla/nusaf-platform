@@ -175,6 +175,33 @@ export const generatePackingListNumber = (): Promise<string> =>
 export const generateCreditNoteNumber = (): Promise<string> =>
   generateDocumentNumber({ counterId: 'credit_note_counter', prefix: 'CN', getCounter: (c) => c.creditNoteCounter as unknown as CounterDelegate });
 
+/**
+ * Generate: NUS-NNNN (customer account number, no year reset)
+ * Uses a simple sequential counter that never resets.
+ */
+export async function generateAccountNumber(): Promise<string> {
+  const counter = await prisma.$transaction(async (tx) => {
+    const model = (tx as unknown as TransactionClient).companyCounter as unknown as CounterDelegate;
+
+    let record = await model.findUnique({ where: { id: 'company_counter' } });
+
+    if (!record) {
+      record = await model.create({
+        data: { id: 'company_counter', year: 0, count: 1 },
+      });
+      return record;
+    }
+
+    record = await model.update({
+      where: { id: 'company_counter' },
+      data: { count: { increment: 1 } },
+    });
+    return record;
+  });
+
+  return `NUS-${counter.count.toString().padStart(4, '0')}`;
+}
+
 // ============================================
 // Transaction variants (for orchestration)
 // ============================================
