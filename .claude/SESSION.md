@@ -1,80 +1,74 @@
 # Current Session
 
 ## Active Task
-UI/UX Audit & Redesign — ALL 8 PHASES COMPLETE
+[TASK-023] Product Master Data Management — Phases 4-5 (Completeness Scoring & Publishing Safeguards)
 
 ## Status
 COMPLETE (2026-02-10)
 
 ## Completed This Session
 
-### Phase 1: Domain & Routing Fixes (P0) ✓
-- Fixed `www.nusaf.co.za` → `www.nusaf.net` across all files (page.tsx, robots.ts, sitemap.ts, etc.)
-- Created `frontend/src/lib/urls.ts` with `getWebsiteUrl()` and `getPortalUrl()` helpers
-- Fixed "View on Website" links from relative to absolute (ProductTable, catalog edit, OverviewTab, ProductDetailHeader)
-- Fixed middleware domain matching — exact hostname comparison, env var for portal redirect
-- Added `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_PORTAL_URL` to `.env.example`
-- Commit: bfebcb5
+### Phase 4: Completeness Scoring ✓
 
-### Phase 2: Navigation Restructure (P1) ✓
-- Restructured sidebar from 13 flat items to 7 business-function groups (Sales, Fulfillment, Inventory, Procurement, Catalog, Admin, Reports)
-- Updated `frontend/src/lib/navigation.ts` with grouped nav config
-- Updated `frontend/src/components/layout/Sidebar.tsx` with section rendering
-- Removed broken `/settings` link
-- Commit: 01a3799
+**MT-1: Backend — Return marketing + publish fields in GET /:id response** ✓
+- Added marketingTitle, marketingDescription, metaTitle, metaDescription, specifications to GET /products/:id
+- Added isPublished, publishedAt status fields
+- Added _count for productImages and productDocuments (imageCount, documentCount)
+- Commit: 3a065ce
 
-### Phase 3: Order Detail Page Redesign (P1) ✓
-- Created `OrderActionMenu` component — primary action + grouped dropdown for secondary actions
-- Groups: Financial, Fulfillment, Shipping, Order Management
-- Fixed prepay blocking: ALL warehouse actions blocked when prepay unpaid
-- Added company column to order list (removed PO# column)
-- Added breadcrumb to order detail
-- Commit: 313919a
+**MT-2: Frontend — Add marketing + publish fields to types, remove as-any casts** ✓
+- Updated ProductWithInventory type in both api.ts and types/products.ts
+- Removed all (product as any) casts from ProductContentEditor, ProductEditor, catalog edit page
+- Commit: da136ee
 
-### Phase 4: Breadcrumb Navigation (P1) ✓
-- Created reusable `Breadcrumb` component at `frontend/src/components/ui/Breadcrumb.tsx`
-- Added breadcrumbs to ALL 21 detail pages, replacing ArrowLeft back buttons
-- Pages: orders, quotes, tax-invoices, credit-notes, picking-slips, job-cards, transfer-requests, delivery-notes, packing-lists, issues, return-authorizations, inventory items, adjustments, cycle-counts, goods-receipts, catalog detail/edit, purchase-orders, requisitions, suppliers
-- Commit: 283ef8d
+**MT-3: Create completeness scoring utility** ✓
+- Created `frontend/src/lib/product-completeness.ts`
+- Pure function calculateCompleteness with weighted scoring (0-100)
+- Required: marketing title (20%), description (20%), meta title (15%), meta description (15%), 1+ image (15%)
+- Optional: specifications (10%), documents (5%)
+- Returns score, field checklist, and canPublish flag
+- Commit: 4af5e2f
 
-### Phase 5: Inventory UX Fixes (P2) ✓
-- MovementLogTable already had comprehensive filters (no changes needed)
-- Added search input to stock adjustments page (adjustment number filter)
-- Commit: d11ea08
+**MT-4: Create CompletenessPanel component** ✓
+- Created `frontend/src/components/products/CompletenessPanel.tsx`
+- Progress bar with color coding (red/amber/green by score)
+- Field checklist with check/X icons and "Required" badges
+- Status message: warning when incomplete, success when ready to publish
+- Commit: 631cc32
 
-### Phase 6: Product Edit Save Handler (P2) ✓
-- Investigated — save handler already wired (`handleSave` calls `updateProduct.mutateAsync`)
-- No changes needed, marked complete
+### Phase 5: Publishing Safeguards ✓
 
-### Phase 7: Customer Portal Improvements (P2) ✓
-- Created `/my/invoices/page.tsx` — invoice list with PDF download, overdue badges
-- Created `/my/deliveries/page.tsx` — delivery tracking with status filters
-- Added CUSTOMER role to `GET /delivery-notes` and `GET /tax-invoices` backend endpoints
-- Auto-scopes to customer's company, forces ISSUED-only for invoices
-- Updated `customer-navigation.ts` with Invoices and Deliveries nav items
-- Commit: 5088a4d
+**MT-5: Integrate completeness into edit page, disable publish button** ✓
+- Added CompletenessPanel between header and editor on catalog edit page
+- Publish button disabled when canPublish is false (hard block)
+- Tooltip on disabled publish button: "Complete all required fields before publishing"
+- Live scoring via onCompletenessInputChange callback from ProductContentEditor
+- Score updates in real-time as user types and uploads/deletes media
+- Fixed duplicate ProductWithInventory type in api.ts
+- Commit: 3dbff6f
 
-### Phase 8: General UX Polish (P3) ✓
-- Created reusable `ConfirmDialog` component at `frontend/src/components/ui/ConfirmDialog.tsx`
-- Applied to quotes detail page (replaced 4 `window.confirm()` calls)
-- Fixed customer orders status label: "In Progress" → "Processing"
-- Commit: c247b5c
+**MT-6: Backend — Add publishing safeguards to publish endpoints** ✓
+- POST /:id/publish validates: marketingTitle, marketingDescription, metaTitle, metaDescription, 1+ image
+- Returns 400 INCOMPLETE_CONTENT with missingFields array on failure
+- POST /bulk-publish validates each product for publish action, skips incomplete ones
+- Skipped products returned in response with missingFields detail
+- Unpublish action is not gated
+- Commit: 1a206bf
 
-## Key Files Created
-- `frontend/src/components/ui/Breadcrumb.tsx` — reusable portal breadcrumb
-- `frontend/src/components/ui/ConfirmDialog.tsx` — reusable confirmation dialog (danger/warning/info variants)
-- `frontend/src/components/orders/OrderActionMenu.tsx` — grouped action dropdown for order detail
-- `frontend/src/app/(customer)/my/invoices/page.tsx` — customer invoice list
-- `frontend/src/app/(customer)/my/deliveries/page.tsx` — customer delivery tracking
-- `frontend/src/lib/urls.ts` — URL helpers for domain management
+## Key Files Created/Modified
+- `frontend/src/lib/product-completeness.ts` — completeness scoring utility (NEW)
+- `frontend/src/components/products/CompletenessPanel.tsx` — score display component (NEW)
+- `frontend/src/app/(portal)/catalog/[slug]/edit/page.tsx` — integrated panel + disabled publish
+- `frontend/src/components/products/ProductContentEditor.tsx` — added completeness callback, removed as-any casts
+- `frontend/src/lib/api.ts` — added marketing/publish fields to ProductWithInventory type
+- `frontend/src/lib/api/types/products.ts` — added marketing/publish fields to ProductWithInventory type
+- `backend/src/api/v1/products/route.ts` — added fields to GET response, validation to publish endpoints
 
 ## Next Steps
-- All 8 phases of the UI/UX audit are COMPLETE
-- Remaining `window.confirm()` calls (~24) can be progressively replaced with ConfirmDialog
-- TASK-023 Phases 4-5 (Completeness Scoring, Publishing Safeguards) still NOT STARTED
-- Plan file: `.claude/plans/silly-hopping-wolf.md`
+- TASK-023 Phases 4-5 are COMPLETE
+- All phases of TASK-023 (0-5) are now done
+- Both frontend and backend TypeScript compilation pass clean
 
 ## Context for Next Session
-- UI/UX audit plan: `.claude/plans/silly-hopping-wolf.md` — ALL PHASES COMPLETE
-- ERP execution plan: `.claude/plans/execution-plan.md` — ALL 40 TASKS DONE
-- Both frontend and backend TypeScript compilation pass clean
+- TASK-023 is fully complete (all 6 phases: 0-5)
+- No active task — check TASKS.md for next item
