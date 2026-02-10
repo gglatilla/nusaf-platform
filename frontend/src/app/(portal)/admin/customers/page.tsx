@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Building2, Search, X, ChevronDown, Check, RefreshCw, Plus } from 'lucide-react';
 import {
   Dialog,
@@ -29,6 +30,20 @@ const TIER_LABELS: Record<string, string> = {
   DISTRIBUTOR: 'Distributor',
 };
 
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  PROSPECT: 'Prospect',
+  ACTIVE: 'Active',
+  DORMANT: 'Dormant',
+  CHURNED: 'Churned',
+};
+
+const ACCOUNT_STATUS_COLORS: Record<string, string> = {
+  PROSPECT: 'bg-blue-100 text-blue-800',
+  ACTIVE: 'bg-emerald-100 text-emerald-800',
+  DORMANT: 'bg-amber-100 text-amber-800',
+  CHURNED: 'bg-red-100 text-red-800',
+};
+
 function PaymentTermsBadge({ terms }: { terms: PaymentTermsType }): JSX.Element {
   const isPrepay = terms === 'PREPAY' || terms === 'COD';
   return (
@@ -52,10 +67,22 @@ function TierBadge({ tier }: { tier: string }): JSX.Element {
   );
 }
 
+function AccountStatusBadge({ status }: { status: string }): JSX.Element {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+        ACCOUNT_STATUS_COLORS[status] || 'bg-slate-100 text-slate-700'
+      }`}
+    >
+      {ACCOUNT_STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
 type EditField = 'terms' | 'salesRep';
 
-export default function CompaniesPage(): JSX.Element {
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+export default function CustomersPage(): JSX.Element {
+  const [customers, setCustomers] = useState<CompanyListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -76,7 +103,7 @@ export default function CompaniesPage(): JSX.Element {
   const [staffUsers, setStaffUsers] = useState<StaffUserOption[]>([]);
   const [staffLoaded, setStaffLoaded] = useState(false);
 
-  const fetchCompanies = useCallback(async (): Promise<void> => {
+  const fetchCustomers = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -86,12 +113,12 @@ export default function CompaniesPage(): JSX.Element {
         pageSize: 20,
       });
       if (response.success && response.data) {
-        setCompanies(response.data.companies);
+        setCustomers(response.data.companies);
         setTotalPages(response.data.pagination.totalPages);
         setTotal(response.data.pagination.total);
       }
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Failed to load companies';
+      const message = err instanceof ApiError ? err.message : 'Failed to load customers';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -99,8 +126,8 @@ export default function CompaniesPage(): JSX.Element {
   }, [search, page]);
 
   useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   // Lazy-load staff users on first edit
   const ensureStaffLoaded = useCallback(async (): Promise<void> => {
@@ -119,7 +146,7 @@ export default function CompaniesPage(): JSX.Element {
   const handleSearch = (e: React.FormEvent): void => {
     e.preventDefault();
     setPage(1);
-    fetchCompanies();
+    fetchCustomers();
   };
 
   const handleClearSearch = (): void => {
@@ -135,22 +162,22 @@ export default function CompaniesPage(): JSX.Element {
   };
 
   // --- Payment Terms inline edit ---
-  const handleEditTerms = (company: CompanyListItem): void => {
-    setEditingId(company.id);
+  const handleEditTerms = (customer: CompanyListItem): void => {
+    setEditingId(customer.id);
     setEditField('terms');
-    setEditingTerms(company.paymentTerms);
+    setEditingTerms(customer.paymentTerms);
   };
 
-  const handleSaveTerms = async (companyId: string): Promise<void> => {
+  const handleSaveTerms = async (customerId: string): Promise<void> => {
     if (!editingTerms) return;
     setSaving(true);
     setError(null);
     try {
-      await api.updateCompany(companyId, { paymentTerms: editingTerms });
+      await api.updateCompany(customerId, { paymentTerms: editingTerms });
       setSuccess('Payment terms updated');
       setTimeout(() => setSuccess(null), 3000);
       handleCancelEdit();
-      fetchCompanies();
+      fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to update payment terms';
       setError(message);
@@ -160,24 +187,24 @@ export default function CompaniesPage(): JSX.Element {
   };
 
   // --- Sales Rep inline edit ---
-  const handleEditSalesRep = async (company: CompanyListItem): Promise<void> => {
+  const handleEditSalesRep = async (customer: CompanyListItem): Promise<void> => {
     await ensureStaffLoaded();
-    setEditingId(company.id);
+    setEditingId(customer.id);
     setEditField('salesRep');
-    setEditingSalesRepId(company.assignedSalesRepId);
+    setEditingSalesRepId(customer.assignedSalesRepId);
   };
 
-  const handleSaveSalesRep = async (companyId: string): Promise<void> => {
+  const handleSaveSalesRep = async (customerId: string): Promise<void> => {
     setSaving(true);
     setError(null);
     try {
-      await api.updateCompany(companyId, {
+      await api.updateCompany(customerId, {
         assignedSalesRepId: editingSalesRepId || null,
       });
       setSuccess('Sales rep updated');
       setTimeout(() => setSuccess(null), 3000);
       handleCancelEdit();
-      fetchCompanies();
+      fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to update sales rep';
       setError(message);
@@ -193,9 +220,9 @@ export default function CompaniesPage(): JSX.Element {
         <div className="flex items-center gap-3">
           <Building2 className="h-8 w-8 text-slate-400" />
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Companies</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Customers</h1>
             <p className="text-sm text-slate-600">
-              Manage customer companies, payment terms, and sales rep assignments
+              Manage customer accounts, payment terms, and sales rep assignments
             </p>
           </div>
         </div>
@@ -204,7 +231,7 @@ export default function CompaniesPage(): JSX.Element {
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Add Company
+          Add Customer
         </button>
       </div>
 
@@ -226,7 +253,7 @@ export default function CompaniesPage(): JSX.Element {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search companies..."
+            placeholder="Search customers..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 pr-10 py-2 w-72 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -242,7 +269,7 @@ export default function CompaniesPage(): JSX.Element {
           )}
         </form>
         <span className="text-sm text-slate-500">
-          {total} {total === 1 ? 'company' : 'companies'}
+          {total} {total === 1 ? 'customer' : 'customers'}
         </span>
       </div>
 
@@ -251,17 +278,20 @@ export default function CompaniesPage(): JSX.Element {
         {isLoading ? (
           <div className="p-8 flex items-center justify-center gap-3 text-slate-500">
             <RefreshCw className="h-5 w-5 animate-spin" />
-            <span>Loading companies...</span>
+            <span>Loading customers...</span>
           </div>
-        ) : companies.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">No companies found</div>
+        ) : customers.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No customers found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Company
+                    Account
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Customer
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Tier
@@ -276,9 +306,6 @@ export default function CompaniesPage(): JSX.Element {
                     Warehouse
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Users
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Orders
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -287,25 +314,37 @@ export default function CompaniesPage(): JSX.Element {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-slate-50">
+                {customers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      {customer.accountNumber ? (
+                        <span className="text-xs font-mono text-slate-500">{customer.accountNumber}</span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-slate-900">{company.name}</p>
-                        {company.tradingName && company.tradingName !== company.name && (
-                          <p className="text-xs text-slate-500">t/a {company.tradingName}</p>
+                        <Link
+                          href={`/admin/customers/${customer.id}`}
+                          className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                        >
+                          {customer.name}
+                        </Link>
+                        {customer.tradingName && customer.tradingName !== customer.name && (
+                          <p className="text-xs text-slate-500">t/a {customer.tradingName}</p>
                         )}
-                        {company.vatNumber && (
-                          <p className="text-xs text-slate-400">VAT: {company.vatNumber}</p>
+                        {customer.territory && (
+                          <p className="text-xs text-slate-400">{customer.territory}</p>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <TierBadge tier={company.tier} />
+                      <TierBadge tier={customer.tier} />
                     </td>
                     {/* Payment Terms — inline editable */}
                     <td className="px-4 py-3">
-                      {editingId === company.id && editField === 'terms' ? (
+                      {editingId === customer.id && editField === 'terms' ? (
                         <div className="flex items-center gap-2">
                           <select
                             value={editingTerms || ''}
@@ -321,7 +360,7 @@ export default function CompaniesPage(): JSX.Element {
                             ))}
                           </select>
                           <button
-                            onClick={() => handleSaveTerms(company.id)}
+                            onClick={() => handleSaveTerms(customer.id)}
                             disabled={saving}
                             className="p-1 text-emerald-600 hover:text-emerald-700"
                             title="Save"
@@ -338,18 +377,18 @@ export default function CompaniesPage(): JSX.Element {
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleEditTerms(company)}
+                          onClick={() => handleEditTerms(customer)}
                           className="flex items-center gap-1 group"
                           title="Click to edit payment terms"
                         >
-                          <PaymentTermsBadge terms={company.paymentTerms} />
+                          <PaymentTermsBadge terms={customer.paymentTerms} />
                           <ChevronDown className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       )}
                     </td>
                     {/* Sales Rep — inline editable */}
                     <td className="px-4 py-3">
-                      {editingId === company.id && editField === 'salesRep' ? (
+                      {editingId === customer.id && editField === 'salesRep' ? (
                         <div className="flex items-center gap-2">
                           <select
                             value={editingSalesRepId || ''}
@@ -364,7 +403,7 @@ export default function CompaniesPage(): JSX.Element {
                             ))}
                           </select>
                           <button
-                            onClick={() => handleSaveSalesRep(company.id)}
+                            onClick={() => handleSaveSalesRep(customer.id)}
                             disabled={saving}
                             className="p-1 text-emerald-600 hover:text-emerald-700"
                             title="Save"
@@ -381,13 +420,13 @@ export default function CompaniesPage(): JSX.Element {
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleEditSalesRep(company)}
+                          onClick={() => handleEditSalesRep(customer)}
                           className="flex items-center gap-1 group text-left"
                           title="Click to assign sales rep"
                         >
-                          {company.assignedSalesRep ? (
+                          {customer.assignedSalesRep ? (
                             <span className="text-sm text-slate-700">
-                              {company.assignedSalesRep.firstName} {company.assignedSalesRep.lastName}
+                              {customer.assignedSalesRep.firstName} {customer.assignedSalesRep.lastName}
                             </span>
                           ) : (
                             <span className="text-sm text-slate-400 italic">Unassigned</span>
@@ -397,24 +436,13 @@ export default function CompaniesPage(): JSX.Element {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {company.primaryWarehouse || 'JHB'}
+                      {customer.primaryWarehouse || 'JHB'}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 text-right">
-                      {company._count.users}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 text-right">
-                      {company._count.orders}
+                      {customer._count.orders}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          company.isActive
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {company.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      <AccountStatusBadge status={customer.accountStatus || 'ACTIVE'} />
                     </td>
                   </tr>
                 ))}
@@ -448,22 +476,22 @@ export default function CompaniesPage(): JSX.Element {
           </div>
         )}
       </div>
-      {/* Create Company Modal */}
-      <CreateCompanyModal
+      {/* Create Customer Modal */}
+      <CreateCustomerModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onCreated={() => {
           setShowCreateModal(false);
-          setSuccess('Company created');
+          setSuccess('Customer created');
           setTimeout(() => setSuccess(null), 3000);
-          fetchCompanies();
+          fetchCustomers();
         }}
       />
     </div>
   );
 }
 
-// ---------- Create Company Modal ----------
+// ---------- Create Customer Modal ----------
 
 const TIER_OPTIONS = [
   { value: 'END_USER', label: 'End User (30% off list)' },
@@ -471,7 +499,7 @@ const TIER_OPTIONS = [
   { value: 'DISTRIBUTOR', label: 'Distributor (50% off list)' },
 ];
 
-function CreateCompanyModal({
+function CreateCustomerModal({
   open,
   onOpenChange,
   onCreated,
@@ -495,22 +523,22 @@ function CreateCompanyModal({
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setError('Company name is required');
+      setError('Customer name is required');
       return;
     }
 
     setSaving(true);
     setError(null);
     try {
-      const data: Record<string, string> = { name: formData.name.trim() };
-      if (formData.tradingName.trim()) data.tradingName = formData.tradingName.trim();
-      if (formData.registrationNumber.trim()) data.registrationNumber = formData.registrationNumber.trim();
-      if (formData.vatNumber.trim()) data.vatNumber = formData.vatNumber.trim();
-      if (formData.tier) data.tier = formData.tier;
-      if (formData.primaryWarehouse) data.primaryWarehouse = formData.primaryWarehouse;
-      if (formData.paymentTerms) data.paymentTerms = formData.paymentTerms;
-
-      await api.createCompany(data as Parameters<typeof api.createCompany>[0]);
+      await api.createCompany({
+        name: formData.name.trim(),
+        tradingName: formData.tradingName.trim() || undefined,
+        registrationNumber: formData.registrationNumber.trim() || undefined,
+        vatNumber: formData.vatNumber.trim() || undefined,
+        tier: formData.tier,
+        primaryWarehouse: formData.primaryWarehouse,
+        paymentTerms: formData.paymentTerms,
+      });
       // Reset form
       setFormData({
         name: '',
@@ -523,7 +551,7 @@ function CreateCompanyModal({
       });
       onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create company');
+      setError(err instanceof ApiError ? err.message : 'Failed to create customer');
     } finally {
       setSaving(false);
     }
@@ -533,7 +561,7 @@ function CreateCompanyModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Company</DialogTitle>
+          <DialogTitle>Add Customer</DialogTitle>
           <DialogCloseButton />
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -548,7 +576,7 @@ function CreateCompanyModal({
               {/* Name (required) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Company Name <span className="text-red-500">*</span>
+                  Customer Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -667,7 +695,7 @@ function CreateCompanyModal({
               disabled={saving || !formData.name.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Creating...' : 'Create Company'}
+              {saving ? 'Creating...' : 'Create Customer'}
             </button>
           </DialogFooter>
         </form>

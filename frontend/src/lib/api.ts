@@ -2681,6 +2681,7 @@ export type PaymentTermsType = 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90'
 
 export interface CompanyListItem {
   id: string;
+  accountNumber: string | null;
   name: string;
   tradingName: string | null;
   registrationNumber: string | null;
@@ -2691,6 +2692,8 @@ export interface CompanyListItem {
   primaryWarehouse: string | null;
   fulfillmentPolicy: string;
   paymentTerms: PaymentTermsType;
+  accountStatus: string | null;
+  territory: string | null;
   assignedSalesRepId: string | null;
   assignedSalesRep: {
     id: string;
@@ -2715,17 +2718,79 @@ export interface StaffUserOption {
   role: string;
 }
 
+export type CreditStatusType = 'GOOD_STANDING' | 'ON_HOLD' | 'SUSPENDED' | 'COD_ONLY';
+export type AccountStatusType = 'PROSPECT' | 'ACTIVE' | 'DORMANT' | 'CHURNED';
+export type ShippingMethodType = 'COLLECTION' | 'NUSAF_DELIVERY' | 'COURIER' | 'FREIGHT';
+export type ContactRoleType = 'BUYER' | 'FINANCE' | 'TECHNICAL' | 'RECEIVING' | 'DECISION_MAKER';
+
+export interface CompanyAddress {
+  id: string;
+  companyId: string;
+  type: 'BILLING' | 'SHIPPING';
+  label: string | null;
+  line1: string;
+  line2: string | null;
+  suburb: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  deliveryInstructions: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompanyContact {
+  id: string;
+  companyId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  mobile: string | null;
+  jobTitle: string | null;
+  contactRole: ContactRoleType | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CompanyDetail {
   id: string;
+  accountNumber: string | null;
   name: string;
   tradingName: string | null;
   registrationNumber: string | null;
   vatNumber: string | null;
   tier: string;
   isActive: boolean;
+  isCashAccount: boolean;
   primaryWarehouse: string | null;
   fulfillmentPolicy: string;
   paymentTerms: PaymentTermsType;
+  creditLimit: number | null;
+  creditStatus: CreditStatusType | null;
+  discountOverride: number | null;
+  statementEmail: string | null;
+  invoiceEmail: string | null;
+  accountStatus: AccountStatusType | null;
+  territory: string | null;
+  internalNotes: string | null;
+  defaultShippingMethod: ShippingMethodType | null;
+  bbbeeLevel: number | null;
+  bbbeeExpiryDate: string | null;
+  assignedSalesRepId: string | null;
+  assignedSalesRep: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
   users: Array<{
@@ -2736,6 +2801,8 @@ export interface CompanyDetail {
     role: string;
     isActive: boolean;
   }>;
+  addresses: CompanyAddress[];
+  contacts: CompanyContact[];
   _count: {
     orders: number;
     quotes: number;
@@ -5421,12 +5488,27 @@ class ApiClient {
   async updateCompany(
     id: string,
     data: {
-      paymentTerms?: 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+      name?: string;
+      tradingName?: string;
+      registrationNumber?: string;
+      vatNumber?: string;
+      paymentTerms?: PaymentTermsType;
       tier?: string;
       isActive?: boolean;
       primaryWarehouse?: 'JHB' | 'CT' | null;
       fulfillmentPolicy?: string;
       assignedSalesRepId?: string | null;
+      creditLimit?: number | null;
+      creditStatus?: CreditStatusType;
+      accountStatus?: AccountStatusType;
+      territory?: string | null;
+      discountOverride?: number | null;
+      defaultShippingMethod?: ShippingMethodType | null;
+      statementEmail?: string | null;
+      invoiceEmail?: string | null;
+      internalNotes?: string | null;
+      bbbeeLevel?: number | null;
+      bbbeeExpiryDate?: string | null;
     }
   ): Promise<ApiResponse<CompanyDetail>> {
     return this.request(`/admin/companies/${id}`, {
@@ -5443,7 +5525,18 @@ class ApiClient {
     tier?: 'END_USER' | 'OEM_RESELLER' | 'DISTRIBUTOR';
     primaryWarehouse?: 'JHB' | 'CT';
     fulfillmentPolicy?: 'SHIP_PARTIAL' | 'SHIP_COMPLETE' | 'SALES_DECISION';
-    paymentTerms?: 'PREPAY' | 'COD' | 'NET_30' | 'NET_60' | 'NET_90';
+    paymentTerms?: PaymentTermsType;
+    creditLimit?: number;
+    creditStatus?: CreditStatusType;
+    accountStatus?: AccountStatusType;
+    territory?: string;
+    discountOverride?: number;
+    defaultShippingMethod?: ShippingMethodType;
+    statementEmail?: string;
+    invoiceEmail?: string;
+    internalNotes?: string;
+    bbbeeLevel?: number;
+    bbbeeExpiryDate?: string;
   }): Promise<ApiResponse<CompanyDetail>> {
     return this.request('/admin/companies', {
       method: 'POST',
@@ -5453,6 +5546,112 @@ class ApiClient {
 
   async getStaffUsersForAssignment(): Promise<ApiResponse<StaffUserOption[]>> {
     return this.request('/admin/companies/staff-users');
+  }
+
+  // --- Company Addresses ---
+
+  async createCompanyAddress(
+    companyId: string,
+    data: {
+      type: 'BILLING' | 'SHIPPING';
+      label?: string;
+      line1: string;
+      line2?: string;
+      suburb?: string;
+      city: string;
+      province: string;
+      postalCode: string;
+      country?: string;
+      isDefault?: boolean;
+      deliveryInstructions?: string;
+      contactName?: string;
+      contactPhone?: string;
+    }
+  ): Promise<ApiResponse<CompanyAddress>> {
+    return this.request(`/admin/companies/${companyId}/addresses`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCompanyAddress(
+    companyId: string,
+    addressId: string,
+    data: {
+      type?: 'BILLING' | 'SHIPPING';
+      label?: string;
+      line1?: string;
+      line2?: string;
+      suburb?: string;
+      city?: string;
+      province?: string;
+      postalCode?: string;
+      country?: string;
+      isDefault?: boolean;
+      deliveryInstructions?: string;
+      contactName?: string;
+      contactPhone?: string;
+    }
+  ): Promise<ApiResponse<CompanyAddress>> {
+    return this.request(`/admin/companies/${companyId}/addresses/${addressId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCompanyAddress(companyId: string, addressId: string): Promise<ApiResponse<void>> {
+    return this.request(`/admin/companies/${companyId}/addresses/${addressId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Company Contacts ---
+
+  async createCompanyContact(
+    companyId: string,
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      mobile?: string;
+      jobTitle?: string;
+      contactRole?: ContactRoleType;
+      isPrimary?: boolean;
+      isActive?: boolean;
+    }
+  ): Promise<ApiResponse<CompanyContact>> {
+    return this.request(`/admin/companies/${companyId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCompanyContact(
+    companyId: string,
+    contactId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+      jobTitle?: string;
+      contactRole?: ContactRoleType;
+      isPrimary?: boolean;
+      isActive?: boolean;
+    }
+  ): Promise<ApiResponse<CompanyContact>> {
+    return this.request(`/admin/companies/${companyId}/contacts/${contactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCompanyContact(companyId: string, contactId: string): Promise<ApiResponse<void>> {
+    return this.request(`/admin/companies/${companyId}/contacts/${contactId}`, {
+      method: 'DELETE',
+    });
   }
 
   // ============================================
