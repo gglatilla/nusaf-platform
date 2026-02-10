@@ -14,7 +14,7 @@ type StatusFilter = 'ALL' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED'
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: 'ALL', label: 'All' },
   { value: 'CONFIRMED', label: 'Confirmed' },
-  { value: 'PROCESSING', label: 'In Progress' },
+  { value: 'PROCESSING', label: 'Processing' },
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'DELIVERED', label: 'Delivered' },
   { value: 'INVOICED', label: 'Invoiced' },

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Check, X, Send, Calendar, Building, Trash2, Package } from 'lucide-react';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
@@ -75,6 +76,7 @@ export default function QuoteDetailPage() {
   const [notes, setNotes] = useState('');
   const [notesEditing, setNotesEditing] = useState(false);
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'finalize' | 'accept' | 'reject' | 'delete' | null>(null);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -97,29 +99,50 @@ export default function QuoteDetailPage() {
   const canCreateOrder = quote.status === 'ACCEPTED' && !quote.convertedOrder;
   const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
-  const handleFinalize = async () => {
-    if (confirm('Finalize this quote? It will be locked for editing and valid for 30 days.')) {
-      await finalize.mutateAsync(quoteId);
+  const handleConfirmAction = async () => {
+    switch (confirmAction) {
+      case 'finalize':
+        await finalize.mutateAsync(quoteId);
+        break;
+      case 'accept':
+        await accept.mutateAsync(quoteId);
+        break;
+      case 'reject':
+        await reject.mutateAsync(quoteId);
+        break;
+      case 'delete':
+        await deleteQuote.mutateAsync(quoteId);
+        router.push('/quotes');
+        break;
     }
+    setConfirmAction(null);
   };
 
-  const handleAccept = async () => {
-    if (confirm('Accept this quote?')) {
-      await accept.mutateAsync(quoteId);
-    }
-  };
-
-  const handleReject = async () => {
-    if (confirm('Reject this quote?')) {
-      await reject.mutateAsync(quoteId);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (confirm('Delete this draft quote? This action cannot be undone.')) {
-      await deleteQuote.mutateAsync(quoteId);
-      router.push('/quotes');
-    }
+  const confirmConfig = {
+    finalize: {
+      title: 'Finalize Quote',
+      message: 'This quote will be locked for editing and valid for 30 days. Are you sure?',
+      confirmLabel: 'Finalize',
+      variant: 'warning' as const,
+    },
+    accept: {
+      title: 'Accept Quote',
+      message: 'Accept this quote and make it available for order creation?',
+      confirmLabel: 'Accept',
+      variant: 'info' as const,
+    },
+    reject: {
+      title: 'Reject Quote',
+      message: 'Reject this quote? This action cannot be undone.',
+      confirmLabel: 'Reject',
+      variant: 'danger' as const,
+    },
+    delete: {
+      title: 'Delete Quote',
+      message: 'Delete this draft quote? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger' as const,
+    },
   };
 
   const handleSaveNotes = async () => {
@@ -148,7 +171,7 @@ export default function QuoteDetailPage() {
         <div className="flex items-center gap-3">
           {isEditable && (
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmAction('delete')}
               disabled={deleteQuote.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-md hover:bg-red-50 disabled:opacity-50"
             >
@@ -159,7 +182,7 @@ export default function QuoteDetailPage() {
 
           {canFinalize && (
             <button
-              onClick={handleFinalize}
+              onClick={() => setConfirmAction('finalize')}
               disabled={finalize.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50"
             >
@@ -171,7 +194,7 @@ export default function QuoteDetailPage() {
           {canAcceptReject && (
             <>
               <button
-                onClick={handleAccept}
+                onClick={() => setConfirmAction('accept')}
                 disabled={accept.isPending}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
               >
@@ -179,7 +202,7 @@ export default function QuoteDetailPage() {
                 {accept.isPending ? 'Accepting...' : 'Accept'}
               </button>
               <button
-                onClick={handleReject}
+                onClick={() => setConfirmAction('reject')}
                 disabled={reject.isPending}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
               >
@@ -351,6 +374,20 @@ export default function QuoteDetailPage() {
         isOpen={showCreateOrderModal}
         onClose={() => setShowCreateOrderModal(false)}
       />
+
+      {/* Confirm Dialog */}
+      {confirmAction && (
+        <ConfirmDialog
+          isOpen={true}
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirmAction(null)}
+          title={confirmConfig[confirmAction].title}
+          message={confirmConfig[confirmAction].message}
+          confirmLabel={confirmConfig[confirmAction].confirmLabel}
+          variant={confirmConfig[confirmAction].variant}
+          isLoading={finalize.isPending || accept.isPending || reject.isPending || deleteQuote.isPending}
+        />
+      )}
     </div>
   );
 }
