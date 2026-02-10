@@ -61,12 +61,12 @@
 
 ## Phase 4 — Automation Wiring
 - [x] T39: Prepay payment triggers fulfillment (2026-02-10)
-- [ ] T40: End-to-end flow verification
+- [x] T40: End-to-end flow verification (2026-02-10)
 
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 3A, next T26
+- Current phase: COMPLETE (2026-02-10)
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
