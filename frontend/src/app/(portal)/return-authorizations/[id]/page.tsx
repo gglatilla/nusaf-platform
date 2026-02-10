@@ -17,6 +17,8 @@ import {
   useCancelReturnAuthorization,
 } from '@/hooks/useReturnAuthorizations';
 import ReturnAuthorizationStatusBadge from '@/components/return-authorizations/ReturnAuthorizationStatusBadge';
+import { CreditNotesSection } from '@/components/orders/order-detail';
+import { useCreditNotesForRA } from '@/hooks/useCreditNotes';
 import { WAREHOUSE_NAMES } from '@/lib/constants/reference-routes';
 import type { ReturnResolution } from '@/lib/api';
 
@@ -54,6 +56,7 @@ export default function ReturnAuthorizationDetailPage() {
   const { user, isLoading: authLoading } = useAuthStore();
 
   const { data: ra, isLoading, error } = useReturnAuthorization(id);
+  const { data: creditNotes } = useCreditNotesForRA(id);
   const approve = useApproveReturnAuthorization();
   const reject = useRejectReturnAuthorization();
   const receiveItems = useReceiveReturnItems();
@@ -422,6 +425,14 @@ export default function ReturnAuthorizationDetailPage() {
               </table>
             </div>
           </div>
+
+          {/* Credit Notes Section */}
+          {creditNotes && creditNotes.length > 0 && (
+            <CreditNotesSection
+              creditNotes={creditNotes}
+              canVoid={user?.role === 'ADMIN'}
+            />
+          )}
         </div>
 
         {/* Right sidebar */}

@@ -40,7 +40,7 @@
 - [x] T22: Staff-on-behalf-of-customer quotes (UI) (2026-02-10)
 - [x] T23: Standalone transfer UI (2026-02-10)
 - [x] T24: Credit note schema + service + PDF (2026-02-10)
-- [ ] T25: Credit note API + UI + auto-generate on RA completion
+- [x] T25: Credit note API + UI + auto-generate on RA completion (2026-02-10)
 
 ## Phase 3A — Safety Nets
 - [ ] T26: Backend return quantity validation (cumulative check)
@@ -66,7 +66,7 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2C, next T25
+- Current phase: Phase 3A, next T26
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 

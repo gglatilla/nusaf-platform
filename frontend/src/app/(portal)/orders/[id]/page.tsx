@@ -13,6 +13,7 @@ import { useProformaInvoicesForOrder, useCreateProformaInvoice } from '@/hooks/u
 import { useTaxInvoicesForOrder, useCreateTaxInvoice } from '@/hooks/useTaxInvoices';
 import { useReturnAuthorizationsForOrder } from '@/hooks/useReturnAuthorizations';
 import { usePackingListsForOrder } from '@/hooks/usePackingLists';
+import { useCreditNotesForOrder } from '@/hooks/useCreditNotes';
 import { useOrderPayments } from '@/hooks/usePayments';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderLineTable } from '@/components/orders/OrderLineTable';
@@ -33,12 +34,14 @@ import {
   RecordPaymentModal,
   OrderNotesSection,
   OrderTimelineSection,
+  CreditNotesSection,
 } from '@/components/orders/order-detail';
 import { GeneratePickingSlipModal } from '@/components/picking-slips/GeneratePickingSlipModal';
 import { CreateJobCardModal } from '@/components/job-cards/CreateJobCardModal';
 import { CreateTransferRequestModal } from '@/components/transfer-requests/CreateTransferRequestModal';
 import { OrderDocumentsSection } from '@/components/documents';
 import { FulfillmentPlanModal } from '@/components/fulfillment/FulfillmentPlanModal';
+import { useAuthStore } from '@/stores/auth-store';
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
@@ -76,6 +79,7 @@ function LoadingSkeleton() {
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
+  const { user } = useAuthStore();
 
   const { data: order, isLoading, error } = useOrder(orderId);
   const { data: timelineEvents, isLoading: isTimelineLoading } = useOrderTimeline(orderId);
@@ -87,6 +91,7 @@ export default function OrderDetailPage() {
   const { data: taxInvoices } = useTaxInvoicesForOrder(orderId);
   const { data: returnAuthorizations } = useReturnAuthorizationsForOrder(orderId);
   const { data: packingLists } = usePackingListsForOrder(orderId);
+  const { data: creditNotes } = useCreditNotesForOrder(orderId);
   const { data: payments } = useOrderPayments(orderId);
   const confirm = useConfirmOrder();
   const hold = useHoldOrder();
@@ -513,6 +518,11 @@ export default function OrderDetailPage() {
             onRecordPayment={() => setShowRecordPaymentModal(true)}
           />
           <ReturnAuthorizationsSection returnAuthorizations={returnAuthorizations ?? []} />
+
+          <CreditNotesSection
+            creditNotes={creditNotes ?? []}
+            canVoid={user?.role === 'ADMIN'}
+          />
 
           {/* Notes */}
           <OrderNotesSection

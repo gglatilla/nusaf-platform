@@ -327,6 +327,24 @@ export async function getCreditNotesForRA(
 }
 
 /**
+ * Get credit notes for a specific order
+ */
+export async function getCreditNotesForOrder(
+  orderId: string,
+  companyId?: string
+): Promise<CreditNoteSummary[]> {
+  const where: { orderId: string; companyId?: string } = { orderId };
+  if (companyId) where.companyId = companyId;
+
+  const notes = await prisma.creditNote.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return notes.map(mapToCreditNoteSummary);
+}
+
+/**
  * Get credit notes for a company (customer portal)
  */
 export async function getCreditNotesByCompany(

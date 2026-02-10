@@ -58,6 +58,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Issues', href: '/issues', icon: AlertTriangle },
   { name: 'Documents', href: '/documents', icon: Archive },
   { name: 'Tax Invoices', href: '/tax-invoices', icon: Receipt, roles: ['ADMIN', 'MANAGER', 'SALES'] },
+  { name: 'Credit Notes', href: '/credit-notes', icon: FileText, roles: ['ADMIN', 'MANAGER', 'SALES'] },
 ];
 
 /**

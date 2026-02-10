@@ -39,6 +39,7 @@ import taxInvoicesRoutes from './api/v1/tax-invoices/route';
 import purchaseRequisitionsRoutes from './api/v1/purchase-requisitions/route';
 import returnAuthorizationsRoutes from './api/v1/return-authorizations/route';
 import packingListsRoutes from './api/v1/packing-lists/route';
+import creditNotesRoutes from './api/v1/credit-notes/route';
 import reportsRoutes from './api/v1/reports/route';
 import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 import publicProductsRoutes from './api/v1/public/products/route';
@@ -101,6 +102,7 @@ app.use('/api/v1/tax-invoices', taxInvoicesRoutes);
 app.use('/api/v1/purchase-requisitions', purchaseRequisitionsRoutes);
 app.use('/api/v1/return-authorizations', returnAuthorizationsRoutes);
 app.use('/api/v1/packing-lists', packingListsRoutes);
+app.use('/api/v1/credit-notes', creditNotesRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 
 // Admin cleanup endpoints

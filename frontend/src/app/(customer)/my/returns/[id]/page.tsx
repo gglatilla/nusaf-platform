@@ -4,7 +4,9 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, AlertCircle, CheckCircle, XCircle, Package } from 'lucide-react';
 import { useReturnAuthorization, useCancelReturnAuthorization } from '@/hooks/useReturnAuthorizations';
+import { useCreditNotesForRA } from '@/hooks/useCreditNotes';
 import ReturnAuthorizationStatusBadge from '@/components/return-authorizations/ReturnAuthorizationStatusBadge';
+import { CreditNotesSection } from '@/components/orders/order-detail';
 import type { ReturnAuthorizationStatus } from '@/lib/api';
 
 function formatDate(dateString: string | null): string {
@@ -76,6 +78,7 @@ export default function CustomerReturnDetailPage() {
   const raId = params.id as string;
 
   const { data: ra, isLoading, error } = useReturnAuthorization(raId);
+  const { data: creditNotes } = useCreditNotesForRA(raId);
   const cancelRA = useCancelReturnAuthorization();
 
   const handleCancel = async () => {
@@ -172,6 +175,11 @@ export default function CustomerReturnDetailPage() {
               </table>
             </div>
           </div>
+
+          {/* Credit Notes Section */}
+          {creditNotes && creditNotes.length > 0 && (
+            <CreditNotesSection creditNotes={creditNotes} isCustomer={true} />
+          )}
         </div>
 
         {/* Sidebar */}
