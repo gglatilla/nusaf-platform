@@ -278,6 +278,7 @@ export default function CustomerQuoteDetailPage() {
               quoteId={quoteId}
               items={quote.items}
               isEditable={isEditable}
+              isCustomer
             />
           </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import type { QuoteItem } from '@/lib/api';
 import { useUpdateQuoteItemQuantity, useRemoveQuoteItem } from '@/hooks/useQuotes';
 
@@ -9,6 +9,7 @@ interface QuoteItemsTableProps {
   quoteId: string;
   items: QuoteItem[];
   isEditable: boolean;
+  isCustomer?: boolean;
 }
 
 function formatCurrency(amount: number): string {
@@ -22,9 +23,10 @@ interface ItemRowProps {
   quoteId: string;
   item: QuoteItem;
   isEditable: boolean;
+  isCustomer?: boolean;
 }
 
-function ItemRow({ quoteId, item, isEditable }: ItemRowProps) {
+function ItemRow({ quoteId, item, isEditable, isCustomer }: ItemRowProps) {
   const [quantity, setQuantity] = useState(item.quantity);
   const updateQuantity = useUpdateQuoteItemQuantity();
   const removeItem = useRemoveQuoteItem();
@@ -50,6 +52,16 @@ function ItemRow({ quoteId, item, isEditable }: ItemRowProps) {
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm font-medium text-slate-900">{item.productSku}</div>
         <div className="text-sm text-slate-500 truncate max-w-xs">{item.productDescription}</div>
+        {item.stockWarning && (
+          <div className="flex items-center gap-1 mt-1">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+            <span className="text-xs text-amber-600">
+              {isCustomer
+                ? 'Limited availability'
+                : `${item.stockWarning.available} available, ${item.stockWarning.requested} requested`}
+            </span>
+          </div>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
         {formatCurrency(item.unitPrice)}
@@ -102,7 +114,7 @@ function ItemRow({ quoteId, item, isEditable }: ItemRowProps) {
   );
 }
 
-export function QuoteItemsTable({ quoteId, items, isEditable }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ quoteId, items, isEditable, isCustomer }: QuoteItemsTableProps) {
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
@@ -142,6 +154,7 @@ export function QuoteItemsTable({ quoteId, items, isEditable }: QuoteItemsTableP
               quoteId={quoteId}
               item={item}
               isEditable={isEditable}
+              isCustomer={isCustomer}
             />
           ))}
         </tbody>

@@ -1032,6 +1032,11 @@ export interface RecalculatePricesResult {
 // Re-export quote types from shared
 export type { QuoteStatus } from '@nusaf/shared';
 
+export interface StockWarning {
+  available: number;
+  requested: number;
+}
+
 export interface QuoteItem {
   id: string;
   lineNumber: number;
@@ -1041,6 +1046,7 @@ export interface QuoteItem {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  stockWarning?: StockWarning;
 }
 
 export interface Quote {
@@ -1112,6 +1118,7 @@ export interface AddQuoteItemResponse {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  stockWarning?: StockWarning;
 }
 
 export interface FinalizeQuoteResponse {

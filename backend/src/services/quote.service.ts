@@ -137,6 +137,22 @@ export async function getOrCreateDraftQuote(
 }
 
 /**
+ * Check if requested quantity exceeds available stock across all warehouses.
+ * Returns warning info if over-stocked, or null if stock is sufficient.
+ */
+async function checkStockWarning(productId: string, requestedQuantity: number): Promise<{ available: number; requested: number } | null> {
+  const stockLevels = await prisma.stockLevel.findMany({
+    where: { productId },
+    select: { onHand: true, hardReserved: true },
+  });
+  const totalAvailable = stockLevels.reduce((sum, sl) => sum + (sl.onHand - sl.hardReserved), 0);
+  if (requestedQuantity > totalAvailable) {
+    return { available: Math.max(0, totalAvailable), requested: requestedQuantity };
+  }
+  return null;
+}
+
+/**
  * Add item to quote
  * Optimized: Fetches quote without items, checks for existing item directly via DB query
  */
@@ -148,7 +164,7 @@ export async function addQuoteItem(
   companyId?: string
 ): Promise<{
   success: boolean;
-  item?: { id: string; lineNumber: number; quantity: number; unitPrice: number; lineTotal: number };
+  item?: { id: string; lineNumber: number; quantity: number; unitPrice: number; lineTotal: number; stockWarning?: { available: number; requested: number } };
   error?: string;
 }> {
   // Parallel fetch: quote (without items) and product
@@ -229,6 +245,9 @@ export async function addQuoteItem(
     // Recalculate totals using DB aggregation
     await recalculateQuoteTotalsOptimized(quoteId, userId);
 
+    // Check available stock for warning
+    const stockWarning = await checkStockWarning(productId, updatedItem.quantity);
+
     return {
       success: true,
       item: {
@@ -237,6 +256,7 @@ export async function addQuoteItem(
         quantity: updatedItem.quantity,
         unitPrice,
         lineTotal: newLineTotal,
+        ...(stockWarning ? { stockWarning } : {}),
       },
     };
   }
@@ -264,6 +284,9 @@ export async function addQuoteItem(
   // Recalculate totals using DB aggregation
   await recalculateQuoteTotalsOptimized(quoteId, userId);
 
+  // Check available stock for warning
+  const stockWarning = await checkStockWarning(productId, newItem.quantity);
+
   return {
     success: true,
     item: {
@@ -272,6 +295,7 @@ export async function addQuoteItem(
       quantity: newItem.quantity,
       unitPrice,
       lineTotal,
+      ...(stockWarning ? { stockWarning } : {}),
     },
   };
 }
@@ -772,22 +796,48 @@ export async function getQuoteById(quoteId: string, companyId?: string) {
     }
   }
 
+  // Check stock warnings for DRAFT quotes
+  const stockWarnings = new Map<string, { available: number; requested: number }>();
+  if (quote.status === 'DRAFT' && quote.items.length > 0) {
+    const productIds = quote.items.map((item) => item.productId);
+    const stockLevels = await prisma.stockLevel.findMany({
+      where: { productId: { in: productIds } },
+      select: { productId: true, onHand: true, hardReserved: true },
+    });
+    // Sum available per product across warehouses
+    const availableMap = new Map<string, number>();
+    for (const sl of stockLevels) {
+      const current = availableMap.get(sl.productId) ?? 0;
+      availableMap.set(sl.productId, current + (sl.onHand - sl.hardReserved));
+    }
+    for (const item of quote.items) {
+      const available = Math.max(0, availableMap.get(item.productId) ?? 0);
+      if (item.quantity > available) {
+        stockWarnings.set(item.productId, { available, requested: item.quantity });
+      }
+    }
+  }
+
   return {
     id: quote.id,
     quoteNumber: quote.quoteNumber,
     status: quote.status,
     customerTier: quote.customerTier,
     company: quote.company,
-    items: quote.items.map((item) => ({
-      id: item.id,
-      lineNumber: item.lineNumber,
-      productId: item.productId,
-      productSku: item.productSku,
-      productDescription: item.productDescription,
-      quantity: item.quantity,
-      unitPrice: Number(item.unitPrice),
-      lineTotal: Number(item.lineTotal),
-    })),
+    items: quote.items.map((item) => {
+      const warning = stockWarnings.get(item.productId);
+      return {
+        id: item.id,
+        lineNumber: item.lineNumber,
+        productId: item.productId,
+        productSku: item.productSku,
+        productDescription: item.productDescription,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        lineTotal: Number(item.lineTotal),
+        ...(warning ? { stockWarning: warning } : {}),
+      };
+    }),
     subtotal: Number(quote.subtotal),
     vatRate: Number(quote.vatRate),
     vatAmount: Number(quote.vatAmount),
