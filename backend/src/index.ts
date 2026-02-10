@@ -44,7 +44,9 @@ import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 import publicProductsRoutes from './api/v1/public/products/route';
 import publicCategoriesRoutes from './api/v1/public/categories/route';
 import publicContactRoutes from './api/v1/public/contact/route';
+import { releaseExpiredSoftReservations } from './services/reservation-cleanup.service';
 import { requestIdMiddleware } from './middleware/request-id';
+import { authenticate, requireRole, type AuthenticatedRequest } from './middleware/auth';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -100,6 +102,23 @@ app.use('/api/v1/purchase-requisitions', purchaseRequisitionsRoutes);
 app.use('/api/v1/return-authorizations', returnAuthorizationsRoutes);
 app.use('/api/v1/packing-lists', packingListsRoutes);
 app.use('/api/v1/reports', reportsRoutes);
+
+// Admin cleanup endpoints
+app.post('/api/v1/admin/cleanup/expired-reservations', authenticate, requireRole('ADMIN'), async (req, res): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const result = await releaseExpiredSoftReservations(authReq.user.id);
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'CLEANUP_ERROR', message: error instanceof Error ? error.message : 'Failed to release expired reservations' },
+    });
+  }
+});
 
 // Public routes (no authentication required)
 app.use('/api/v1/public/quote-requests', publicQuoteRequestsRoutes);

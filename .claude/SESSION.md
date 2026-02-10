@@ -4,49 +4,46 @@
 ERP Remediation — Execution Plan (38 tasks across 6 phases)
 
 ## Status
-Phase 2B — Data Integrity. T18 complete. Next: T19 (Soft reservation expiry background job)
+Phase 2B complete. Phase 2C starting. Next: T20 (Auto-generate proforma: verify and harden)
 
 ## Completed This Session
 - [x] T18: Double reservation deduplication (2026-02-10)
+- [x] T19: Soft reservation expiry background job (2026-02-10)
 
 ## What Was Done
 
 ### T18: Double Reservation Deduplication
-- **Modified `executeFulfillmentPlan()`** (`backend/src/services/orchestration.service.ts`):
-  - Added STEP 4 after creating all fulfillment documents (picking slips, job cards, transfers, POs)
-  - Collects orchestrated productIds from picking slip lines + job card finished products
-  - Finds active SalesOrder reservations for those products (partial orchestration safe — non-orchestrated lines keep their reservations)
-  - Releases each duplicate reservation and decrements hardReserved via atomic updateStockLevel
-  - All within the existing transaction — atomic with document creation
-  - Added `updateStockLevel` import from inventory.service.ts
-- **Created fix script** (`backend/src/scripts/fix-double-reservations.ts`):
-  - Finds orders in PROCESSING/READY_TO_SHIP/SHIPPED/DELIVERED/INVOICED/CLOSED status
-  - For each, finds active SalesOrder reservations where the product also has PickingSlip or JobCard reservations
-  - Releases the duplicate SalesOrder reservation and decrements hardReserved
-  - Supports `--dry-run` flag
-  - NOT auto-run — manual review required
+- In `executeFulfillmentPlan()`, releases SalesOrder-level reservations for orchestrated products after creating fulfillment document reservations
+- Created fix script `backend/src/scripts/fix-double-reservations.ts`
+
+### T19: Soft Reservation Expiry Background Job
+- Created `reservation-cleanup.service.ts` with `releaseExpiredSoftReservations()` — processes expired SOFT reservations in batches of 100
+- Added `POST /api/v1/admin/cleanup/expired-reservations` endpoint (ADMIN only) in index.ts
+- Fixed quote EXPIRED path in `acceptQuote()` to release soft reservations (was missing)
+- Verified `rejectQuote()` already releases reservations correctly
+- No `cancelQuote()` function exists — quotes use EXPIRED/REJECTED statuses
 
 ## Decisions Made
-- Selective release: only release SalesOrder reservations for products that have fulfillment-level reservations
-- Non-orchestrated lines (backordered → POs) keep their order-level reservations
-- Release reason: "Transferred to fulfillment document reservation" for audit trail
+- Batch size of 100 for reservation cleanup to avoid long-running transactions
+- On batch error, stop processing (don't continue with partial state)
+- EXPIRED quote path now releases reservations immediately (previously left to background cleanup)
 
 ## Files Modified This Session
-- `backend/src/services/orchestration.service.ts` — added dedup logic + updateStockLevel import
+- `backend/src/services/orchestration.service.ts` — T18 dedup logic
 - `backend/src/scripts/fix-double-reservations.ts` — NEW fix script
-- `.claude/plans/execution-progress.md` — marked T18 complete
-- `.claude/SESSION.md` — updated session state
+- `backend/src/services/reservation-cleanup.service.ts` — NEW cleanup service
+- `backend/src/services/quote.service.ts` — EXPIRED path releases reservations
+- `backend/src/index.ts` — added cleanup endpoint + auth imports
 
 ## Next Steps (Exact)
-1. Start T19: Soft reservation expiry background job
-2. Read execution-plan.md for T19 full prompt
-3. Create `reservation-cleanup.service.ts` with `releaseExpiredSoftReservations()`
-4. Add API endpoint `POST /admin/cleanup/expired-reservations` (ADMIN only)
-5. Verify rejectQuote/cancelQuote already release reservations
+1. Start T20: Auto-generate proforma — verify and harden
+2. Read execution-plan.md for T20 full prompt
+3. Verify proforma is created for PREPAY orders, NOT for account orders
+4. Add fallback "Generate Proforma" button on staff order detail
+5. Verify PDF includes bank details and payment reference
 
 ## Context for Next Session
 - Execution plan: `.claude/plans/execution-plan.md`
 - Progress tracker: `.claude/plans/execution-progress.md`
-- Workflow: read progress → find first unchecked → read plan → execute → mark done → commit → push → STOP
-- User says "go" to proceed to next task
-- Phase 2B in progress, T19 next
+- Phase 2B (Data Integrity) is COMPLETE (T16-T19 all done)
+- Phase 2C (Remaining Operations) starting with T20

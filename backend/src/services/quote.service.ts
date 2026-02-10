@@ -509,6 +509,8 @@ export async function acceptQuote(
       where: { id: quoteId },
       data: { status: 'EXPIRED', updatedBy: userId },
     });
+    // Release soft reservations for expired quote
+    await releaseReservationsByReference('Quote', quoteId, 'Quote expired', userId);
     return { success: false, error: 'Quote has expired' };
   }
 

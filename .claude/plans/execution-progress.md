@@ -32,7 +32,7 @@
 - [x] T16: Atomic increments in updateStockLevel (2026-02-09)
 - [x] T17: Reservation cleanup on order cancel (all reference types) (2026-02-09)
 - [x] T18: Double reservation deduplication (2026-02-10)
-- [ ] T19: Soft reservation expiry background job
+- [x] T19: Soft reservation expiry background job (2026-02-10)
 
 ## Phase 2C — Remaining Operations
 - [ ] T20: Auto-generate proforma — verify and harden
@@ -66,22 +66,19 @@
 ## Notes
 - Started: 2026-02-08
 - Last updated: 2026-02-10
-- Current phase: Phase 2B, next T19
+- Current phase: Phase 2C, next T20
 - T1-T9 completed under old (incorrect) plan assuming all-prepay
 - R1-R5 fix the business model to support account + prepay customers
 
 ## Last Session Notes (2026-02-10)
 - Completed T18: Double reservation deduplication
-  - In `executeFulfillmentPlan()`, added STEP 4 after creating all fulfillment documents:
-    - Collects orchestrated product IDs from picking slip lines and job card finished products
-    - Finds active SalesOrder-level reservations for those products
-    - Releases them (marks releasedAt, sets releaseReason) and decrements hardReserved
-    - Non-orchestrated lines (e.g. backordered → POs) keep their order-level reservations
-  - Added `updateStockLevel` import from inventory.service.ts
-  - Created `backend/src/scripts/fix-double-reservations.ts` (not run):
-    - Finds orders in PROCESSING+ status with active SalesOrder reservations
-    - Checks if those products also have PickingSlip/JobCard reservations
-    - Releases the duplicate SalesOrder ones and decrements hardReserved
-    - Supports --dry-run flag
+  - In `executeFulfillmentPlan()`, releases SalesOrder-level reservations for orchestrated products
+  - Created fix script for existing double reservations
+- Completed T19: Soft reservation expiry background job
+  - Created `reservation-cleanup.service.ts` with `releaseExpiredSoftReservations()` (batch processing, 100 at a time)
+  - Added `POST /api/v1/admin/cleanup/expired-reservations` endpoint (ADMIN only)
+  - Fixed quote EXPIRED path to release soft reservations (was missing)
+  - Verified `rejectQuote()` already releases reservations
+  - No `cancelQuote()` exists — quotes use EXPIRED/REJECTED statuses
   - Backend + frontend compile with zero TypeScript errors
-- Next: T19 — Soft reservation expiry background job
+- Next: T20 — Auto-generate proforma: verify and harden
