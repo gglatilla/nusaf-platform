@@ -1,52 +1,39 @@
 # Current Session
 
 ## Active Task
-Phase 2: Customer Checkout Flow — COMPLETE
+Phase 3: Backorder Visibility — COMPLETE
 
 ## Plan
-See `.claude/plans/linear-wibbling-manatee.md`
+See `.claude/plans/bubbly-fluttering-matsumoto.md`
 
 ## Completed Micro-tasks
 
-### Phase 2.1: DB Migration — Shipping Address on SalesOrder (fa93d40)
-- Added `shippingAddressId` (FK → CompanyAddress) and `shippingAddressSnapshot` (JSON) to SalesOrder model
+### Phase 3.1: DB Schema + Backend Services (a8c4f83)
+- Added `quantityBackorder` field to `SalesOrderLine` model (Int, default 0)
+- Added Prisma relation `PurchaseOrderLine → SalesOrderLine` (existing `salesOrderLineId` column)
+- Added index on `purchase_order_lines.sales_order_line_id`
+- `executeFulfillmentPlan()` now persists backorder quantities on order lines and populates `salesOrderLineId` on PO lines
+- `getOrderById()` includes `quantityBackorder` in response
+- Frontend `SalesOrderLine` types updated in both `api.ts` and `api/types/orders.ts`
+- 5 unit tests for backorder persistence logic
 
-### Phase 2.2: Backend — Checkout Endpoint + Service (83c7f67)
-- `POST /api/v1/quotes/:id/checkout` — unified checkout for staff and customers
-- `checkoutQuote()` service: validates, accepts quote, creates order with checkout data, triggers fulfillment/proforma
-- `createOrderFromQuote()` enhanced to accept `shippingAddressId` and create address snapshot
-- PO number required for all customers (Zod validation)
+### Phase 3.2: Staff Portal UI (70e82f5)
+- `OrderLineTable`: "On Backorder" status badge when PENDING + quantityBackorder > 0; conditional Backorder column with amber "X on B/O" badges
+- `FulfillmentStatsBar`: conditional 5th "Backordered" card (amber) when backorders exist; grid adjusts to 5 columns
+- New `BackorderSummarySection`: amber-bordered card listing backordered lines with SKU, description, qty ordered/backordered
+- Wired into staff order detail page after TransferRequestsSection
 
-### Phase 2.3: Backend Tests (31a53e2)
-- 12 unit tests for `checkoutQuote()`: validation, company isolation, all/minimal fields, payment terms flow, error handling
-
-### Phase 2.4: Frontend — Shared Checkout Components (72ddb04)
-- `CheckoutPage`: single-page form with items review, address selector, PO input + file upload, delivery date + notes, order summary sidebar
-- `AddressSelector`: radio card picker for shipping addresses
-- `OrderSummary`: subtotal/VAT/total with payment terms badge
-- `useCheckout` hook + API client `checkoutQuote()` method
-
-### Phase 2.5: Frontend — Portal Route Pages + Wiring (6aa2ad7)
-- Staff checkout route: `/quotes/[id]/checkout`
-- Customer checkout route: `/my/quotes/[id]/checkout`
-- Both quote detail pages updated: "Proceed to Checkout" replaces old Accept/Create Order flow
-
-### Phase 2.6: Cleanup (this commit)
-- Deleted `CreateOrderModal.tsx` (replaced by checkout page)
-- Removed unused imports and dead code
+### Phase 3.3: Customer Portal UI (14cccc2)
+- Amber backorder banner on customer order detail ("Some items are on backorder")
+- Inline "X unit(s) on backorder" text on affected lines in OrderLineTable customer view
 
 ## Pending Micro-tasks
-- [ ] Phase 3.1–3.3: Backorder Visibility
 - [ ] Phase 4.1–4.5: Notification System
 
 ## Context for Next Session
-- Phase 2 (Customer Checkout Flow) is COMPLETE
-- Unified checkout: both staff and customers use same CheckoutPage component
-- PO number is required for ALL customers at checkout
-- PO document upload supported (PDF/JPG/PNG, attached to order after creation)
-- Shipping address selection from company address book, with snapshot stored on order
-- PREPAY/COD customers see payment instructions after checkout
-- NET_30/60/90 customers get auto-fulfillment triggered
-- Old `CreateOrderModal` deleted, old accept flow replaced
-- Backend `/accept` endpoint still exists as legacy, but UI now uses `/checkout`
-- Migration pending on Railway: 20260212100000_add_shipping_address_to_sales_order
+- Phase 3 (Backorder Visibility) is COMPLETE
+- Backorder data is persisted at fulfillment execution time (orchestration service)
+- Both staff and customer portals show backorder visibility
+- Migration pending on Railway: 20260212120000_add_backorder_tracking (+ previous 20260212100000_add_shipping_address_to_sales_order)
+- No new endpoint was created — backorder data rides on existing order response via `quantityBackorder` field
+- The `salesOrderLineId` FK on `PurchaseOrderLine` is now populated, enabling future features (e.g., backorder resolution when PO is received)
