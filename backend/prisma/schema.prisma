@@ -175,6 +175,9 @@ model CompanyAddress {
   contactName          String? @map("contact_name")
   contactPhone         String? @map("contact_phone")
 
+  // Relations
+  shippingOrders SalesOrder[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -937,6 +940,11 @@ model SalesOrder {
   // Payment
   paymentTerms  PaymentTerms       @default(NET_30) @map("payment_terms")
   paymentStatus OrderPaymentStatus @default(UNPAID) @map("payment_status")
+
+  // Shipping address
+  shippingAddressId       String?  @map("shipping_address_id")
+  shippingAddress         CompanyAddress? @relation(fields: [shippingAddressId], references: [id])
+  shippingAddressSnapshot Json?    @map("shipping_address_snapshot")
 
   // Fulfillment
   fulfillmentType           FulfillmentType    @default(STOCK_ONLY) @map("fulfillment_type")
