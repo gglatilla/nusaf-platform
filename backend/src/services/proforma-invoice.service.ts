@@ -13,7 +13,7 @@ import { resolveCustomerName } from '../utils/cash-customer';
 export interface ProformaInvoiceData {
   id: string;
   proformaNumber: string;
-  companyId: string;
+  companyId?: string;
   orderId: string;
   orderNumber: string;
   customerName: string;
@@ -82,15 +82,13 @@ export async function createProformaInvoice(
   orderId: string,
   input: CreateProformaInvoiceInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; proformaInvoice?: { id: string; proformaNumber: string }; error?: string }> {
   // Validate the order exists and is CONFIRMED
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
     include: {
       company: {
         select: {
@@ -138,6 +136,9 @@ export async function createProformaInvoice(
   });
   const uomMap = new Map(products.map((p) => [p.id, p.unitOfMeasure]));
 
+  // Derive companyId from the order when not provided
+  const resolvedCompanyId = companyId ?? order.companyId;
+
   const proformaNumber = await generateProformaNumber();
   const issueDate = new Date();
   const validUntil = new Date(issueDate);
@@ -145,12 +146,10 @@ export async function createProformaInvoice(
 
   const proformaInvoice = await prisma.$transaction(async (tx) => {
     // Auto-void any existing ACTIVE proforma for this order
+    const voidWhere: Prisma.ProformaInvoiceWhereInput = { orderId, status: 'ACTIVE' };
+    if (companyId) voidWhere.companyId = companyId;
     await tx.proformaInvoice.updateMany({
-      where: {
-        orderId,
-        companyId,
-        status: 'ACTIVE',
-      },
+      where: voidWhere,
       data: {
         status: 'VOIDED',
         voidedAt: new Date(),
@@ -163,7 +162,7 @@ export async function createProformaInvoice(
     const pi = await tx.proformaInvoice.create({
       data: {
         proformaNumber,
-        companyId,
+        companyId: resolvedCompanyId,
         orderId,
         orderNumber: order.orderNumber,
         customerName: resolveCustomerName(order),
@@ -214,10 +213,12 @@ export async function createProformaInvoice(
  */
 export async function getProformaInvoiceById(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<ProformaInvoiceData | null> {
+  const where: Prisma.ProformaInvoiceWhereInput = { id };
+  if (companyId) where.companyId = companyId;
   const pi = await prisma.proformaInvoice.findFirst({
-    where: { id, companyId },
+    where,
     include: {
       lines: { orderBy: { lineNumber: 'asc' } },
     },
@@ -268,10 +269,12 @@ export async function getProformaInvoiceById(
  */
 export async function getProformaInvoicesForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<ProformaInvoiceSummary[]> {
+  const orderWhere: Prisma.ProformaInvoiceWhereInput = { orderId };
+  if (companyId) orderWhere.companyId = companyId;
   const proformas = await prisma.proformaInvoice.findMany({
-    where: { orderId, companyId },
+    where: orderWhere,
     orderBy: { createdAt: 'desc' },
   });
 
@@ -294,11 +297,13 @@ export async function getProformaInvoicesForOrder(
 export async function voidProformaInvoice(
   id: string,
   userId: string,
-  companyId: string,
-  reason: string
+  reason: string,
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const voidWhere: Prisma.ProformaInvoiceWhereInput = { id };
+  if (companyId) voidWhere.companyId = companyId;
   const pi = await prisma.proformaInvoice.findFirst({
-    where: { id, companyId },
+    where: voidWhere,
   });
 
   if (!pi) {

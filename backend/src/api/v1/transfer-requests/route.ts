@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createTransferRequestFromOrderSchema,
   createStandaloneTransferRequestSchema,
@@ -44,7 +45,7 @@ router.get('/', authenticate, async (req, res) => {
     const { orderId, status, page, pageSize } = queryResult.data;
 
     const result = await getTransferRequests({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       orderId,
       status,
       page,
@@ -76,7 +77,7 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
 
     const { orderId } = req.params;
 
-    const transferRequests = await getTransferRequestsForOrder(orderId, req.user!.companyId);
+    const transferRequests = await getTransferRequestsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -103,7 +104,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const transferRequest = await getTransferRequestById(id, req.user!.companyId);
+    const transferRequest = await getTransferRequestById(id, getEffectiveCompanyId(req));
 
     if (!transferRequest) {
       return res.status(404).json({
@@ -154,7 +155,7 @@ router.post('/generate/:orderId', authenticate, async (req, res) => {
       orderId,
       bodyResult.data.lines,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -207,9 +208,9 @@ router.post('/', authenticate, async (req, res) => {
       bodyResult.data.lines,
       bodyResult.data.notes || null,
       req.user!.id,
-      req.user!.companyId,
       bodyResult.data.fromLocation,
-      bodyResult.data.toLocation
+      bodyResult.data.toLocation,
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -262,7 +263,7 @@ router.post('/:id/ship', authenticate, async (req, res) => {
 
     const { shippedByName } = bodyResult.data;
 
-    const result = await shipTransfer(id, req.user!.id, shippedByName, req.user!.companyId);
+    const result = await shipTransfer(id, req.user!.id, shippedByName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;
@@ -315,7 +316,7 @@ router.patch('/:id/lines/:lineId', authenticate, async (req, res) => {
 
     const { receivedQuantity } = bodyResult.data;
 
-    const result = await updateLineReceived(id, lineId, receivedQuantity, req.user!.id, req.user!.companyId);
+    const result = await updateLineReceived(id, lineId, receivedQuantity, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -368,7 +369,7 @@ router.post('/:id/receive', authenticate, async (req, res) => {
 
     const { receivedByName } = bodyResult.data;
 
-    const result = await receiveTransfer(id, req.user!.id, receivedByName, req.user!.companyId);
+    const result = await receiveTransfer(id, req.user!.id, receivedByName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;
@@ -421,7 +422,7 @@ router.patch('/:id/notes', authenticate, async (req, res) => {
 
     const { notes } = bodyResult.data;
 
-    const result = await updateNotes(id, notes, req.user!.id, req.user!.companyId);
+    const result = await updateNotes(id, notes, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Transfer request not found' ? 404 : 400;

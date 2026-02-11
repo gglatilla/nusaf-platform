@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createReturnAuthorizationSchema,
   rejectReturnAuthorizationSchema,
@@ -43,7 +44,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (re
       });
     }
 
-    const result = await getReturnAuthorizations(req.user!.companyId, queryResult.data);
+    const result = await getReturnAuthorizations(queryResult.data, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -71,7 +72,7 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
 
     const { orderId } = req.params;
 
-    const returnAuthorizations = await getReturnAuthorizationsForOrder(orderId, req.user!.companyId);
+    const returnAuthorizations = await getReturnAuthorizationsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -98,7 +99,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
 
     const { id } = req.params;
 
-    const ra = await getReturnAuthorizationById(id, req.user!.companyId);
+    const ra = await getReturnAuthorizationById(id, getEffectiveCompanyId(req));
 
     if (!ra) {
       return res.status(404).json({
@@ -172,7 +173,7 @@ router.post('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER
       req.user!.id,
       userName,
       req.user!.role,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -217,7 +218,7 @@ router.post('/:id/approve', requireRole('ADMIN', 'MANAGER'), async (req, res) =>
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await approveReturnAuthorization(id, req.user!.id, userName, req.user!.companyId);
+    const result = await approveReturnAuthorization(id, req.user!.id, userName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Return authorization not found' ? 404 : 400;
@@ -267,7 +268,7 @@ router.post('/:id/reject', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
       });
     }
 
-    const result = await rejectReturnAuthorization(id, bodyResult.data, req.user!.id, req.user!.companyId);
+    const result = await rejectReturnAuthorization(id, bodyResult.data, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Return authorization not found' ? 404 : 400;
@@ -324,7 +325,7 @@ router.post('/:id/receive-items', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), 
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await receiveItems(id, bodyResult.data, req.user!.id, userName, req.user!.companyId);
+    const result = await receiveItems(id, bodyResult.data, req.user!.id, userName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Return authorization not found' ? 404 : 400;
@@ -381,7 +382,7 @@ router.post('/:id/complete', requireRole('ADMIN', 'MANAGER'), async (req, res) =
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await completeReturnAuthorization(id, bodyResult.data, req.user!.id, userName, req.user!.companyId);
+    const result = await completeReturnAuthorization(id, bodyResult.data, req.user!.id, userName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Return authorization not found' ? 404 : 400;
@@ -419,7 +420,7 @@ router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE',
 
     const { id } = req.params;
 
-    const result = await cancelReturnAuthorization(id, req.user!.id, req.user!.companyId);
+    const result = await cancelReturnAuthorization(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Return authorization not found' ? 404 : 400;

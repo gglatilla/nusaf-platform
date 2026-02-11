@@ -30,7 +30,7 @@ export interface PurchaseRequisitionLineData {
 export interface PurchaseRequisitionData {
   id: string;
   requisitionNumber: string;
-  companyId: string;
+  companyId?: string;
   status: PurchaseRequisitionStatus;
   requestedBy: string;
   requestedByName: string;
@@ -124,7 +124,7 @@ function mapLineToData(line: {
 function mapToData(pr: {
   id: string;
   requisitionNumber: string;
-  companyId: string;
+  companyId?: string;
   status: PurchaseRequisitionStatus;
   requestedBy: string;
   requestedByName: string;
@@ -248,12 +248,13 @@ export async function createPurchaseRequisition(
  * Get paginated list of purchase requisitions for a company
  */
 export async function getPurchaseRequisitions(
-  companyId: string,
-  query: PurchaseRequisitionListQuery
+  query: PurchaseRequisitionListQuery,
+  companyId?: string
 ): Promise<PaginatedResult<PurchaseRequisitionListItem>> {
   const { status, urgency, search, page = 1, pageSize = 20 } = query;
 
-  const where: Prisma.PurchaseRequisitionWhereInput = { companyId };
+  const where: Prisma.PurchaseRequisitionWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (status) {
     where.status = status;
@@ -320,10 +321,13 @@ export async function getPurchaseRequisitions(
  */
 export async function getPurchaseRequisitionById(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<PurchaseRequisitionData | null> {
+  const where: Prisma.PurchaseRequisitionWhereInput = { id };
+  if (companyId) where.companyId = companyId;
+
   const pr = await prisma.purchaseRequisition.findFirst({
-    where: { id, companyId },
+    where,
     include: {
       lines: {
         orderBy: { lineNumber: 'asc' },
@@ -348,10 +352,13 @@ export async function approvePurchaseRequisition(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<ServiceResult<{ generatedPOIds: string[] }>> {
+  const approveWhere: Prisma.PurchaseRequisitionWhereInput = { id };
+  if (companyId) approveWhere.companyId = companyId;
+
   const pr = await prisma.purchaseRequisition.findFirst({
-    where: { id, companyId },
+    where: approveWhere,
     include: {
       lines: {
         orderBy: { lineNumber: 'asc' },
@@ -475,10 +482,13 @@ export async function rejectPurchaseRequisition(
   id: string,
   reason: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<ServiceResult> {
+  const rejectWhere: Prisma.PurchaseRequisitionWhereInput = { id };
+  if (companyId) rejectWhere.companyId = companyId;
+
   const pr = await prisma.purchaseRequisition.findFirst({
-    where: { id, companyId },
+    where: rejectWhere,
   });
 
   if (!pr) {
@@ -508,10 +518,13 @@ export async function rejectPurchaseRequisition(
 export async function cancelPurchaseRequisition(
   id: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<ServiceResult> {
+  const cancelWhere: Prisma.PurchaseRequisitionWhereInput = { id };
+  if (companyId) cancelWhere.companyId = companyId;
+
   const pr = await prisma.purchaseRequisition.findFirst({
-    where: { id, companyId },
+    where: cancelWhere,
   });
 
   if (!pr) {

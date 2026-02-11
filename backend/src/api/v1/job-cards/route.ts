@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createJobCardSchema,
   assignJobCardSchema,
@@ -48,7 +49,7 @@ router.get('/', async (req, res) => {
     const { orderId, status, jobType, page, pageSize } = queryResult.data;
 
     const result = await getJobCards({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       orderId,
       status,
       jobType,
@@ -81,7 +82,7 @@ router.get('/:id', async (req, res) => {
 
     const { id } = req.params;
 
-    const jobCard = await getJobCardById(id, req.user!.companyId);
+    const jobCard = await getJobCardById(id, getEffectiveCompanyId(req));
 
     if (!jobCard) {
       return res.status(404).json({
@@ -115,7 +116,7 @@ router.get('/order/:orderId', async (req, res) => {
 
     const { orderId } = req.params;
 
-    const jobCards = await getJobCardsForOrder(orderId, req.user!.companyId);
+    const jobCards = await getJobCardsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -155,7 +156,7 @@ router.post('/', async (req, res) => {
     const result = await createJobCard(
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -209,7 +210,7 @@ router.post('/:id/assign', async (req, res) => {
 
     const { assignedTo, assignedToName } = bodyResult.data;
 
-    const result = await assignJobCard(id, assignedTo, assignedToName, req.user!.id, req.user!.companyId);
+    const result = await assignJobCard(id, assignedTo, assignedToName, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -247,7 +248,7 @@ router.post('/:id/start', async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await startJobCard(id, req.user!.id, req.user!.companyId);
+    const result = await startJobCard(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -303,7 +304,7 @@ router.post('/:id/hold', async (req, res) => {
 
     const { holdReason } = bodyResult.data;
 
-    const result = await putOnHold(id, holdReason, req.user!.id, req.user!.companyId);
+    const result = await putOnHold(id, holdReason, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -341,7 +342,7 @@ router.post('/:id/resume', async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await resumeJobCard(id, req.user!.id, req.user!.companyId);
+    const result = await resumeJobCard(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -379,7 +380,7 @@ router.post('/:id/complete', async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await completeJobCard(id, req.user!.id, req.user!.companyId);
+    const result = await completeJobCard(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;
@@ -432,7 +433,7 @@ router.patch('/:id/notes', async (req, res) => {
 
     const { notes } = bodyResult.data;
 
-    const result = await updateNotes(id, notes, req.user!.id, req.user!.companyId);
+    const result = await updateNotes(id, notes, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Job card not found' ? 404 : 400;

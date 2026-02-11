@@ -87,7 +87,7 @@ router.post(
 router.get(
   '/',
   authenticate,
-  requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
+  requireRole('ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'),
   async (req, res) => {
     try {
       const queryResult = purchaseOrderListQuerySchema.safeParse(req.query);
@@ -129,7 +129,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
+  requireRole('ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -650,7 +650,7 @@ router.post(
 router.get(
   '/:id/pdf',
   authenticate,
-  requireRole('ADMIN', 'MANAGER', 'PURCHASER'),
+  requireRole('ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'),
   async (req, res) => {
     try {
       const { id } = req.params;

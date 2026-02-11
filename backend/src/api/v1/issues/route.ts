@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createIssueFlagSchema,
   updateStatusSchema,
@@ -43,7 +44,7 @@ router.get('/', authenticate, async (req, res) => {
     const { pickingSlipId, jobCardId, status, severity, category, page, pageSize } = queryResult.data;
 
     const result = await getIssueFlags({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       pickingSlipId,
       jobCardId,
       status,
@@ -75,7 +76,7 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/stats', authenticate, async (req, res) => {
   try {
-    const stats = await getIssueStats(req.user!.companyId);
+    const stats = await getIssueStats(getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -102,7 +103,7 @@ router.get('/picking-slip/:id', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const issues = await getIssuesForPickingSlip(id, req.user!.companyId);
+    const issues = await getIssuesForPickingSlip(id, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -129,7 +130,7 @@ router.get('/job-card/:id', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const issues = await getIssuesForJobCard(id, req.user!.companyId);
+    const issues = await getIssuesForJobCard(id, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -156,7 +157,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const issueFlag = await getIssueFlagById(id, req.user!.companyId);
+    const issueFlag = await getIssueFlagById(id, getEffectiveCompanyId(req));
 
     if (!issueFlag) {
       return res.status(404).json({
@@ -203,7 +204,7 @@ router.post('/', authenticate, async (req, res) => {
     const result = await createIssueFlag(
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -257,7 +258,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     const { status } = bodyResult.data;
 
-    const result = await updateStatus(id, status, req.user!.id, req.user!.companyId);
+    const result = await updateStatus(id, status, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -310,7 +311,7 @@ router.post('/:id/comments', authenticate, async (req, res) => {
 
     const { content } = bodyResult.data;
 
-    const result = await addComment(id, content, req.user!.id, req.user!.companyId);
+    const result = await addComment(id, content, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -363,7 +364,7 @@ router.post('/:id/resolve', authenticate, async (req, res) => {
 
     const { resolution } = bodyResult.data;
 
-    const result = await resolveIssue(id, resolution, req.user!.id, req.user!.companyId);
+    const result = await resolveIssue(id, resolution, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;
@@ -401,7 +402,7 @@ router.post('/:id/close', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await closeIssue(id, req.user!.id, req.user!.companyId);
+    const result = await closeIssue(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Issue flag not found' ? 404 : 400;

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createPackingListSchema,
   packingListListQuerySchema,
@@ -39,7 +40,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE'), async (re
       });
     }
 
-    const result = await getPackingLists(req.user!.companyId, queryResult.data);
+    const result = await getPackingLists(queryResult.data, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -67,7 +68,7 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
 
     const { orderId } = req.params;
 
-    const packingLists = await getPackingListsForOrder(orderId, req.user!.companyId);
+    const packingLists = await getPackingListsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -95,7 +96,7 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
 
     const { id } = req.params;
 
-    const packingList = await getPackingListById(id, req.user!.companyId);
+    const packingList = await getPackingListById(id, getEffectiveCompanyId(req));
 
     if (!packingList) {
       return res.status(404).json({
@@ -132,7 +133,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
 
     const { id } = req.params;
 
-    const packingList = await getPackingListById(id, req.user!.companyId);
+    const packingList = await getPackingListById(id, getEffectiveCompanyId(req));
 
     if (!packingList) {
       return res.status(404).json({
@@ -196,7 +197,7 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
       orderId,
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -250,7 +251,7 @@ router.put('/:id', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async (req, res
       id,
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -296,7 +297,7 @@ router.post('/:id/finalize', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await finalizePackingList(id, req.user!.id, userName, req.user!.companyId);
+    const result = await finalizePackingList(id, req.user!.id, userName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Packing list not found' ? 404 : 400;
@@ -334,7 +335,7 @@ router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
 
     const { id } = req.params;
 
-    const result = await cancelPackingList(id, req.user!.id, req.user!.companyId);
+    const result = await cancelPackingList(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Packing list not found' ? 404 : 400;

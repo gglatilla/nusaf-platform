@@ -35,7 +35,7 @@ export interface ReturnAuthorizationLineData {
 export interface ReturnAuthorizationData {
   id: string;
   raNumber: string;
-  companyId: string;
+  companyId?: string;
   status: ReturnAuthorizationStatus;
   orderId: string | null;
   orderNumber: string | null;
@@ -105,7 +105,7 @@ export async function createReturnAuthorization(
   userId: string,
   userName: string,
   userRole: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; returnAuthorization?: { id: string; raNumber: string }; error?: string }> {
   // Validate parent document exists
   let customerName = input.customerName || '';
@@ -113,8 +113,10 @@ export async function createReturnAuthorization(
   let deliveryNoteNumber = input.deliveryNoteNumber || null;
 
   if (input.orderId) {
+    const orderWhere: Prisma.SalesOrderWhereInput = { id: input.orderId, deletedAt: null };
+    if (companyId) orderWhere.companyId = companyId;
     const order = await prisma.salesOrder.findFirst({
-      where: { id: input.orderId, companyId, deletedAt: null },
+      where: orderWhere,
       include: { company: { select: { name: true } } },
     });
     if (!order) {
@@ -132,8 +134,10 @@ export async function createReturnAuthorization(
   }
 
   if (input.deliveryNoteId) {
+    const dnWhere: Prisma.DeliveryNoteWhereInput = { id: input.deliveryNoteId };
+    if (companyId) dnWhere.companyId = companyId;
     const dn = await prisma.deliveryNote.findFirst({
-      where: { id: input.deliveryNoteId, companyId },
+      where: dnWhere,
     });
     if (!dn) {
       return { success: false, error: 'Delivery note not found' };
@@ -189,6 +193,20 @@ export async function createReturnAuthorization(
     }
   }
 
+  // Derive companyId from the order when not provided
+  let resolvedCompanyId = companyId;
+  if (!resolvedCompanyId && input.orderId) {
+    const orderForCompany = await prisma.salesOrder.findFirst({
+      where: { id: input.orderId, deletedAt: null },
+      select: { companyId: true },
+    });
+    if (orderForCompany) resolvedCompanyId = orderForCompany.companyId;
+  }
+
+  if (!resolvedCompanyId) {
+    return { success: false, error: 'Company could not be determined' };
+  }
+
   const raNumber = await generateRANumber();
   const isStaffCreated = userRole !== 'CUSTOMER';
   const now = new Date();
@@ -197,7 +215,7 @@ export async function createReturnAuthorization(
     const ra = await tx.returnAuthorization.create({
       data: {
         raNumber,
-        companyId,
+        companyId: resolvedCompanyId,
         status: isStaffCreated ? 'APPROVED' : 'REQUESTED',
         orderId: input.orderId || null,
         orderNumber,
@@ -251,10 +269,12 @@ export async function createReturnAuthorization(
  */
 export async function getReturnAuthorizationById(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<ReturnAuthorizationData | null> {
+  const where: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) where.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where,
     include: {
       lines: { orderBy: { lineNumber: 'asc' } },
     },
@@ -315,15 +335,16 @@ export async function getReturnAuthorizationById(
  * Get return authorizations with filtering and pagination
  */
 export async function getReturnAuthorizations(
-  companyId: string,
-  query: ReturnAuthorizationListQuery
+  query: ReturnAuthorizationListQuery,
+  companyId?: string
 ): Promise<{
   returnAuthorizations: ReturnAuthorizationSummary[];
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }> {
   const { orderId, deliveryNoteId, status, search, page = 1, pageSize = 20 } = query;
 
-  const where: Prisma.ReturnAuthorizationWhereInput = { companyId };
+  const where: Prisma.ReturnAuthorizationWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) where.orderId = orderId;
   if (deliveryNoteId) where.deliveryNoteId = deliveryNoteId;
@@ -382,7 +403,7 @@ export async function getReturnAuthorizations(
  */
 export async function getReturnAuthorizationsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   raNumber: string;
@@ -391,8 +412,10 @@ export async function getReturnAuthorizationsForOrder(
   totalQuantityReturned: number;
   createdAt: Date;
 }>> {
+  const rasWhere: Prisma.ReturnAuthorizationWhereInput = { orderId };
+  if (companyId) rasWhere.companyId = companyId;
   const ras = await prisma.returnAuthorization.findMany({
-    where: { orderId, companyId },
+    where: rasWhere,
     include: {
       lines: { select: { quantityReturned: true } },
       _count: { select: { lines: true } },
@@ -421,10 +444,12 @@ export async function approveReturnAuthorization(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const approveWhere: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) approveWhere.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where: approveWhere,
   });
 
   if (!ra) {
@@ -455,10 +480,12 @@ export async function rejectReturnAuthorization(
   id: string,
   input: RejectReturnAuthorizationInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const rejectWhere: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) rejectWhere.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where: rejectWhere,
   });
 
   if (!ra) {
@@ -491,10 +518,12 @@ export async function receiveItems(
   input: ReceiveItemsInput,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const receiveWhere: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) receiveWhere.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where: receiveWhere,
     include: { lines: true },
   });
 
@@ -558,10 +587,12 @@ export async function completeReturnAuthorization(
   input: CompleteReturnAuthorizationInput,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const completeWhere: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) completeWhere.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where: completeWhere,
     include: { lines: true },
   });
 
@@ -674,10 +705,12 @@ export async function completeReturnAuthorization(
 export async function cancelReturnAuthorization(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const cancelWhere: Prisma.ReturnAuthorizationWhereInput = { id };
+  if (companyId) cancelWhere.companyId = companyId;
   const ra = await prisma.returnAuthorization.findFirst({
-    where: { id, companyId },
+    where: cancelWhere,
   });
 
   if (!ra) {

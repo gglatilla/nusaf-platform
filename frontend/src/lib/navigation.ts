@@ -86,7 +86,7 @@ export const inventoryNavigation: NavItem[] = [
  */
 export const procurementNavigation: NavItem[] = [
   { name: 'Requisitions', href: '/purchase-requisitions', icon: FileInput, roles: ['ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'] },
-  { name: 'Purchase Orders', href: '/purchase-orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER', 'PURCHASER'] },
+  { name: 'Purchase Orders', href: '/purchase-orders', icon: ShoppingCart, roles: ['ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'] },
   { name: 'Goods Receipts', href: '/goods-receipts', icon: PackageCheck, roles: ['ADMIN', 'MANAGER', 'PURCHASER', 'WAREHOUSE'] },
 ];
 

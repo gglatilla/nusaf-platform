@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { authenticate } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   uploadDocumentSchema,
   documentListQuerySchema,
@@ -56,7 +57,7 @@ router.get('/', authenticate, async (req, res) => {
     const { orderId, type, search, startDate, endDate, page, pageSize } = queryResult.data;
 
     const result = await getDocuments({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       orderId,
       type,
       search,
@@ -91,7 +92,7 @@ router.get('/order/:orderId', authenticate, async (req, res) => {
 
     const { orderId } = req.params;
 
-    const documents = await getDocumentsForOrder(orderId, req.user!.companyId);
+    const documents = await getDocumentsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -118,7 +119,7 @@ router.get('/:id/download', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await getDownloadUrl(id, req.user!.companyId);
+    const result = await getDownloadUrl(id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Document not found' ? 404 : 500;
@@ -200,7 +201,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
         data: req.file.buffer,
       },
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -253,7 +254,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await deleteDocument(id, req.user!.id, req.user!.companyId);
+    const result = await deleteDocument(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Document not found' ? 404 : 400;

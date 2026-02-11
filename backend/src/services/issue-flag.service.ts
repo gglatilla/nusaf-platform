@@ -56,7 +56,7 @@ export interface CreateIssueFlagInput {
 export async function createIssueFlag(
   input: CreateIssueFlagInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; issueFlag?: { id: string; issueNumber: string }; error?: string }> {
   // Validate that exactly one target is specified
   if (!input.pickingSlipId && !input.jobCardId) {
@@ -66,10 +66,28 @@ export async function createIssueFlag(
     return { success: false, error: 'Only one of pickingSlipId or jobCardId can be specified' };
   }
 
+  // Derive companyId from parent entity if not provided
+  let effectiveCompanyId = companyId;
+  if (!effectiveCompanyId) {
+    if (input.pickingSlipId) {
+      const ps = await prisma.pickingSlip.findUnique({ where: { id: input.pickingSlipId }, select: { companyId: true } });
+      effectiveCompanyId = ps?.companyId;
+    } else if (input.jobCardId) {
+      const jc = await prisma.jobCard.findUnique({ where: { id: input.jobCardId }, select: { companyId: true } });
+      effectiveCompanyId = jc?.companyId;
+    }
+  }
+
+  if (!effectiveCompanyId) {
+    return { success: false, error: 'Could not determine company for issue flag' };
+  }
+
   // Verify the target exists and belongs to the company
   if (input.pickingSlipId) {
+    const pickingSlipWhere: Prisma.PickingSlipWhereInput = { id: input.pickingSlipId };
+    if (companyId) pickingSlipWhere.companyId = companyId;
     const pickingSlip = await prisma.pickingSlip.findFirst({
-      where: { id: input.pickingSlipId, companyId },
+      where: pickingSlipWhere,
     });
     if (!pickingSlip) {
       return { success: false, error: 'Picking slip not found' };
@@ -77,8 +95,10 @@ export async function createIssueFlag(
   }
 
   if (input.jobCardId) {
+    const jobCardWhere: Prisma.JobCardWhereInput = { id: input.jobCardId };
+    if (companyId) jobCardWhere.companyId = companyId;
     const jobCard = await prisma.jobCard.findFirst({
-      where: { id: input.jobCardId, companyId },
+      where: jobCardWhere,
     });
     if (!jobCard) {
       return { success: false, error: 'Job card not found' };
@@ -93,7 +113,7 @@ export async function createIssueFlag(
   const issueFlag = await prisma.issueFlag.create({
     data: {
       issueNumber,
-      companyId,
+      companyId: effectiveCompanyId,
       pickingSlipId: input.pickingSlipId || null,
       jobCardId: input.jobCardId || null,
       category: input.category,
@@ -128,7 +148,7 @@ export async function createIssueFlag(
     }
 
     if (orderId && orderNumber) {
-      notifyIssueFlagged(orderId, orderNumber, input.title, companyId)
+      notifyIssueFlagged(orderId, orderNumber, input.title, effectiveCompanyId)
         .catch(() => {/* notification failure is non-blocking */});
     }
   } catch {
@@ -148,7 +168,7 @@ export async function createIssueFlag(
  * Get issue flags with filtering and pagination
  */
 export async function getIssueFlags(options: {
-  companyId: string;
+  companyId?: string;
   pickingSlipId?: string;
   jobCardId?: string;
   status?: IssueFlagStatus;
@@ -179,9 +199,8 @@ export async function getIssueFlags(options: {
 }> {
   const { companyId, pickingSlipId, jobCardId, status, severity, category, page = 1, pageSize = 20 } = options;
 
-  const where: Prisma.IssueFlagWhereInput = {
-    companyId,
-  };
+  const where: Prisma.IssueFlagWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (pickingSlipId) {
     where.pickingSlipId = pickingSlipId;
@@ -248,12 +267,12 @@ export async function getIssueFlags(options: {
 /**
  * Get issue flag by ID with full details
  */
-export async function getIssueFlagById(id: string, companyId: string) {
+export async function getIssueFlagById(id: string, companyId?: string) {
+  const where: Prisma.IssueFlagWhereInput = { id };
+  if (companyId) where.companyId = companyId;
+
   const issueFlag = await prisma.issueFlag.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where,
     include: {
       pickingSlip: { select: { id: true, pickingSlipNumber: true, orderNumber: true } },
       jobCard: { select: { id: true, jobCardNumber: true, orderNumber: true, productSku: true } },
@@ -320,7 +339,7 @@ export async function getIssueFlagById(id: string, companyId: string) {
  */
 export async function getIssuesForPickingSlip(
   pickingSlipId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   issueNumber: string;
@@ -329,11 +348,11 @@ export async function getIssuesForPickingSlip(
   status: IssueFlagStatus;
   title: string;
 }>> {
+  const where: Prisma.IssueFlagWhereInput = { pickingSlipId };
+  if (companyId) where.companyId = companyId;
+
   const issues = await prisma.issueFlag.findMany({
-    where: {
-      pickingSlipId,
-      companyId,
-    },
+    where,
     orderBy: [{ status: 'asc' }, { severity: 'asc' }],
   });
 
@@ -352,7 +371,7 @@ export async function getIssuesForPickingSlip(
  */
 export async function getIssuesForJobCard(
   jobCardId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   issueNumber: string;
@@ -361,11 +380,11 @@ export async function getIssuesForJobCard(
   status: IssueFlagStatus;
   title: string;
 }>> {
+  const where: Prisma.IssueFlagWhereInput = { jobCardId };
+  if (companyId) where.companyId = companyId;
+
   const issues = await prisma.issueFlag.findMany({
-    where: {
-      jobCardId,
-      companyId,
-    },
+    where,
     orderBy: [{ status: 'asc' }, { severity: 'asc' }],
   });
 
@@ -382,7 +401,7 @@ export async function getIssuesForJobCard(
 /**
  * Get issue stats for dashboard
  */
-export async function getIssueStats(companyId: string): Promise<{
+export async function getIssueStats(companyId?: string): Promise<{
   total: number;
   bySeverity: Record<IssueFlagSeverity, number>;
   byStatus: Record<IssueFlagStatus, number>;
@@ -391,11 +410,13 @@ export async function getIssueStats(companyId: string): Promise<{
   const now = new Date();
 
   // Get all open issues (not RESOLVED or CLOSED)
+  const statsWhere: Prisma.IssueFlagWhereInput = {
+    status: { notIn: ['RESOLVED', 'CLOSED'] },
+  };
+  if (companyId) statsWhere.companyId = companyId;
+
   const openIssues = await prisma.issueFlag.findMany({
-    where: {
-      companyId,
-      status: { notIn: ['RESOLVED', 'CLOSED'] },
-    },
+    where: statsWhere,
     select: {
       severity: true,
       status: true,
@@ -444,10 +465,13 @@ export async function updateStatus(
   id: string,
   newStatus: IssueFlagStatus,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const where: Prisma.IssueFlagWhereInput = { id };
+  if (companyId) where.companyId = companyId;
+
   const issueFlag = await prisma.issueFlag.findFirst({
-    where: { id, companyId },
+    where,
   });
 
   if (!issueFlag) {
@@ -478,10 +502,13 @@ export async function addComment(
   issueFlagId: string,
   content: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; comment?: { id: string; content: string; createdAt: Date }; error?: string }> {
+  const commentWhere: Prisma.IssueFlagWhereInput = { id: issueFlagId };
+  if (companyId) commentWhere.companyId = companyId;
+
   const issueFlag = await prisma.issueFlag.findFirst({
-    where: { id: issueFlagId, companyId },
+    where: commentWhere,
   });
 
   if (!issueFlag) {
@@ -517,10 +544,13 @@ export async function resolveIssue(
   id: string,
   resolution: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const resolveWhere: Prisma.IssueFlagWhereInput = { id };
+  if (companyId) resolveWhere.companyId = companyId;
+
   const issueFlag = await prisma.issueFlag.findFirst({
-    where: { id, companyId },
+    where: resolveWhere,
   });
 
   if (!issueFlag) {
@@ -554,10 +584,13 @@ export async function resolveIssue(
 export async function closeIssue(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const closeWhere: Prisma.IssueFlagWhereInput = { id };
+  if (companyId) closeWhere.companyId = companyId;
+
   const issueFlag = await prisma.issueFlag.findFirst({
-    where: { id, companyId },
+    where: closeWhere,
   });
 
   if (!issueFlag) {

@@ -144,17 +144,7 @@ async function createNotificationsForUsers(
  * Priority: company's assigned sales rep > all active SALES/MANAGER users of the internal company.
  */
 export async function getStaffRecipientsForOrder(companyId: string): Promise<string[]> {
-  // Check if the customer's company has an assigned sales rep
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: { assignedSalesRepId: true },
-  });
-
-  if (company?.assignedSalesRepId) {
-    return [company.assignedSalesRepId];
-  }
-
-  // Fallback: find all active SALES and MANAGER users from the internal company
+  // Always look up the internal company — warehouse users must always be notified
   const internalCompany = await prisma.company.findFirst({
     where: { isInternal: true },
     select: { id: true },
@@ -162,6 +152,30 @@ export async function getStaffRecipientsForOrder(companyId: string): Promise<str
 
   if (!internalCompany) return [];
 
+  // Check if the customer's company has an assigned sales rep
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { assignedSalesRepId: true },
+  });
+
+  if (company?.assignedSalesRepId) {
+    // Include assigned sales rep + all active warehouse users
+    const warehouseUsers = await prisma.user.findMany({
+      where: {
+        companyId: internalCompany.id,
+        isActive: true,
+        role: 'WAREHOUSE',
+      },
+      select: { id: true },
+    });
+    const userIds = new Set([
+      company.assignedSalesRepId,
+      ...warehouseUsers.map((u) => u.id),
+    ]);
+    return Array.from(userIds);
+  }
+
+  // Fallback: find all active staff users from the internal company
   const staffUsers = await prisma.user.findMany({
     where: {
       companyId: internalCompany.id,

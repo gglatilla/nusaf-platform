@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createProformaInvoiceSchema,
   voidProformaInvoiceSchema,
@@ -27,7 +28,7 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
 
     const { orderId } = req.params;
 
-    const proformas = await getProformaInvoicesForOrder(orderId, req.user!.companyId);
+    const proformas = await getProformaInvoicesForOrder(orderId, getEffectiveCompanyId(req));
 
     // For CUSTOMER role, only return ACTIVE proformas
     const filtered = req.user!.role === 'CUSTOMER'
@@ -60,7 +61,7 @@ router.get('/:id/pdf', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CU
 
     const { id } = req.params;
 
-    const proforma = await getProformaInvoiceById(id, req.user!.companyId);
+    const proforma = await getProformaInvoiceById(id, getEffectiveCompanyId(req));
 
     if (!proforma) {
       return res.status(404).json({
@@ -97,7 +98,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
 
     const { id } = req.params;
 
-    const proforma = await getProformaInvoiceById(id, req.user!.companyId);
+    const proforma = await getProformaInvoiceById(id, getEffectiveCompanyId(req));
 
     if (!proforma) {
       return res.status(404).json({
@@ -161,7 +162,7 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES'), as
       orderId,
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -214,8 +215,8 @@ router.post('/:id/void', requireRole('ADMIN', 'MANAGER'), async (req, res) => {
     const result = await voidProformaInvoice(
       id,
       req.user!.id,
-      req.user!.companyId,
-      bodyResult.data.reason
+      bodyResult.data.reason,
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {

@@ -36,15 +36,13 @@ export interface CreateJobCardInput {
 export async function createJobCard(
   input: CreateJobCardInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; jobCard?: { id: string; jobCardNumber: string }; error?: string }> {
   // Verify the order exists and belongs to the company
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: input.orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: input.orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
     include: {
       lines: {
         where: { id: input.orderLineId },
@@ -73,7 +71,7 @@ export async function createJobCard(
   const jobCard = await prisma.jobCard.create({
     data: {
       jobCardNumber,
-      companyId,
+      companyId: companyId ?? order.companyId,
       orderId: input.orderId,
       orderNumber: order.orderNumber,
       orderLineId: input.orderLineId,
@@ -123,7 +121,7 @@ export async function createJobCard(
  * Get job cards with filtering and pagination
  */
 export async function getJobCards(options: {
-  companyId: string;
+  companyId?: string;
   orderId?: string;
   status?: JobCardStatus;
   jobType?: JobType;
@@ -152,9 +150,8 @@ export async function getJobCards(options: {
 }> {
   const { companyId, orderId, status, jobType, page = 1, pageSize = 20 } = options;
 
-  const where: Prisma.JobCardWhereInput = {
-    companyId,
-  };
+  const where: Prisma.JobCardWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) {
     where.orderId = orderId;
@@ -204,12 +201,11 @@ export async function getJobCards(options: {
 /**
  * Get job card by ID — includes BOM components with stock availability
  */
-export async function getJobCardById(id: string, companyId: string) {
+export async function getJobCardById(id: string, companyId?: string) {
+  const getByIdWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) getByIdWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: getByIdWhere,
     include: {
       bomLines: {
         orderBy: { sortOrder: 'asc' },
@@ -351,7 +347,7 @@ export async function getJobCardById(id: string, companyId: string) {
  */
 export async function getJobCardsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   jobCardNumber: string;
@@ -365,11 +361,10 @@ export async function getJobCardsForOrder(
   startedAt: Date | null;
   completedAt: Date | null;
 }>> {
+  const forOrderWhere: Prisma.JobCardWhereInput = { orderId };
+  if (companyId) forOrderWhere.companyId = companyId;
   const jobCards = await prisma.jobCard.findMany({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: forOrderWhere,
     orderBy: { createdAt: 'asc' },
   });
 
@@ -391,12 +386,11 @@ export async function getJobCardsForOrder(
 /**
  * Check if job cards exist for an order
  */
-export async function hasJobCards(orderId: string, companyId: string): Promise<boolean> {
+export async function hasJobCards(orderId: string, companyId?: string): Promise<boolean> {
+  const hasWhere: Prisma.JobCardWhereInput = { orderId };
+  if (companyId) hasWhere.companyId = companyId;
   const count = await prisma.jobCard.count({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: hasWhere,
   });
   return count > 0;
 }
@@ -409,13 +403,12 @@ export async function assignJobCard(
   assignedTo: string,
   assignedToName: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const assignWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) assignWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: assignWhere,
   });
 
   if (!jobCard) {
@@ -451,13 +444,12 @@ export interface MaterialWarning {
 export async function startJobCard(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string; warnings?: MaterialWarning[] }> {
+  const startWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) startWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: startWhere,
   });
 
   if (!jobCard) {
@@ -525,13 +517,12 @@ export async function putOnHold(
   id: string,
   holdReason: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const holdWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) holdWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: holdWhere,
   });
 
   if (!jobCard) {
@@ -563,13 +554,12 @@ export async function putOnHold(
 export async function resumeJobCard(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const resumeWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) resumeWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: resumeWhere,
   });
 
   if (!jobCard) {
@@ -602,13 +592,12 @@ export async function resumeJobCard(
 export async function completeJobCard(
   id: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const completeWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) completeWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: completeWhere,
   });
 
   if (!jobCard) {
@@ -830,13 +819,12 @@ export async function updateNotes(
   id: string,
   notes: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const notesWhere: Prisma.JobCardWhereInput = { id };
+  if (companyId) notesWhere.companyId = companyId;
   const jobCard = await prisma.jobCard.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: notesWhere,
   });
 
   if (!jobCard) {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../../config/database';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createDeliveryNoteSchema,
   confirmDeliverySchema,
@@ -39,7 +40,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOMER'
       });
     }
 
-    const result = await getDeliveryNotes(req.user!.companyId, queryResult.data);
+    const result = await getDeliveryNotes(queryResult.data, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -67,7 +68,7 @@ router.get('/order/:orderId', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUS
 
     const { orderId } = req.params;
 
-    const deliveryNotes = await getDeliveryNotesForOrder(orderId, req.user!.companyId);
+    const deliveryNotes = await getDeliveryNotesForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -94,7 +95,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'CUSTOM
 
     const { id } = req.params;
 
-    const deliveryNote = await getDeliveryNoteById(id, req.user!.companyId);
+    const deliveryNote = await getDeliveryNoteById(id, getEffectiveCompanyId(req));
 
     if (!deliveryNote) {
       return res.status(404).json({
@@ -157,7 +158,7 @@ router.post('/from-order/:orderId', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE')
       orderId,
       bodyResult.data,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -202,7 +203,7 @@ router.post('/:id/dispatch', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'), async
     });
     const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 
-    const result = await dispatchDeliveryNote(id, req.user!.id, userName, req.user!.companyId);
+    const result = await dispatchDeliveryNote(id, req.user!.id, userName, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;
@@ -252,7 +253,7 @@ router.post('/:id/confirm-delivery', requireRole('ADMIN', 'MANAGER', 'WAREHOUSE'
       });
     }
 
-    const result = await confirmDelivery(id, bodyResult.data, req.user!.id, req.user!.companyId);
+    const result = await confirmDelivery(id, bodyResult.data, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;
@@ -290,7 +291,7 @@ router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
 
     const { id } = req.params;
 
-    const result = await cancelDeliveryNote(id, req.user!.id, req.user!.companyId);
+    const result = await cancelDeliveryNote(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Delivery note not found' ? 404 : 400;

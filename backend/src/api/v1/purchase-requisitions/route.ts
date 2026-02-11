@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../../middleware/auth';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 import {
   createPurchaseRequisitionSchema,
   rejectPurchaseRequisitionSchema,
@@ -37,7 +38,7 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE
         },
       });
     }
-    const result = await getPurchaseRequisitions(req.user!.companyId, queryResult.data);
+    const result = await getPurchaseRequisitions(queryResult.data, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -64,7 +65,7 @@ router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHO
 
     const { id } = req.params;
 
-    const pr = await getPurchaseRequisitionById(id, req.user!.companyId);
+    const pr = await getPurchaseRequisitionById(id, getEffectiveCompanyId(req));
 
     if (!pr) {
       return res.status(404).json({
@@ -118,7 +119,7 @@ router.post('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUS
       bodyResult.data,
       req.user!.id,
       userName,
-      req.user!.companyId
+      getEffectiveCompanyId(req) ?? req.user!.companyId
     );
 
     if (!result.success) {
@@ -164,7 +165,7 @@ router.post('/:id/approve', requireRole('ADMIN', 'MANAGER'), async (req, res) =>
       id,
       req.user!.id,
       userName,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -220,7 +221,7 @@ router.post('/:id/reject', requireRole('ADMIN', 'MANAGER'), async (req, res) => 
       id,
       bodyResult.data.reason,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {
@@ -262,7 +263,7 @@ router.post('/:id/cancel', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER',
     const result = await cancelPurchaseRequisition(
       id,
       req.user!.id,
-      req.user!.companyId
+      getEffectiveCompanyId(req)
     );
 
     if (!result.success) {

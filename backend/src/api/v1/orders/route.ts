@@ -37,6 +37,7 @@ import {
   getPaymentById,
   voidPayment,
 } from '../../../services/payment.service';
+import { getEffectiveCompanyId, isStaffRole } from '../../../utils/company-scope';
 
 const router = Router();
 
@@ -45,17 +46,6 @@ router.use(authenticate);
 
 // Staff-only middleware for write operations
 const staffOnly = requireRole('ADMIN', 'MANAGER', 'SALES');
-
-const STAFF_ROLES = ['ADMIN', 'MANAGER', 'SALES'];
-
-/**
- * Get the effective companyId for order access.
- * Staff can access all orders (returns undefined = no company filter).
- * Customers are strictly isolated to their own company.
- */
-function getEffectiveCompanyId(req: { user?: { role: string; companyId: string } }): string | undefined {
-  return STAFF_ROLES.includes(req.user!.role) ? undefined : req.user!.companyId;
-}
 
 /**
  * POST /api/v1/orders/from-quote
@@ -79,10 +69,9 @@ router.post('/from-quote', staffOnly, async (req, res) => {
     const { quoteId, customerPoNumber, customerPoDate, requiredDate, customerNotes } = bodyResult.data;
 
     // Staff users operate on behalf of customers — use the quote's companyId, not staff's own
-    const isStaff = ['ADMIN', 'MANAGER', 'SALES'].includes(req.user!.role);
     let targetCompanyId = req.user!.companyId;
 
-    if (isStaff) {
+    if (isStaffRole(req.user!.role)) {
       const { prisma } = await import('../../../config/database');
       const quote = await prisma.quote.findFirst({
         where: { id: quoteId, deletedAt: null },

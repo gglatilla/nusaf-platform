@@ -1,7 +1,6 @@
-import { Router, Request } from 'express';
+import { Router } from 'express';
 import { prisma } from '../../../config/database';
 import { authenticate } from '../../../middleware/auth';
-import type { UserRole } from '@prisma/client';
 import {
   addQuoteItemSchema,
   updateQuoteItemSchema,
@@ -26,24 +25,9 @@ import {
   deleteQuote,
   checkoutQuote,
 } from '../../../services/quote.service';
+import { getEffectiveCompanyId, isStaffRole } from '../../../utils/company-scope';
 
 const router = Router();
-
-// Staff roles that can create quotes on behalf of customers
-const QUOTE_STAFF_ROLES: UserRole[] = ['ADMIN', 'MANAGER', 'SALES'];
-
-function isQuoteStaff(role: UserRole): boolean {
-  return QUOTE_STAFF_ROLES.includes(role);
-}
-
-/**
- * Get the effective companyId for quote access.
- * - CUSTOMER: always own companyId (strict isolation)
- * - Staff (ADMIN/MANAGER/SALES): undefined (can access all quotes)
- */
-function getEffectiveCompanyId(req: Request): string | undefined {
-  return isQuoteStaff(req.user!.role) ? undefined : req.user!.companyId;
-}
 
 // All routes require authentication
 // Customers can manage their own quotes (company isolation enforced in service layer)
@@ -58,7 +42,7 @@ router.use(authenticate);
 router.post('/', async (req, res) => {
   try {
 
-    const staff = isQuoteStaff(req.user!.role);
+    const staff = isStaffRole(req.user!.role);
 
     let targetCompanyId: string;
 
@@ -142,7 +126,7 @@ router.get('/', async (req, res) => {
 
     const { status, page, pageSize } = queryResult.data;
 
-    const staff = isQuoteStaff(req.user!.role);
+    const staff = isStaffRole(req.user!.role);
     // Staff can optionally filter by companyId query param; customers always see own
     const companyId = staff
       ? (req.query.companyId as string | undefined)
@@ -180,7 +164,7 @@ router.get('/', async (req, res) => {
 router.get('/active', async (req, res) => {
   try {
 
-    const staff = isQuoteStaff(req.user!.role);
+    const staff = isStaffRole(req.user!.role);
 
     // Staff must specify which customer company's draft to fetch
     const targetCompanyId = staff

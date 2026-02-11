@@ -18,7 +18,7 @@ import { resolveCustomerName } from '../utils/cash-customer';
 export interface DeliveryNoteData {
   id: string;
   deliveryNoteNumber: string;
-  companyId: string;
+  companyId?: string;
   orderId: string;
   orderNumber: string;
   customerName: string;
@@ -87,15 +87,13 @@ export async function createDeliveryNote(
   orderId: string,
   input: CreateDeliveryNoteInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; deliveryNote?: { id: string; deliveryNoteNumber: string }; error?: string }> {
   // Validate the order exists and is in a valid state
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
     include: {
       company: { select: { name: true } },
     },
@@ -121,7 +119,7 @@ export async function createDeliveryNote(
     const dn = await tx.deliveryNote.create({
       data: {
         deliveryNoteNumber,
-        companyId,
+        companyId: companyId ?? order.companyId,
         orderId,
         orderNumber: order.orderNumber,
         customerName: resolveCustomerName(order),
@@ -164,10 +162,12 @@ export async function createDeliveryNote(
  */
 export async function getDeliveryNoteById(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<DeliveryNoteData | null> {
+  const dnWhere: Prisma.DeliveryNoteWhereInput = { id };
+  if (companyId) dnWhere.companyId = companyId;
   const dn = await prisma.deliveryNote.findFirst({
-    where: { id, companyId },
+    where: dnWhere,
     include: {
       lines: { orderBy: { lineNumber: 'asc' } },
     },
@@ -216,15 +216,16 @@ export async function getDeliveryNoteById(
  * Get delivery notes with filtering and pagination
  */
 export async function getDeliveryNotes(
-  companyId: string,
-  query: DeliveryNoteListQuery
+  query: DeliveryNoteListQuery,
+  companyId?: string
 ): Promise<{
   deliveryNotes: DeliveryNoteSummary[];
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }> {
   const { orderId, status, location, search, page = 1, pageSize = 20 } = query;
 
-  const where: Prisma.DeliveryNoteWhereInput = { companyId };
+  const where: Prisma.DeliveryNoteWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) where.orderId = orderId;
   if (status) where.status = status;
@@ -276,7 +277,7 @@ export async function getDeliveryNotes(
  */
 export async function getDeliveryNotesForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   deliveryNoteNumber: string;
@@ -287,8 +288,10 @@ export async function getDeliveryNotesForOrder(
   deliveredAt: Date | null;
   createdAt: Date;
 }>> {
+  const dnListWhere: Prisma.DeliveryNoteWhereInput = { orderId };
+  if (companyId) dnListWhere.companyId = companyId;
   const deliveryNotes = await prisma.deliveryNote.findMany({
-    where: { orderId, companyId },
+    where: dnListWhere,
     include: { _count: { select: { lines: true } } },
     orderBy: { createdAt: 'asc' },
   });
@@ -313,10 +316,12 @@ export async function dispatchDeliveryNote(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const dispatchWhere: Prisma.DeliveryNoteWhereInput = { id };
+  if (companyId) dispatchWhere.companyId = companyId;
   const dn = await prisma.deliveryNote.findFirst({
-    where: { id, companyId },
+    where: dispatchWhere,
   });
 
   if (!dn) {
@@ -385,10 +390,12 @@ export async function confirmDelivery(
   id: string,
   input: ConfirmDeliveryInput,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const confirmWhere: Prisma.DeliveryNoteWhereInput = { id };
+  if (companyId) confirmWhere.companyId = companyId;
   const dn = await prisma.deliveryNote.findFirst({
-    where: { id, companyId },
+    where: confirmWhere,
     include: { lines: true },
   });
 
@@ -462,7 +469,7 @@ export async function confirmDelivery(
   // Done outside the transaction to not block delivery confirmation if invoice generation fails
   if (orderTransitionedToDelivered) {
     try {
-      await createTaxInvoice(dn.orderId, _userId, companyId);
+      await createTaxInvoice(dn.orderId, _userId, companyId ?? dn.companyId);
       logger.info(`Auto-generated tax invoice for order ${dn.orderId} after delivery confirmation`);
     } catch (error) {
       // Log but don't fail — staff can manually generate the tax invoice later
@@ -480,10 +487,12 @@ export async function confirmDelivery(
 export async function cancelDeliveryNote(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const cancelWhere: Prisma.DeliveryNoteWhereInput = { id };
+  if (companyId) cancelWhere.companyId = companyId;
   const dn = await prisma.deliveryNote.findFirst({
-    where: { id, companyId },
+    where: cancelWhere,
   });
 
   if (!dn) {

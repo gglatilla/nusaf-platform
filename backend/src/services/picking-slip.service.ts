@@ -38,15 +38,13 @@ export async function createPickingSlip(
   location: Warehouse,
   lines: CreatePickingSlipLineInput[],
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; pickingSlip?: { id: string; pickingSlipNumber: string }; error?: string }> {
-  // Verify the order exists, is confirmed, and belongs to the company
+  // Verify the order exists, is confirmed, and (if companyId provided) belongs to the company
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
   });
 
   if (!order) {
@@ -69,7 +67,7 @@ export async function createPickingSlip(
     const newPickingSlip = await tx.pickingSlip.create({
       data: {
         pickingSlipNumber,
-        companyId,
+        companyId: companyId ?? order.companyId,
         orderId,
         orderNumber: order.orderNumber,
         location,
@@ -109,7 +107,7 @@ export async function createPickingSlip(
  * Get picking slips with filtering and pagination
  */
 export async function getPickingSlips(options: {
-  companyId: string;
+  companyId?: string;
   orderId?: string;
   location?: Warehouse;
   status?: PickingSlipStatus;
@@ -136,9 +134,8 @@ export async function getPickingSlips(options: {
 }> {
   const { companyId, orderId, location, status, page = 1, pageSize = 20 } = options;
 
-  const where: Prisma.PickingSlipWhereInput = {
-    companyId,
-  };
+  const where: Prisma.PickingSlipWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) {
     where.orderId = orderId;
@@ -189,12 +186,11 @@ export async function getPickingSlips(options: {
 /**
  * Get picking slip by ID with lines
  */
-export async function getPickingSlipById(id: string, companyId: string) {
+export async function getPickingSlipById(id: string, companyId?: string) {
+  const where: Prisma.PickingSlipWhereInput = { id };
+  if (companyId) where.companyId = companyId;
   const pickingSlip = await prisma.pickingSlip.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where,
     include: {
       lines: {
         orderBy: { lineNumber: 'asc' },
@@ -245,14 +241,11 @@ export async function assignPickingSlip(
   assignedTo: string,
   assignedToName: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const pickingSlip = await prisma.pickingSlip.findFirst({
-    where: {
-      id,
-      companyId,
-    },
-  });
+  const where: Prisma.PickingSlipWhereInput = { id };
+  if (companyId) where.companyId = companyId;
+  const pickingSlip = await prisma.pickingSlip.findFirst({ where });
 
   if (!pickingSlip) {
     return { success: false, error: 'Picking slip not found' };
@@ -279,14 +272,11 @@ export async function assignPickingSlip(
 export async function startPicking(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const pickingSlip = await prisma.pickingSlip.findFirst({
-    where: {
-      id,
-      companyId,
-    },
-  });
+  const where: Prisma.PickingSlipWhereInput = { id };
+  if (companyId) where.companyId = companyId;
+  const pickingSlip = await prisma.pickingSlip.findFirst({ where });
 
   if (!pickingSlip) {
     return { success: false, error: 'Picking slip not found' };
@@ -319,13 +309,12 @@ export async function updateLinePicked(
   lineId: string,
   quantityPicked: number,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const psWhere: Prisma.PickingSlipWhereInput = { id: pickingSlipId };
+  if (companyId) psWhere.companyId = companyId;
   const pickingSlip = await prisma.pickingSlip.findFirst({
-    where: {
-      id: pickingSlipId,
-      companyId,
-    },
+    where: psWhere,
     include: {
       lines: {
         where: { id: lineId },
@@ -378,13 +367,12 @@ export async function updateLinePicked(
 export async function completePicking(
   id: string,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const psWhere: Prisma.PickingSlipWhereInput = { id };
+  if (companyId) psWhere.companyId = companyId;
   const pickingSlip = await prisma.pickingSlip.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: psWhere,
     include: {
       lines: true,
     },
@@ -550,7 +538,7 @@ export async function completePicking(
  */
 export async function getPickingSlipsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   pickingSlipNumber: string;
@@ -562,11 +550,10 @@ export async function getPickingSlipsForOrder(
   startedAt: Date | null;
   completedAt: Date | null;
 }>> {
+  const psWhere: Prisma.PickingSlipWhereInput = { orderId };
+  if (companyId) psWhere.companyId = companyId;
   const pickingSlips = await prisma.pickingSlip.findMany({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: psWhere,
     include: {
       _count: { select: { lines: true } },
     },
@@ -589,12 +576,9 @@ export async function getPickingSlipsForOrder(
 /**
  * Check if picking slips exist for an order
  */
-export async function hasPickingSlips(orderId: string, companyId: string): Promise<boolean> {
-  const count = await prisma.pickingSlip.count({
-    where: {
-      orderId,
-      companyId,
-    },
-  });
+export async function hasPickingSlips(orderId: string, companyId?: string): Promise<boolean> {
+  const where: Prisma.PickingSlipWhereInput = { orderId };
+  if (companyId) where.companyId = companyId;
+  const count = await prisma.pickingSlip.count({ where });
   return count > 0;
 }

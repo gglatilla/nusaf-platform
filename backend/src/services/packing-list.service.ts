@@ -14,7 +14,7 @@ import { resolveCustomerName } from '../utils/cash-customer';
 export interface PackingListData {
   id: string;
   packingListNumber: string;
-  companyId: string;
+  companyId?: string;
   orderId: string;
   orderNumber: string;
   deliveryNoteId: string | null;
@@ -90,15 +90,13 @@ export async function createPackingList(
   orderId: string,
   input: CreatePackingListInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; packingList?: { id: string; packingListNumber: string }; error?: string }> {
   // Validate the order exists and is in a valid state
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
     include: {
       company: { select: { name: true } },
     },
@@ -119,8 +117,10 @@ export async function createPackingList(
   // If deliveryNoteId provided, validate it belongs to the same order
   let deliveryNoteNumber: string | null = null;
   if (input.deliveryNoteId) {
+    const dnWhere: Prisma.DeliveryNoteWhereInput = { id: input.deliveryNoteId, orderId };
+    if (companyId) dnWhere.companyId = companyId;
     const dn = await prisma.deliveryNote.findFirst({
-      where: { id: input.deliveryNoteId, orderId, companyId },
+      where: dnWhere,
       select: { deliveryNoteNumber: true },
     });
     if (!dn) {
@@ -136,7 +136,7 @@ export async function createPackingList(
     const pl = await tx.packingList.create({
       data: {
         packingListNumber,
-        companyId,
+        companyId: companyId ?? order.companyId,
         orderId,
         orderNumber: order.orderNumber,
         deliveryNoteId: input.deliveryNoteId || null,
@@ -194,10 +194,12 @@ export async function createPackingList(
  */
 export async function getPackingListById(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<PackingListData | null> {
+  const getByIdWhere: Prisma.PackingListWhereInput = { id };
+  if (companyId) getByIdWhere.companyId = companyId;
   const pl = await prisma.packingList.findFirst({
-    where: { id, companyId },
+    where: getByIdWhere,
     include: {
       lines: { orderBy: { lineNumber: 'asc' } },
       packages: { orderBy: { packageNumber: 'asc' } },
@@ -253,15 +255,16 @@ export async function getPackingListById(
  * Get packing lists with filtering and pagination
  */
 export async function getPackingLists(
-  companyId: string,
-  query: PackingListListQuery
+  query: PackingListListQuery,
+  companyId?: string
 ): Promise<{
   packingLists: PackingListSummary[];
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }> {
   const { orderId, deliveryNoteId, status, location, search, page = 1, pageSize = 20 } = query;
 
-  const where: Prisma.PackingListWhereInput = { companyId };
+  const where: Prisma.PackingListWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) where.orderId = orderId;
   if (deliveryNoteId) where.deliveryNoteId = deliveryNoteId;
@@ -315,7 +318,7 @@ export async function getPackingLists(
  */
 export async function getPackingListsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   packingListNumber: string;
@@ -325,8 +328,10 @@ export async function getPackingListsForOrder(
   location: Warehouse;
   createdAt: Date;
 }>> {
+  const forOrderWhere: Prisma.PackingListWhereInput = { orderId };
+  if (companyId) forOrderWhere.companyId = companyId;
   const packingLists = await prisma.packingList.findMany({
-    where: { orderId, companyId },
+    where: forOrderWhere,
     include: { _count: { select: { lines: true, packages: true } } },
     orderBy: { createdAt: 'asc' },
   });
@@ -350,10 +355,12 @@ export async function updatePackingList(
   id: string,
   input: CreatePackingListInput,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const updateWhere: Prisma.PackingListWhereInput = { id };
+  if (companyId) updateWhere.companyId = companyId;
   const pl = await prisma.packingList.findFirst({
-    where: { id, companyId },
+    where: updateWhere,
   });
 
   if (!pl) {
@@ -367,8 +374,10 @@ export async function updatePackingList(
   // If deliveryNoteId provided, validate it
   let deliveryNoteNumber: string | null = pl.deliveryNoteNumber;
   if (input.deliveryNoteId && input.deliveryNoteId !== pl.deliveryNoteId) {
+    const updateDnWhere: Prisma.DeliveryNoteWhereInput = { id: input.deliveryNoteId, orderId: pl.orderId };
+    if (companyId) updateDnWhere.companyId = companyId;
     const dn = await prisma.deliveryNote.findFirst({
-      where: { id: input.deliveryNoteId, orderId: pl.orderId, companyId },
+      where: updateDnWhere,
       select: { deliveryNoteNumber: true },
     });
     if (!dn) {
@@ -433,10 +442,12 @@ export async function finalizePackingList(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const finalizeWhere: Prisma.PackingListWhereInput = { id };
+  if (companyId) finalizeWhere.companyId = companyId;
   const pl = await prisma.packingList.findFirst({
-    where: { id, companyId },
+    where: finalizeWhere,
   });
 
   if (!pl) {
@@ -466,10 +477,12 @@ export async function finalizePackingList(
 export async function cancelPackingList(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const cancelWhere: Prisma.PackingListWhereInput = { id };
+  if (companyId) cancelWhere.companyId = companyId;
   const pl = await prisma.packingList.findFirst({
-    where: { id, companyId },
+    where: cancelWhere,
   });
 
   if (!pl) {

@@ -18,6 +18,7 @@ import {
   getPickingSlipsForOrder,
   type CreatePickingSlipLineInput,
 } from '../../../services/picking-slip.service';
+import { getEffectiveCompanyId } from '../../../utils/company-scope';
 
 const router = Router();
 
@@ -47,7 +48,7 @@ router.get('/', async (req, res) => {
     const { orderId, location, status, page, pageSize } = queryResult.data;
 
     const result = await getPickingSlips({
-      companyId: req.user!.companyId,
+      companyId: getEffectiveCompanyId(req),
       orderId,
       location,
       status,
@@ -80,7 +81,7 @@ router.get('/:id', async (req, res) => {
 
     const { id } = req.params;
 
-    const pickingSlip = await getPickingSlipById(id, req.user!.companyId);
+    const pickingSlip = await getPickingSlipById(id, getEffectiveCompanyId(req));
 
     if (!pickingSlip) {
       return res.status(404).json({
@@ -114,7 +115,7 @@ router.get('/order/:orderId', async (req, res) => {
 
     const { orderId } = req.params;
 
-    const pickingSlips = await getPickingSlipsForOrder(orderId, req.user!.companyId);
+    const pickingSlips = await getPickingSlipsForOrder(orderId, getEffectiveCompanyId(req));
 
     return res.json({
       success: true,
@@ -183,7 +184,7 @@ router.post('/generate/:orderId', async (req, res) => {
         location,
         locationLines,
         req.user!.id,
-        req.user!.companyId
+        getEffectiveCompanyId(req)
       );
 
       if (result.success && result.pickingSlip) {
@@ -250,7 +251,7 @@ router.post('/:id/assign', async (req, res) => {
 
     const { assignedTo, assignedToName } = bodyResult.data;
 
-    const result = await assignPickingSlip(id, assignedTo, assignedToName, req.user!.id, req.user!.companyId);
+    const result = await assignPickingSlip(id, assignedTo, assignedToName, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;
@@ -288,7 +289,7 @@ router.post('/:id/start', async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await startPicking(id, req.user!.id, req.user!.companyId);
+    const result = await startPicking(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;
@@ -341,7 +342,7 @@ router.patch('/:id/lines/:lineId', async (req, res) => {
 
     const { quantityPicked } = bodyResult.data;
 
-    const result = await updateLinePicked(id, lineId, quantityPicked, req.user!.id, req.user!.companyId);
+    const result = await updateLinePicked(id, lineId, quantityPicked, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error?.includes('not found') ? 404 : 400;
@@ -379,7 +380,7 @@ router.post('/:id/complete', async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await completePicking(id, req.user!.id, req.user!.companyId);
+    const result = await completePicking(id, req.user!.id, getEffectiveCompanyId(req));
 
     if (!result.success) {
       const statusCode = result.error === 'Picking slip not found' ? 404 : 400;

@@ -48,15 +48,13 @@ export async function createTransferRequest(
   orderId: string,
   lines: CreateTransferRequestLineInput[],
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; transferRequest?: { id: string; transferNumber: string }; error?: string }> {
   // Verify the order exists, is confirmed/processing, and belongs to the company
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
   });
 
   if (!order) {
@@ -79,7 +77,7 @@ export async function createTransferRequest(
     const newTransferRequest = await tx.transferRequest.create({
       data: {
         transferNumber,
-        companyId,
+        companyId: companyId ?? order.companyId,
         orderId,
         orderNumber: order.orderNumber,
         fromLocation: 'JHB',
@@ -123,9 +121,9 @@ export async function createStandaloneTransferRequest(
   lines: CreateStandaloneTransferRequestLineInput[],
   notes: string | null,
   userId: string,
-  companyId: string,
   fromLocation: Warehouse = 'JHB',
-  toLocation: Warehouse = 'CT'
+  toLocation: Warehouse = 'CT',
+  companyId?: string
 ): Promise<{ success: boolean; transferRequest?: { id: string; transferNumber: string }; error?: string }> {
   if (lines.length === 0) {
     return { success: false, error: 'At least one line item is required' };
@@ -133,6 +131,10 @@ export async function createStandaloneTransferRequest(
 
   if (fromLocation === toLocation) {
     return { success: false, error: 'Source and destination warehouses must be different' };
+  }
+
+  if (!companyId) {
+    return { success: false, error: 'Company ID is required for standalone transfer requests' };
   }
 
   // Generate transfer request number
@@ -185,7 +187,7 @@ export async function createStandaloneTransferRequest(
  * Get transfer requests with filtering and pagination
  */
 export async function getTransferRequests(options: {
-  companyId: string;
+  companyId?: string;
   orderId?: string;
   status?: TransferRequestStatus;
   page?: number;
@@ -211,9 +213,8 @@ export async function getTransferRequests(options: {
 }> {
   const { companyId, orderId, status, page = 1, pageSize = 20 } = options;
 
-  const where: Prisma.TransferRequestWhereInput = {
-    companyId,
-  };
+  const where: Prisma.TransferRequestWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) {
     where.orderId = orderId;
@@ -260,12 +261,11 @@ export async function getTransferRequests(options: {
 /**
  * Get transfer request by ID with lines
  */
-export async function getTransferRequestById(id: string, companyId: string) {
+export async function getTransferRequestById(id: string, companyId?: string) {
+  const trWhere: Prisma.TransferRequestWhereInput = { id };
+  if (companyId) trWhere.companyId = companyId;
   const transferRequest = await prisma.transferRequest.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: trWhere,
     include: {
       lines: {
         orderBy: { lineNumber: 'asc' },
@@ -314,7 +314,7 @@ export async function getTransferRequestById(id: string, companyId: string) {
  */
 export async function getTransferRequestsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   transferNumber: string;
@@ -326,11 +326,10 @@ export async function getTransferRequestsForOrder(
   shippedAt: Date | null;
   receivedAt: Date | null;
 }>> {
+  const trOrderWhere: Prisma.TransferRequestWhereInput = { orderId };
+  if (companyId) trOrderWhere.companyId = companyId;
   const transferRequests = await prisma.transferRequest.findMany({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: trOrderWhere,
     include: {
       _count: { select: { lines: true } },
     },
@@ -360,13 +359,12 @@ export async function shipTransfer(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const shipWhere: Prisma.TransferRequestWhereInput = { id };
+  if (companyId) shipWhere.companyId = companyId;
   const transferRequest = await prisma.transferRequest.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: shipWhere,
     include: {
       lines: true,
     },
@@ -444,13 +442,12 @@ export async function updateLineReceived(
   lineId: string,
   receivedQuantity: number,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const lineRecWhere: Prisma.TransferRequestWhereInput = { id: transferRequestId };
+  if (companyId) lineRecWhere.companyId = companyId;
   const transferRequest = await prisma.transferRequest.findFirst({
-    where: {
-      id: transferRequestId,
-      companyId,
-    },
+    where: lineRecWhere,
     include: {
       lines: {
         where: { id: lineId },
@@ -500,13 +497,12 @@ export async function receiveTransfer(
   id: string,
   userId: string,
   userName: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const recWhere: Prisma.TransferRequestWhereInput = { id };
+  if (companyId) recWhere.companyId = companyId;
   const transferRequest = await prisma.transferRequest.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: recWhere,
     include: {
       lines: true,
     },
@@ -648,13 +644,12 @@ export async function updateNotes(
   id: string,
   notes: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const notesWhere: Prisma.TransferRequestWhereInput = { id };
+  if (companyId) notesWhere.companyId = companyId;
   const transferRequest = await prisma.transferRequest.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: notesWhere,
   });
 
   if (!transferRequest) {
@@ -674,12 +669,11 @@ export async function updateNotes(
 /**
  * Check if transfer requests exist for an order
  */
-export async function hasTransferRequests(orderId: string, companyId: string): Promise<boolean> {
+export async function hasTransferRequests(orderId: string, companyId?: string): Promise<boolean> {
+  const hasWhere: Prisma.TransferRequestWhereInput = { orderId };
+  if (companyId) hasWhere.companyId = companyId;
   const count = await prisma.transferRequest.count({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: hasWhere,
   });
   return count > 0;
 }

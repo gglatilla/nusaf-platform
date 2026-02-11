@@ -54,14 +54,14 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024;
  * Generate R2 key for a document
  */
 export function generateDocumentKey(
-  companyId: string,
   orderId: string,
   type: DocumentType,
-  filename: string
+  filename: string,
+  companyId?: string
 ): string {
   const timestamp = Date.now();
   const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `documents/${companyId}/${orderId}/${type}/${timestamp}_${sanitizedFilename}`;
+  return `documents/${companyId ?? 'shared'}/${orderId}/${type}/${timestamp}_${sanitizedFilename}`;
 }
 
 /**
@@ -90,7 +90,7 @@ export interface UploadDocumentInput {
 export async function uploadDocument(
   input: UploadDocumentInput,
   userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; document?: { id: string; filename: string }; error?: string }> {
   // Check R2 configuration
   if (!isR2Configured()) {
@@ -98,17 +98,20 @@ export async function uploadDocument(
   }
 
   // Verify the order exists and belongs to the company
+  const orderWhere: Prisma.SalesOrderWhereInput = { id: input.orderId, deletedAt: null };
+  if (companyId) orderWhere.companyId = companyId;
+
   const order = await prisma.salesOrder.findFirst({
-    where: {
-      id: input.orderId,
-      companyId,
-      deletedAt: null,
-    },
+    where: orderWhere,
+    select: { id: true, companyId: true },
   });
 
   if (!order) {
     return { success: false, error: 'Order not found' };
   }
+
+  // Derive companyId from the order if not provided
+  const effectiveCompanyId = companyId ?? order.companyId;
 
   // Validate MIME type
   if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) {
@@ -127,7 +130,7 @@ export async function uploadDocument(
   }
 
   // Generate R2 key
-  const r2Key = generateDocumentKey(companyId, input.orderId, input.type, input.filename);
+  const r2Key = generateDocumentKey(input.orderId, input.type, input.filename, effectiveCompanyId);
 
   try {
     // Upload to R2
@@ -136,7 +139,7 @@ export async function uploadDocument(
     // Create document record
     const document = await prisma.document.create({
       data: {
-        companyId,
+        companyId: effectiveCompanyId,
         orderId: input.orderId,
         type: input.type,
         filename: input.filename,
@@ -168,7 +171,7 @@ export async function uploadDocument(
  * Get documents with filtering
  */
 export async function getDocuments(options: {
-  companyId: string;
+  companyId?: string;
   orderId?: string;
   type?: DocumentType;
   search?: string;
@@ -198,9 +201,8 @@ export async function getDocuments(options: {
 }> {
   const { companyId, orderId, type, search, startDate, endDate, page = 1, pageSize = 20 } = options;
 
-  const where: Prisma.DocumentWhereInput = {
-    companyId,
-  };
+  const where: Prisma.DocumentWhereInput = {};
+  if (companyId) where.companyId = companyId;
 
   if (orderId) {
     where.orderId = orderId;
@@ -273,7 +275,7 @@ export async function getDocuments(options: {
  */
 export async function getDocumentsForOrder(
   orderId: string,
-  companyId: string
+  companyId?: string
 ): Promise<Array<{
   id: string;
   type: DocumentType;
@@ -284,11 +286,11 @@ export async function getDocumentsForOrder(
   uploadedAt: Date;
   uploadedByName: string;
 }>> {
+  const docsForOrderWhere: Prisma.DocumentWhereInput = { orderId };
+  if (companyId) docsForOrderWhere.companyId = companyId;
+
   const documents = await prisma.document.findMany({
-    where: {
-      orderId,
-      companyId,
-    },
+    where: docsForOrderWhere,
     include: {
       uploadedBy: { select: { firstName: true, lastName: true } },
     },
@@ -312,17 +314,17 @@ export async function getDocumentsForOrder(
  */
 export async function getDownloadUrl(
   id: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; url?: string; filename?: string; error?: string }> {
   if (!isR2Configured()) {
     return { success: false, error: 'Document storage is not configured' };
   }
 
+  const downloadWhere: Prisma.DocumentWhereInput = { id };
+  if (companyId) downloadWhere.companyId = companyId;
+
   const document = await prisma.document.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: downloadWhere,
   });
 
   if (!document) {
@@ -359,13 +361,13 @@ export async function getDownloadUrl(
 export async function deleteDocument(
   id: string,
   _userId: string,
-  companyId: string
+  companyId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const deleteWhere: Prisma.DocumentWhereInput = { id };
+  if (companyId) deleteWhere.companyId = companyId;
+
   const document = await prisma.document.findFirst({
-    where: {
-      id,
-      companyId,
-    },
+    where: deleteWhere,
   });
 
   if (!document) {

@@ -202,16 +202,28 @@ describe('Notification Service', () => {
   // --------------------------------------------------------------------------
 
   describe('getStaffRecipientsForOrder', () => {
-    it('should return assigned sales rep when set', async () => {
+    it('should return assigned sales rep + warehouse users when sales rep set', async () => {
+      mockPrisma.company.findFirst.mockResolvedValue({ id: 'nusaf-internal' });
       mockPrisma.company.findUnique.mockResolvedValue({
         assignedSalesRepId: 'rep-1',
       });
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: 'warehouse-1' },
+      ]);
 
       const result = await getStaffRecipientsForOrder('company-1');
 
-      expect(result).toEqual(['rep-1']);
-      // Should NOT query for internal company users
-      expect(mockPrisma.company.findFirst).not.toHaveBeenCalled();
+      expect(result).toEqual(expect.arrayContaining(['rep-1', 'warehouse-1']));
+      expect(result).toHaveLength(2);
+      // Should query for warehouse users from internal company
+      expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          companyId: 'nusaf-internal',
+          isActive: true,
+          role: 'WAREHOUSE',
+        },
+        select: { id: true },
+      });
     });
 
     it('should fallback to internal company staff when no sales rep assigned', async () => {
@@ -242,9 +254,6 @@ describe('Notification Service', () => {
     });
 
     it('should return empty array when no internal company exists', async () => {
-      mockPrisma.company.findUnique.mockResolvedValue({
-        assignedSalesRepId: null,
-      });
       mockPrisma.company.findFirst.mockResolvedValue(null);
 
       const result = await getStaffRecipientsForOrder('company-1');
@@ -347,9 +356,11 @@ describe('Notification Service', () => {
 
   describe('notifyIssueFlagged', () => {
     it('should create notifications for staff users with issue reason', async () => {
+      mockPrisma.company.findFirst.mockResolvedValue({ id: 'nusaf-internal' });
       mockPrisma.company.findUnique.mockResolvedValue({
         assignedSalesRepId: 'rep-1',
       });
+      mockPrisma.user.findMany.mockResolvedValue([]);
       mockPrisma.notification.createMany.mockResolvedValue({ count: 1 });
 
       await notifyIssueFlagged('order-1', 'SO-2026-00001', 'Missing parts', 'company-1');
