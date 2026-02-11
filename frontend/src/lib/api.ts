@@ -1307,6 +1307,23 @@ export interface CreateOrderFromQuoteData {
   customerNotes?: string;
 }
 
+export interface CheckoutQuoteData {
+  shippingAddressId?: string;
+  customerPoNumber: string;
+  customerPoDate?: string | null;
+  requiredDate?: string | null;
+  customerNotes?: string | null;
+}
+
+export interface CheckoutQuoteResponse {
+  message: string;
+  orderId: string;
+  orderNumber: string;
+  paymentRequired: boolean;
+  fulfillmentTriggered: boolean;
+  proformaGenerated: boolean;
+}
+
 export interface CreateOrderResponse {
   id: string;
   orderNumber: string;
@@ -3920,6 +3937,16 @@ class ApiClient {
     return this.request<ApiResponse<{ message: string; orderId?: string; orderNumber?: string; fulfillmentTriggered?: boolean; proformaGenerated?: boolean }>>(`/quotes/${id}/accept`, {
       method: 'POST',
       body: JSON.stringify({}),
+    });
+  }
+
+  async checkoutQuote(
+    quoteId: string,
+    data: CheckoutQuoteData
+  ): Promise<ApiResponse<CheckoutQuoteResponse>> {
+    return this.request<ApiResponse<CheckoutQuoteResponse>>(`/quotes/${quoteId}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
