@@ -1,43 +1,24 @@
 # Current Session
 
 ## Active Task
-Phase 4: Notification System — COMPLETE
+Order Flow Bug Fixes — COMPLETE
 
 ## Plan
-See `.claude/plans/lovely-scribbling-cake.md`
+See `.claude/plans/curious-bubbling-sprout.md`
 
 ## Completed Micro-tasks
 
-### Phase 4.1: DB Schema + Notification Service (3a89d40)
-- Added `NotificationType` enum and `Notification` model to Prisma schema
-- Created migration `20260213100000_add_notifications`
-- Created `notification.service.ts` with CRUD, recipient resolution, and 10 trigger functions
-- 16 unit tests passing
+### Fix Order Flow Communication Gaps (4414bb8)
 
-### Phase 4.2: API Routes (621338f)
-- Created `/api/v1/notifications` with 5 endpoints (list, unread-count, mark-read, mark-all-read, delete)
-- Zod validation for query params, user isolation via req.user
+**Bug 1 — Checkout error message**: Swapped render order in `CheckoutPage.tsx` so the `orderResult` success screen renders BEFORE the quote status check. After checkout, React Query refetches the quote (now `CONVERTED`), and the status guard was preempting the success screen.
 
-### Phase 4.3: Frontend Hook + NotificationBell + Staff Header (6d0a31b)
-- Added notification types + API methods to `api.ts`
-- Created `useNotifications.ts` hook (30s polling for unread count)
-- Created `NotificationBell.tsx` component (bell icon, dropdown, role-aware navigation)
-- Added to staff `Header.tsx`
+**Bug 2 — No staff notification**: Added `ORDER_RECEIVED` to `NotificationType` enum, created `notifyNewOrderForStaff()` trigger in notification.service.ts, wired it into `confirmOrder()` alongside the existing customer notification. Staff now get notified with customer name + line count.
 
-### Phase 4.4: Customer Header Integration (912a0a2)
-- Added `NotificationBell` to `CustomerHeader.tsx`
+**Bug 3 — Fulfillment dashboard empty (company scoping bug)**: The fulfillment dashboard used `req.user!.companyId` (staff/Nusaf internal company) to filter, but all orders and fulfillment items belong to customer companies. Made `companyId` optional in `getFulfillmentDashboard()` and removed the filter from the route (already restricted to staff roles via middleware).
 
-### Phase 4.5: Email Templates + Trigger Integration (19d5973)
-- Added 3 customer email templates (order confirmed, dispatched, ready for collection)
-- Wired notification triggers into all 6 fulfillment services
-- Customer triggers send both in-app notification + email
-- READY_TO_SHIP detection after picking/job-card/transfer completion
-- All triggers fire-and-forget (try/catch wrapped)
+**Bug 4 — Staff dashboard hardcoded "0"**: Wired up `useOrders` hook to fetch real order data. Active orders stat card and recent orders list now show live data.
 
 ## Context for Next Session
-- Phase 4 (Notification System) is COMPLETE
-- Migration pending on Railway: `20260213100000_add_notifications`
-- Notifications are polling-based (30s React Query refetch), no WebSocket/SSE
-- Bell dropdown in both staff and customer headers
-- Email sending requires SMTP config (env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM)
+- Migration pending on Railway: `20260214100000_add_order_received_notification` (adds ORDER_RECEIVED enum value)
+- Also still pending: `20260213100000_add_notifications` (from Phase 4)
 - Pre-existing test issue: `import.service.test.ts` fails due to missing `@nusaf/shared` module (unrelated)
