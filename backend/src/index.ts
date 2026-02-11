@@ -42,6 +42,7 @@ import returnAuthorizationsRoutes from './api/v1/return-authorizations/route';
 import packingListsRoutes from './api/v1/packing-lists/route';
 import creditNotesRoutes from './api/v1/credit-notes/route';
 import reportsRoutes from './api/v1/reports/route';
+import notificationsRoutes from './api/v1/notifications/route';
 import publicQuoteRequestsRoutes from './api/v1/public/quote-requests/route';
 import publicProductsRoutes from './api/v1/public/products/route';
 import publicCategoriesRoutes from './api/v1/public/categories/route';
@@ -106,6 +107,7 @@ app.use('/api/v1/return-authorizations', returnAuthorizationsRoutes);
 app.use('/api/v1/packing-lists', packingListsRoutes);
 app.use('/api/v1/credit-notes', creditNotesRoutes);
 app.use('/api/v1/reports', reportsRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
 
 // Admin cleanup endpoints
 app.post('/api/v1/admin/cleanup/expired-reservations', authenticate, requireRole('ADMIN'), async (req, res): Promise<void> => {
