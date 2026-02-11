@@ -1,6 +1,11 @@
 import { NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
+import {
+  sendOrderConfirmedEmail,
+  sendOrderDispatchedEmail,
+  sendOrderReadyForCollectionEmail,
+} from './email.service';
 
 // ============================================
 // CRUD OPERATIONS
@@ -169,20 +174,25 @@ export async function getStaffRecipientsForOrder(companyId: string): Promise<str
   return staffUsers.map((u) => u.id);
 }
 
+interface CustomerRecipient {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 /**
- * Get active customer user IDs for a company.
+ * Get active customer users for a company (with email/name for email notifications).
  */
-export async function getCustomerRecipientsForOrder(companyId: string): Promise<string[]> {
-  const users = await prisma.user.findMany({
+export async function getCustomerRecipientsForOrder(companyId: string): Promise<CustomerRecipient[]> {
+  return prisma.user.findMany({
     where: {
       companyId,
       isActive: true,
       role: 'CUSTOMER',
     },
-    select: { id: true },
+    select: { id: true, email: true, firstName: true, lastName: true },
   });
-
-  return users.map((u) => u.id);
 }
 
 // ============================================
@@ -192,17 +202,29 @@ export async function getCustomerRecipientsForOrder(companyId: string): Promise<
 export async function notifyOrderConfirmed(
   orderId: string,
   orderNumber: string,
-  companyId: string
+  companyId: string,
+  lineCount?: number
 ): Promise<void> {
   try {
-    const customerUserIds = await getCustomerRecipientsForOrder(companyId);
-    await createNotificationsForUsers(customerUserIds, {
+    const customers = await getCustomerRecipientsForOrder(companyId);
+    const customerIds = customers.map((c) => c.id);
+    await createNotificationsForUsers(customerIds, {
       type: 'ORDER_CONFIRMED',
       title: 'Order Accepted',
       message: `Your order ${orderNumber} has been accepted and is being processed.`,
       orderId,
       orderNumber,
     });
+
+    // Send email to each customer
+    for (const customer of customers) {
+      sendOrderConfirmedEmail({
+        to: customer.email,
+        customerName: customer.firstName,
+        orderNumber,
+        lineCount: lineCount ?? 0,
+      }).catch((err) => logger.error('Failed to send order confirmed email:', err));
+    }
   } catch (err) {
     logger.error('Failed to send ORDER_CONFIRMED notification:', err);
   }
@@ -328,14 +350,24 @@ export async function notifyOrderDispatched(
   companyId: string
 ): Promise<void> {
   try {
-    const customerUserIds = await getCustomerRecipientsForOrder(companyId);
-    await createNotificationsForUsers(customerUserIds, {
+    const customers = await getCustomerRecipientsForOrder(companyId);
+    const customerIds = customers.map((c) => c.id);
+    await createNotificationsForUsers(customerIds, {
       type: 'ORDER_DISPATCHED',
       title: 'Order Dispatched',
       message: `Your order ${orderNumber} has been dispatched.`,
       orderId,
       orderNumber,
     });
+
+    // Send email to each customer
+    for (const customer of customers) {
+      sendOrderDispatchedEmail({
+        to: customer.email,
+        customerName: customer.firstName,
+        orderNumber,
+      }).catch((err) => logger.error('Failed to send order dispatched email:', err));
+    }
   } catch (err) {
     logger.error('Failed to send ORDER_DISPATCHED notification:', err);
   }
@@ -344,17 +376,29 @@ export async function notifyOrderDispatched(
 export async function notifyOrderReadyForCollection(
   orderId: string,
   orderNumber: string,
-  companyId: string
+  companyId: string,
+  warehouse?: string
 ): Promise<void> {
   try {
-    const customerUserIds = await getCustomerRecipientsForOrder(companyId);
-    await createNotificationsForUsers(customerUserIds, {
+    const customers = await getCustomerRecipientsForOrder(companyId);
+    const customerIds = customers.map((c) => c.id);
+    await createNotificationsForUsers(customerIds, {
       type: 'ORDER_READY_FOR_COLLECTION',
       title: 'Ready for Collection',
       message: `Your order ${orderNumber} is ready for collection.`,
       orderId,
       orderNumber,
     });
+
+    // Send email to each customer
+    for (const customer of customers) {
+      sendOrderReadyForCollectionEmail({
+        to: customer.email,
+        customerName: customer.firstName,
+        orderNumber,
+        warehouse: warehouse ?? 'JHB',
+      }).catch((err) => logger.error('Failed to send ready for collection email:', err));
+    }
   } catch (err) {
     logger.error('Failed to send ORDER_READY_FOR_COLLECTION notification:', err);
   }

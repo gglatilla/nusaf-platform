@@ -2,6 +2,7 @@ import { Prisma, PickingSlipStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
 import { generatePickingSlipNumber } from '../utils/number-generation';
+import { notifyPickingStarted, notifyOrderReadyToInvoice } from './notification.service';
 
 /**
  * Valid status transitions for picking slips
@@ -303,6 +304,10 @@ export async function startPicking(
     },
   });
 
+  // Fire-and-forget notification
+  notifyPickingStarted(pickingSlip.orderId, pickingSlip.orderNumber, pickingSlip.companyId)
+    .catch(() => {/* notification failure is non-blocking */});
+
   return { success: true };
 }
 
@@ -515,6 +520,20 @@ export async function completePicking(
         }
       }
     });
+
+    // Fire-and-forget notifications (non-blocking)
+    try {
+      const updatedOrder = await prisma.salesOrder.findUnique({
+        where: { id: pickingSlip.orderId },
+        select: { status: true },
+      });
+      if (updatedOrder?.status === 'READY_TO_SHIP') {
+        notifyOrderReadyToInvoice(pickingSlip.orderId, pickingSlip.orderNumber, pickingSlip.companyId)
+          .catch(() => {});
+      }
+    } catch {
+      // Notification failure is non-blocking
+    }
 
     return { success: true };
   } catch (error) {

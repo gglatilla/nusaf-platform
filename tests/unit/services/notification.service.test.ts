@@ -44,6 +44,12 @@ vi.mock('../../../backend/src/utils/logger', () => ({
   },
 }));
 
+vi.mock('../../../backend/src/services/email.service', () => ({
+  sendOrderConfirmedEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendOrderDispatchedEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendOrderReadyForCollectionEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 import {
   getNotifications,
   getUnreadCount,
@@ -248,22 +254,23 @@ describe('Notification Service', () => {
   });
 
   describe('getCustomerRecipientsForOrder', () => {
-    it('should return active customer users of the company', async () => {
+    it('should return active customer users with email details', async () => {
       mockPrisma.user.findMany.mockResolvedValue([
-        { id: 'cust-1' },
-        { id: 'cust-2' },
+        { id: 'cust-1', email: 'a@test.com', firstName: 'Alice', lastName: 'Smith' },
+        { id: 'cust-2', email: 'b@test.com', firstName: 'Bob', lastName: 'Jones' },
       ]);
 
       const result = await getCustomerRecipientsForOrder('company-1');
 
-      expect(result).toEqual(['cust-1', 'cust-2']);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ id: 'cust-1', email: 'a@test.com', firstName: 'Alice', lastName: 'Smith' });
       expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
         where: {
           companyId: 'company-1',
           isActive: true,
           role: 'CUSTOMER',
         },
-        select: { id: true },
+        select: { id: true, email: true, firstName: true, lastName: true },
       });
     });
 
@@ -281,14 +288,14 @@ describe('Notification Service', () => {
   // --------------------------------------------------------------------------
 
   describe('notifyOrderConfirmed', () => {
-    it('should create notifications for customer users', async () => {
+    it('should create notifications and send emails for customer users', async () => {
       mockPrisma.user.findMany.mockResolvedValue([
-        { id: 'cust-1' },
-        { id: 'cust-2' },
+        { id: 'cust-1', email: 'a@test.com', firstName: 'Alice', lastName: 'Smith' },
+        { id: 'cust-2', email: 'b@test.com', firstName: 'Bob', lastName: 'Jones' },
       ]);
       mockPrisma.notification.createMany.mockResolvedValue({ count: 2 });
 
-      await notifyOrderConfirmed('order-1', 'SO-2026-00001', 'company-1');
+      await notifyOrderConfirmed('order-1', 'SO-2026-00001', 'company-1', 3);
 
       expect(mockPrisma.notification.createMany).toHaveBeenCalledWith({
         data: [
@@ -305,6 +312,18 @@ describe('Notification Service', () => {
           }),
         ],
       });
+
+      // Verify email was sent
+      const { sendOrderConfirmedEmail } = await import('../../../backend/src/services/email.service');
+      expect(sendOrderConfirmedEmail).toHaveBeenCalledTimes(2);
+      expect(sendOrderConfirmedEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'a@test.com',
+          customerName: 'Alice',
+          orderNumber: 'SO-2026-00001',
+          lineCount: 3,
+        })
+      );
     });
 
     it('should not throw when no customer users exist', async () => {

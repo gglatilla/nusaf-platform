@@ -2,6 +2,7 @@ import { Prisma, Warehouse, DeliveryNoteStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
 import { createTaxInvoice } from './tax-invoice.service';
+import { notifyOrderDispatched } from './notification.service';
 import type {
   CreateDeliveryNoteInput,
   ConfirmDeliveryInput,
@@ -367,6 +368,10 @@ export async function dispatchDeliveryNote(
       }
     }
   });
+
+  // Fire-and-forget notification
+  notifyOrderDispatched(dn.orderId, dn.orderNumber, dn.companyId)
+    .catch(() => {/* notification failure is non-blocking */});
 
   return { success: true };
 }

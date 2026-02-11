@@ -1,6 +1,7 @@
 import { Prisma, IssueFlagCategory, IssueFlagSeverity, IssueFlagStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { generateIssueNumber } from '../utils/number-generation';
+import { notifyIssueFlagged } from './notification.service';
 
 /**
  * SLA deadlines by severity (in hours)
@@ -104,6 +105,35 @@ export async function createIssueFlag(
       createdById: userId,
     },
   });
+
+  // Fire-and-forget notification — resolve order from picking slip or job card
+  try {
+    let orderId: string | undefined;
+    let orderNumber: string | undefined;
+
+    if (input.pickingSlipId) {
+      const ps = await prisma.pickingSlip.findUnique({
+        where: { id: input.pickingSlipId },
+        select: { orderId: true, orderNumber: true },
+      });
+      orderId = ps?.orderId;
+      orderNumber = ps?.orderNumber;
+    } else if (input.jobCardId) {
+      const jc = await prisma.jobCard.findUnique({
+        where: { id: input.jobCardId },
+        select: { orderId: true, orderNumber: true },
+      });
+      orderId = jc?.orderId;
+      orderNumber = jc?.orderNumber;
+    }
+
+    if (orderId && orderNumber) {
+      notifyIssueFlagged(orderId, orderNumber, input.title, companyId)
+        .catch(() => {/* notification failure is non-blocking */});
+    }
+  } catch {
+    // Notification lookup failure is non-blocking
+  }
 
   return {
     success: true,

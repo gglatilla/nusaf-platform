@@ -9,6 +9,7 @@ import {
 import { generateOrderNumber } from '../utils/number-generation';
 import { roundTo2 } from '../utils/math';
 import { pickCashCustomerFields } from '../utils/cash-customer';
+import { notifyOrderConfirmed } from './notification.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -419,6 +420,11 @@ export async function confirmOrder(
       updatedBy: userId,
     },
   });
+
+  // Fire-and-forget notification
+  const lineCount = await prisma.salesOrderLine.count({ where: { orderId } });
+  notifyOrderConfirmed(orderId, order.orderNumber, order.companyId, lineCount)
+    .catch(() => {/* notification failure is non-blocking */});
 
   return { success: true };
 }

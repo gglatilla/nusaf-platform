@@ -703,3 +703,169 @@ Reply to this enquiry by emailing ${data.email}
     text,
   });
 }
+
+// ============================================
+// ORDER STATUS EMAIL TEMPLATES
+// ============================================
+
+/**
+ * Send "Order Accepted" email to customer
+ */
+export async function sendOrderConfirmedEmail(data: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  lineCount: number;
+}): Promise<EmailResult> {
+  const subject = `Your order ${data.orderNumber} has been accepted — Nusaf`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="background-color: #1a5f7a; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">Nusaf Dynamic Technologies</h1>
+  </div>
+
+  <div style="padding: 25px; background-color: #ffffff;">
+    <h2 style="color: #1a5f7a; margin-top: 0;">Order Accepted</h2>
+    <p>Dear ${data.customerName},</p>
+    <p>Your order <strong>${data.orderNumber}</strong> with ${data.lineCount} line item${data.lineCount !== 1 ? 's' : ''} has been accepted and is now being processed.</p>
+    <p>Our team will begin fulfillment shortly. You will receive further updates as your order progresses.</p>
+    <p style="margin-top: 25px;">Thank you for your business.</p>
+    <p>Kind regards,<br><strong>Nusaf Dynamic Technologies</strong></p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0;">This is an automated notification. Please do not reply to this email.</p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Order Accepted — ${data.orderNumber}
+
+Dear ${data.customerName},
+
+Your order ${data.orderNumber} with ${data.lineCount} line item${data.lineCount !== 1 ? 's' : ''} has been accepted and is now being processed.
+
+Our team will begin fulfillment shortly. You will receive further updates as your order progresses.
+
+Thank you for your business.
+
+Kind regards,
+Nusaf Dynamic Technologies
+  `.trim();
+
+  return sendEmail({ to: data.to, subject, html, text });
+}
+
+/**
+ * Send "Order Dispatched" email to customer
+ */
+export async function sendOrderDispatchedEmail(data: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+}): Promise<EmailResult> {
+  const subject = `Your order ${data.orderNumber} has been dispatched — Nusaf`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="background-color: #1a5f7a; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">Nusaf Dynamic Technologies</h1>
+  </div>
+
+  <div style="padding: 25px; background-color: #ffffff;">
+    <h2 style="color: #1a5f7a; margin-top: 0;">Order Dispatched</h2>
+    <p>Dear ${data.customerName},</p>
+    <p>Your order <strong>${data.orderNumber}</strong> has been dispatched and is on its way to you.</p>
+    <p>If you have any questions about your delivery, please contact our sales team.</p>
+    <p style="margin-top: 25px;">Thank you for your business.</p>
+    <p>Kind regards,<br><strong>Nusaf Dynamic Technologies</strong></p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0;">This is an automated notification. Please do not reply to this email.</p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Order Dispatched — ${data.orderNumber}
+
+Dear ${data.customerName},
+
+Your order ${data.orderNumber} has been dispatched and is on its way to you.
+
+If you have any questions about your delivery, please contact our sales team.
+
+Thank you for your business.
+
+Kind regards,
+Nusaf Dynamic Technologies
+  `.trim();
+
+  return sendEmail({ to: data.to, subject, html, text });
+}
+
+/**
+ * Send "Ready for Collection" email to customer
+ */
+export async function sendOrderReadyForCollectionEmail(data: {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  warehouse: string;
+}): Promise<EmailResult> {
+  const warehouseLabel = data.warehouse === 'JHB' ? 'Johannesburg' : data.warehouse === 'CT' ? 'Cape Town' : data.warehouse;
+  const subject = `Your order ${data.orderNumber} is ready for collection — Nusaf`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="background-color: #1a5f7a; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">Nusaf Dynamic Technologies</h1>
+  </div>
+
+  <div style="padding: 25px; background-color: #ffffff;">
+    <h2 style="color: #1a5f7a; margin-top: 0;">Ready for Collection</h2>
+    <p>Dear ${data.customerName},</p>
+    <p>Your order <strong>${data.orderNumber}</strong> is ready for collection at our <strong>${warehouseLabel}</strong> warehouse.</p>
+    <p>Please bring your order reference number when collecting.</p>
+    <p style="margin-top: 25px;">Thank you for your business.</p>
+    <p>Kind regards,<br><strong>Nusaf Dynamic Technologies</strong></p>
+  </div>
+
+  <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+    <p style="margin: 0;">This is an automated notification. Please do not reply to this email.</p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Ready for Collection — ${data.orderNumber}
+
+Dear ${data.customerName},
+
+Your order ${data.orderNumber} is ready for collection at our ${warehouseLabel} warehouse.
+
+Please bring your order reference number when collecting.
+
+Thank you for your business.
+
+Kind regards,
+Nusaf Dynamic Technologies
+  `.trim();
+
+  return sendEmail({ to: data.to, subject, html, text });
+}

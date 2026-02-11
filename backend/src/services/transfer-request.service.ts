@@ -2,6 +2,7 @@ import { Prisma, TransferRequestStatus, Warehouse } from '@prisma/client';
 import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
 import { generateTransferRequestNumber } from '../utils/number-generation';
+import { notifyTransferShipped, notifyTransferReceived, notifyOrderReadyToInvoice } from './notification.service';
 
 /**
  * Valid status transitions for transfer requests
@@ -419,6 +420,12 @@ export async function shipTransfer(
       }
     });
 
+    // Fire-and-forget notification
+    if (transferRequest.orderId) {
+      notifyTransferShipped(transferRequest.orderId, transferRequest.orderNumber ?? '', transferRequest.companyId)
+        .catch(() => {/* notification failure is non-blocking */});
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Ship transfer error:', error);
@@ -604,6 +611,25 @@ export async function receiveTransfer(
         }
       }
     });
+
+    // Fire-and-forget notifications (non-blocking)
+    try {
+      if (transferRequest.orderId) {
+        notifyTransferReceived(transferRequest.orderId, transferRequest.orderNumber ?? '', transferRequest.companyId)
+          .catch(() => {});
+
+        const updatedOrder = await prisma.salesOrder.findUnique({
+          where: { id: transferRequest.orderId },
+          select: { status: true },
+        });
+        if (updatedOrder?.status === 'READY_TO_SHIP') {
+          notifyOrderReadyToInvoice(transferRequest.orderId, transferRequest.orderNumber ?? '', transferRequest.companyId)
+            .catch(() => {});
+        }
+      }
+    } catch {
+      // Notification failure is non-blocking
+    }
 
     return { success: true };
   } catch (error) {

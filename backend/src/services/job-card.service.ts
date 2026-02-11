@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import { updateStockLevel, createStockMovement } from './inventory.service';
 import { checkBomStock, explodeBom } from './bom.service';
 import { generateJobCardNumber } from '../utils/number-generation';
+import { notifyJobCardStarted, notifyJobCardComplete, notifyOrderReadyToInvoice } from './notification.service';
 
 /**
  * Valid status transitions for job cards
@@ -510,6 +511,10 @@ export async function startJobCard(
     },
   });
 
+  // Fire-and-forget notification
+  notifyJobCardStarted(jobCard.orderId, jobCard.orderNumber, jobCard.companyId)
+    .catch(() => {/* notification failure is non-blocking */});
+
   return { success: true, warnings: warnings.length > 0 ? warnings : undefined };
 }
 
@@ -790,6 +795,23 @@ export async function completeJobCard(
         }
       }
     });
+
+    // Fire-and-forget notifications (non-blocking)
+    try {
+      notifyJobCardComplete(jobCard.orderId, jobCard.orderNumber, jobCard.companyId)
+        .catch(() => {});
+
+      const updatedOrder = await prisma.salesOrder.findUnique({
+        where: { id: jobCard.orderId },
+        select: { status: true },
+      });
+      if (updatedOrder?.status === 'READY_TO_SHIP') {
+        notifyOrderReadyToInvoice(jobCard.orderId, jobCard.orderNumber, jobCard.companyId)
+          .catch(() => {});
+      }
+    } catch {
+      // Notification failure is non-blocking
+    }
 
     return { success: true };
   } catch (error) {
