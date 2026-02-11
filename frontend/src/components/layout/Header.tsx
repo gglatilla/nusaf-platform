@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { QuoteCart } from '@/components/quotes/QuoteCart';
 
 interface HeaderProps {
@@ -35,8 +36,11 @@ export function Header({ onMenuClick, isCollapsed }: HeaderProps) {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Quote Cart */}
-      <QuoteCart />
+      {/* Notifications + Quote Cart */}
+      <div className="flex items-center gap-1">
+        <NotificationBell />
+        <QuoteCart />
+      </div>
     </header>
   );
 }

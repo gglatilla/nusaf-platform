@@ -2848,6 +2848,31 @@ export interface StaffUserListItem {
 }
 
 // ============================================
+// NOTIFICATION TYPES
+// ============================================
+
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  orderId: string | null;
+  orderNumber: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListResponse {
+  notifications: AppNotification[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+// ============================================
 // PURCHASE ORDER TYPES
 // ============================================
 
@@ -5735,6 +5760,47 @@ class ApiClient {
     return this.request(`/admin/users/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  }
+
+  // ===========================================
+  // NOTIFICATIONS
+  // ===========================================
+
+  async getNotifications(params: {
+    page?: number;
+    pageSize?: number;
+    unreadOnly?: boolean;
+  } = {}): Promise<ApiResponse<NotificationListResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+    if (params.unreadOnly !== undefined) searchParams.set('unreadOnly', params.unreadOnly.toString());
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/notifications?${queryString}` : '/notifications';
+    return this.request<ApiResponse<NotificationListResponse>>(endpoint);
+  }
+
+  async getUnreadNotificationCount(): Promise<ApiResponse<{ count: number }>> {
+    return this.request<ApiResponse<{ count: number }>>('/notifications/unread-count');
+  }
+
+  async markNotificationRead(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsRead(): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>('/notifications/read-all', {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteNotification(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<ApiResponse<{ message: string }>>(`/notifications/${id}`, {
+      method: 'DELETE',
     });
   }
 }
