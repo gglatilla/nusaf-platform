@@ -1189,6 +1189,7 @@ export interface SalesOrderLine {
   quantityOrdered: number;
   quantityPicked: number;
   quantityShipped: number;
+  quantityBackorder: number;
   unitPrice: number;
   lineTotal: number;
   notes: string | null;

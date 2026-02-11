@@ -1190,6 +1190,26 @@ export async function executeFulfillmentPlan(
       }
 
       // ============================================
+      // STEP 3b: Persist backorder quantities on sales order lines
+      // ============================================
+      const backorderByLineId = new Map<string, number>();
+      for (const poPlan of plan.purchaseOrders) {
+        for (const poLine of poPlan.lines) {
+          if (poLine.sourceType === 'ORDER_LINE') {
+            const existing = backorderByLineId.get(poLine.sourceId) ?? 0;
+            backorderByLineId.set(poLine.sourceId, existing + poLine.quantity);
+          }
+        }
+      }
+
+      for (const [lineId, quantity] of backorderByLineId) {
+        await tx.salesOrderLine.update({
+          where: { id: lineId },
+          data: { quantityBackorder: quantity },
+        });
+      }
+
+      // ============================================
       // STEP 4: Release SalesOrder-level reservations for orchestrated products
       // Transfers reservation ownership from order → document level
       // Non-orchestrated lines (e.g. backordered) keep their order-level reservations
@@ -1442,7 +1462,7 @@ async function createPurchaseOrderFromPlan(
     },
   });
 
-  // Create purchase order lines
+  // Create purchase order lines (link back to sales order line when applicable)
   await tx.purchaseOrderLine.createMany({
     data: plan.lines.map((line, index) => ({
       purchaseOrderId: purchaseOrder.id,
@@ -1453,6 +1473,7 @@ async function createPurchaseOrderFromPlan(
       quantityOrdered: line.quantity,
       unitCost: line.estimatedUnitCost,
       lineTotal: line.quantity * line.estimatedUnitCost,
+      salesOrderLineId: line.sourceType === 'ORDER_LINE' ? line.sourceId : null,
     })),
   });
 

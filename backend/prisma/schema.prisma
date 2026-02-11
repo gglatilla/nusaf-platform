@@ -1016,9 +1016,10 @@ model SalesOrderLine {
   productDescription String @map("product_description") // Snapshot of description
 
   // Quantities
-  quantityOrdered Int @map("quantity_ordered")
-  quantityPicked  Int @default(0) @map("quantity_picked")
-  quantityShipped Int @default(0) @map("quantity_shipped")
+  quantityOrdered   Int @map("quantity_ordered")
+  quantityPicked    Int @default(0) @map("quantity_picked")
+  quantityShipped   Int @default(0) @map("quantity_shipped")
+  quantityBackorder Int @default(0) @map("quantity_backorder")
 
   // Pricing (ZAR, copied from quote)
   unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
@@ -1026,6 +1027,9 @@ model SalesOrderLine {
 
   // Notes
   notes String?
+
+  // Relations
+  purchaseOrderLines PurchaseOrderLine[]
 
   // Audit
   createdAt DateTime @default(now()) @map("created_at")
@@ -1776,9 +1780,11 @@ model PurchaseOrderLine {
   lineTotal Decimal @map("line_total") @db.Decimal(12, 2)
 
   // Optional link to sales order line (for procurement triggered by order)
-  salesOrderLineId String? @map("sales_order_line_id")
+  salesOrderLineId String?         @map("sales_order_line_id")
+  salesOrderLine   SalesOrderLine? @relation(fields: [salesOrderLineId], references: [id])
 
   @@index([purchaseOrderId])
+  @@index([salesOrderLineId])
   @@map("purchase_order_lines")
 }
 

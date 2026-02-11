@@ -192,6 +192,7 @@ export async function getOrderById(orderId: string, companyId?: string) {
       quantityOrdered: line.quantityOrdered,
       quantityPicked: line.quantityPicked,
       quantityShipped: line.quantityShipped,
+      quantityBackorder: line.quantityBackorder,
       unitPrice: Number(line.unitPrice),
       lineTotal: Number(line.lineTotal),
       notes: line.notes,
