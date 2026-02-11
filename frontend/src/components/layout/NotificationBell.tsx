@@ -38,6 +38,8 @@ function getNotificationIcon(type: string): string {
   switch (type) {
     case 'ORDER_CONFIRMED':
       return '📦';
+    case 'ORDER_RECEIVED':
+      return '🛒';
     case 'ORDER_DISPATCHED':
       return '🚚';
     case 'ORDER_READY_FOR_COLLECTION':

@@ -9,7 +9,7 @@ import {
 import { generateOrderNumber } from '../utils/number-generation';
 import { roundTo2 } from '../utils/math';
 import { pickCashCustomerFields } from '../utils/cash-customer';
-import { notifyOrderConfirmed } from './notification.service';
+import { notifyOrderConfirmed, notifyNewOrderForStaff } from './notification.service';
 
 /**
  * VAT rate for South Africa (%)
@@ -421,9 +421,19 @@ export async function confirmOrder(
     },
   });
 
-  // Fire-and-forget notification
-  const lineCount = await prisma.salesOrderLine.count({ where: { orderId } });
+  // Fire-and-forget notifications
+  const [lineCount, customerCompany] = await Promise.all([
+    prisma.salesOrderLine.count({ where: { orderId } }),
+    prisma.company.findUnique({
+      where: { id: order.companyId },
+      select: { tradingName: true, name: true },
+    }),
+  ]);
+  const customerName = customerCompany?.tradingName ?? customerCompany?.name ?? 'Unknown';
+
   notifyOrderConfirmed(orderId, order.orderNumber, order.companyId, lineCount)
+    .catch(() => {/* notification failure is non-blocking */});
+  notifyNewOrderForStaff(orderId, order.orderNumber, order.companyId, customerName, lineCount)
     .catch(() => {/* notification failure is non-blocking */});
 
   return { success: true };

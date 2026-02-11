@@ -230,6 +230,27 @@ export async function notifyOrderConfirmed(
   }
 }
 
+export async function notifyNewOrderForStaff(
+  orderId: string,
+  orderNumber: string,
+  companyId: string,
+  customerName: string,
+  lineCount?: number
+): Promise<void> {
+  try {
+    const staffUserIds = await getStaffRecipientsForOrder(companyId);
+    await createNotificationsForUsers(staffUserIds, {
+      type: 'ORDER_RECEIVED',
+      title: 'New Order Received',
+      message: `New order ${orderNumber} from ${customerName} (${lineCount ?? 0} line${(lineCount ?? 0) === 1 ? '' : 's'}).`,
+      orderId,
+      orderNumber,
+    });
+  } catch (err) {
+    logger.error('Failed to send ORDER_RECEIVED notification:', err);
+  }
+}
+
 export async function notifyPickingStarted(
   orderId: string,
   orderNumber: string,

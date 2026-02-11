@@ -12,10 +12,12 @@ router.use(requireRole('ADMIN', 'MANAGER', 'SALES', 'WAREHOUSE', 'PURCHASER'));
  * GET /api/v1/fulfillment/dashboard
  * Returns aggregated fulfillment data: picking queue, jobs, transfers, POs, ready-to-ship orders, exceptions
  */
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', async (_req, res) => {
   try {
 
-    const data = await getFulfillmentDashboard(req.user!.companyId);
+    // No companyId filter — staff see all fulfillment items across customer companies.
+    // Access is already restricted to staff roles via requireRole middleware above.
+    const data = await getFulfillmentDashboard();
 
     return res.json({
       success: true,

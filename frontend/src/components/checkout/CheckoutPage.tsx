@@ -169,24 +169,8 @@ export function CheckoutPage({ quoteId, portalType }: CheckoutPageProps): JSX.El
     );
   }
 
-  // Quote must be CREATED to checkout
-  if (quote.status !== 'CREATED') {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center">
-        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Cannot checkout this quote</h2>
-        <p className="text-slate-500 mb-4">
-          Only submitted quotes can be checked out. This quote is currently{' '}
-          <span className="font-medium">{quote.status}</span>.
-        </p>
-        <Link href={backLink} className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-          Back to quote
-        </Link>
-      </div>
-    );
-  }
-
-  // Success state — order created
+  // Success state — order created (must check BEFORE quote status, since
+  // query invalidation refetches the quote with CONVERTED status)
   if (orderResult) {
     return (
       <div className="max-w-2xl mx-auto py-12 text-center">
@@ -217,6 +201,23 @@ export function CheckoutPage({ quoteId, portalType }: CheckoutPageProps): JSX.El
             View Order
           </Link>
         </div>
+      </div>
+    );
+  }
+
+  // Quote must be CREATED to checkout
+  if (quote.status !== 'CREATED') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 text-center">
+        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
+        <h2 className="text-lg font-semibold text-slate-900 mb-2">Cannot checkout this quote</h2>
+        <p className="text-slate-500 mb-4">
+          Only submitted quotes can be checked out. This quote is currently{' '}
+          <span className="font-medium">{quote.status}</span>.
+        </p>
+        <Link href={backLink} className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+          Back to quote
+        </Link>
       </div>
     );
   }

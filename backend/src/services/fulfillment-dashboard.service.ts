@@ -108,15 +108,17 @@ const RECENT_ITEMS_LIMIT = 5;
 const STALLED_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 /**
- * Get aggregated fulfillment dashboard data for a company.
- * Runs all queries in parallel for performance.
+ * Get aggregated fulfillment dashboard data.
+ * When companyId is provided, scopes to that company (customer view).
+ * When undefined, returns all data (staff view — route already restricts to staff roles).
  *
  * Note: PurchaseOrders are not company-scoped in the schema (they're global),
- * so PO queries don't filter by companyId.
+ * so PO queries never filter by companyId.
  */
-export async function getFulfillmentDashboard(companyId: string): Promise<FulfillmentDashboardData> {
+export async function getFulfillmentDashboard(companyId?: string): Promise<FulfillmentDashboardData> {
   const now = new Date();
   const stalledThreshold = new Date(now.getTime() - STALLED_THRESHOLD_MS);
+  const companyFilter = companyId ? { companyId } : {};
 
   const [
     // Picking slips (use snapshot fields — no relations needed)
@@ -146,30 +148,30 @@ export async function getFulfillmentDashboard(companyId: string): Promise<Fulfil
     onHoldOrdersCount,
   ] = await Promise.all([
     // --- Picking slips ---
-    prisma.pickingSlip.count({ where: { companyId, status: 'PENDING' } }),
-    prisma.pickingSlip.count({ where: { companyId, status: 'IN_PROGRESS' } }),
+    prisma.pickingSlip.count({ where: { ...companyFilter, status: 'PENDING' } }),
+    prisma.pickingSlip.count({ where: { ...companyFilter, status: 'IN_PROGRESS' } }),
     prisma.pickingSlip.findMany({
-      where: { companyId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+      where: { ...companyFilter, status: { in: ['PENDING', 'IN_PROGRESS'] } },
       include: { _count: { select: { lines: true } } },
       orderBy: { createdAt: 'desc' },
       take: RECENT_ITEMS_LIMIT,
     }),
 
     // --- Job cards ---
-    prisma.jobCard.count({ where: { companyId, status: 'PENDING' } }),
-    prisma.jobCard.count({ where: { companyId, status: 'IN_PROGRESS' } }),
-    prisma.jobCard.count({ where: { companyId, status: 'ON_HOLD' } }),
+    prisma.jobCard.count({ where: { ...companyFilter, status: 'PENDING' } }),
+    prisma.jobCard.count({ where: { ...companyFilter, status: 'IN_PROGRESS' } }),
+    prisma.jobCard.count({ where: { ...companyFilter, status: 'ON_HOLD' } }),
     prisma.jobCard.findMany({
-      where: { companyId, status: { in: ['PENDING', 'IN_PROGRESS', 'ON_HOLD'] } },
+      where: { ...companyFilter, status: { in: ['PENDING', 'IN_PROGRESS', 'ON_HOLD'] } },
       orderBy: { createdAt: 'desc' },
       take: RECENT_ITEMS_LIMIT,
     }),
 
     // --- Transfer requests ---
-    prisma.transferRequest.count({ where: { companyId, status: 'PENDING' } }),
-    prisma.transferRequest.count({ where: { companyId, status: 'IN_TRANSIT' } }),
+    prisma.transferRequest.count({ where: { ...companyFilter, status: 'PENDING' } }),
+    prisma.transferRequest.count({ where: { ...companyFilter, status: 'IN_TRANSIT' } }),
     prisma.transferRequest.findMany({
-      where: { companyId, status: { in: ['PENDING', 'IN_TRANSIT'] } },
+      where: { ...companyFilter, status: { in: ['PENDING', 'IN_TRANSIT'] } },
       include: { _count: { select: { lines: true } } },
       orderBy: { createdAt: 'desc' },
       take: RECENT_ITEMS_LIMIT,
@@ -196,9 +198,9 @@ export async function getFulfillmentDashboard(companyId: string): Promise<Fulfil
     }),
 
     // --- Orders ready to ship ---
-    prisma.salesOrder.count({ where: { companyId, status: 'READY_TO_SHIP', deletedAt: null } }),
+    prisma.salesOrder.count({ where: { ...companyFilter, status: 'READY_TO_SHIP', deletedAt: null } }),
     prisma.salesOrder.findMany({
-      where: { companyId, status: 'READY_TO_SHIP', deletedAt: null },
+      where: { ...companyFilter, status: 'READY_TO_SHIP', deletedAt: null },
       include: {
         company: { select: { tradingName: true, name: true } },
         _count: { select: { lines: true } },
@@ -209,10 +211,10 @@ export async function getFulfillmentDashboard(companyId: string): Promise<Fulfil
 
     // --- Exceptions ---
     prisma.jobCard.count({
-      where: { companyId, status: 'ON_HOLD', updatedAt: { lt: stalledThreshold } },
+      where: { ...companyFilter, status: 'ON_HOLD', updatedAt: { lt: stalledThreshold } },
     }),
     prisma.salesOrder.count({
-      where: { companyId, status: 'ON_HOLD', deletedAt: null },
+      where: { ...companyFilter, status: 'ON_HOLD', deletedAt: null },
     }),
   ]);
 

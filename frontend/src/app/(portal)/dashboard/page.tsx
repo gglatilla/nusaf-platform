@@ -5,7 +5,9 @@ import { ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useQuotes } from '@/hooks/useQuotes';
+import { useOrders } from '@/hooks/useOrders';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { DashboardIssuesWidget } from '@/components/issues/DashboardIssuesWidget';
 import { formatCurrency, formatDate } from '@/lib/formatting';
 
@@ -17,9 +19,16 @@ export default function DashboardPage() {
   const { data: createdQuotes } = useQuotes({ status: 'CREATED', pageSize: 5 });
   const { data: allQuotes } = useQuotes({ pageSize: 5 });
 
+  // Fetch orders data for dashboard stats
+  const { data: activeOrders } = useOrders({ status: 'PROCESSING', pageSize: 5 });
+  const { data: recentOrdersData } = useOrders({ pageSize: 5 });
+
   const draftCount = draftQuotes?.pagination.totalItems ?? 0;
   const pendingCount = createdQuotes?.pagination.totalItems ?? 0;
   const recentQuotes = allQuotes?.quotes ?? [];
+  const activeOrderCount = activeOrders?.pagination.totalItems ?? 0;
+  const recentOrders = recentOrdersData?.orders ?? [];
+  const lastOrder = recentOrders.length > 0 ? recentOrders[0] : null;
 
   return (
     <>
@@ -33,8 +42,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
             label="Active Orders"
-            value="0"
-            change="No orders yet"
+            value={activeOrderCount.toString()}
+            change={activeOrderCount > 0 ? `${activeOrderCount} processing` : 'No active orders'}
           />
           <StatCard
             label="Draft Quotes"
@@ -48,23 +57,50 @@ export default function DashboardPage() {
           />
           <StatCard
             label="Last Order"
-            value="—"
-            change="No recent orders"
+            value={lastOrder ? lastOrder.orderNumber : '—'}
+            change={lastOrder ? formatDate(lastOrder.createdAt) : 'No recent orders'}
           />
         </div>
 
         {/* Content cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              Recent Orders
-            </h2>
-            <div className="text-center py-8">
-              <p className="text-slate-500 text-sm">No orders yet</p>
-              <p className="text-slate-400 text-xs mt-1">
-                Your recent orders will appear here
-              </p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Recent Orders
+              </h2>
+              <Link href="/orders" className="text-sm text-primary-600 hover:text-primary-700">
+                View all
+              </Link>
             </div>
+            {recentOrders.length > 0 ? (
+              <div className="space-y-3">
+                {recentOrders.map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/orders/${order.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{order.orderNumber}</p>
+                      <p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <OrderStatusBadge status={order.status} />
+                      <span className="text-sm font-medium text-slate-900">{formatCurrency(Number(order.total))}</span>
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-slate-500 text-sm">No orders yet</p>
+                <p className="text-slate-400 text-xs mt-1">
+                  Your recent orders will appear here
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-lg border border-slate-200 p-6">
