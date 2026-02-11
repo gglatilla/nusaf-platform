@@ -7,6 +7,7 @@ import { Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { customerNavigation } from '@/lib/customer-navigation';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { QuoteCart } from '@/components/quotes/QuoteCart';
 
 export function CustomerHeader() {
@@ -72,6 +73,7 @@ export function CustomerHeader() {
 
           {/* Right section */}
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <QuoteCart />
 
             {/* User menu (desktop) */}
