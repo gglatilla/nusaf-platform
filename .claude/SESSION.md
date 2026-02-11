@@ -1,66 +1,52 @@
 # Current Session
 
 ## Active Task
-Order-to-Fulfillment Workflow — Customer Management Restructure (Phase 1.4–1.11)
+Phase 2: Customer Checkout Flow — COMPLETE
 
 ## Plan
-See `.claude/plans/nested-sprouting-lake.md` for Phase 1.8 plan.
+See `.claude/plans/linear-wibbling-manatee.md`
 
 ## Completed Micro-tasks
 
-### Phase 1.1–1.3: Sales Rep Assignment — COMPLETE
-- DB migration, backend API, staff user management page, sales rep UI on companies page
+### Phase 2.1: DB Migration — Shipping Address on SalesOrder (fa93d40)
+- Added `shippingAddressId` (FK → CompanyAddress) and `shippingAddressSnapshot` (JSON) to SalesOrder model
 
-### Phase 1.4: DB Migration — Customer Management Fields (2bdfc7d)
-- New enums: CreditStatus, AccountStatus, ShippingMethod, ContactRole
-- Company: accountNumber, creditLimit, creditStatus, discountOverride, statementEmail, invoiceEmail, accountStatus, territory, internalNotes, defaultShippingMethod, bbbeeLevel, bbbeeExpiryDate
-- CompanyAddress: label, suburb, deliveryInstructions, contactName, contactPhone
-- CompanyContact: jobTitle, contactRole, isActive
-- Auto-generated NUS-NNNN account numbers for existing companies
+### Phase 2.2: Backend — Checkout Endpoint + Service (83c7f67)
+- `POST /api/v1/quotes/:id/checkout` — unified checkout for staff and customers
+- `checkoutQuote()` service: validates, accepts quote, creates order with checkout data, triggers fulfillment/proforma
+- `createOrderFromQuote()` enhanced to accept `shippingAddressId` and create address snapshot
+- PO number required for all customers (Zod validation)
 
-### Phase 1.5: Backend — Expanded Company CRUD (649cfd7)
-- CompanyCounter model + generateAccountNumber() for NUS-NNNN format
-- Create/update schemas expanded with all customer management fields
-- GET detail returns addresses + contacts
-- Address sub-routes: POST/PATCH/DELETE /companies/:id/addresses/:addressId
-- Contact sub-routes: POST/PATCH/DELETE /companies/:id/contacts/:contactId
-- Default management (isDefault/isPrimary auto-unsets)
+### Phase 2.3: Backend Tests (31a53e2)
+- 12 unit tests for `checkoutQuote()`: validation, company isolation, all/minimal fields, payment terms flow, error handling
 
-### Phase 1.6: Staff User Auto-Assign to Internal Company (f380414)
-- companyId now optional in createUserSchema (backend + frontend API client)
-- When omitted, auto-resolves to Company where isInternal=true
-- Removed company dropdown from staff user create form
-- 4 unit tests (auto-assign, explicit companyId, no internal company error, invalid companyId error)
+### Phase 2.4: Frontend — Shared Checkout Components (72ddb04)
+- `CheckoutPage`: single-page form with items review, address selector, PO input + file upload, delivery date + notes, order summary sidebar
+- `AddressSelector`: radio card picker for shipping addresses
+- `OrderSummary`: subtotal/VAT/total with payment terms badge
+- `useCheckout` hook + API client `checkoutQuote()` method
 
-### Phase 1.7: Frontend — Rename Companies → Customers + List Page Update (3c8eec1)
-- Moved route from `/admin/companies` to `/admin/customers`
-- Updated navigation, renamed all user-facing text
-- Expanded API types, added address/contact CRUD methods
-- Created placeholder detail page
+### Phase 2.5: Frontend — Portal Route Pages + Wiring (6aa2ad7)
+- Staff checkout route: `/quotes/[id]/checkout`
+- Customer checkout route: `/my/quotes/[id]/checkout`
+- Both quote detail pages updated: "Proceed to Checkout" replaces old Accept/Create Order flow
 
-### Phase 1.8: Frontend — Customer Detail Page — COMPLETE
-- **1.8A** (f8e1053): Hook (`useCustomers.ts`), page shell with tabs, `CustomerDetailHeader`, shared `constants.ts`
-- **1.8B** (f2c02b4): `OverviewTab` (company info, logistics, sales rep, notes) + `FinancialTab` (credit, email, B-BBEE, users table)
-- **1.8C** (3673c83): `AddressesTab` (card layout, shipping/billing groups) + `AddressFormModal` (SA provinces, delivery instructions)
-- **1.8D** (e5eda2c): `ContactsTab` (table with role badges, primary star) + `ContactFormModal` (role dropdown, primary/active toggles)
-
-### Phase 1.11: Cleanup + Link Audit — COMPLETE
-- Audited all frontend routes, navigation, links, and cross-references
-- Fixed "Search companies..." → "Search customers..." in CustomerCompanyPicker
-- Fixed "No companies found"/"No active companies" → "No customers found"/"No active customers"
-- Verified: sidebar nav, detail back link, list row links all point to `/admin/customers`
-- API client paths correctly use `/admin/companies` (backend API route, unchanged)
-- TypeScript build clean, no errors
+### Phase 2.6: Cleanup (this commit)
+- Deleted `CreateOrderModal.tsx` (replaced by checkout page)
+- Removed unused imports and dead code
 
 ## Pending Micro-tasks
-- [x] Phase 1.9–1.10: MERGED INTO 1.8 — address + contact management delivered in Phase 1.8C/D
-- [x] Phase 1.11: Cleanup + link audit
-- [ ] Phase 2.1–2.2: Customer Checkout Flow
 - [ ] Phase 3.1–3.3: Backorder Visibility
 - [ ] Phase 4.1–4.5: Notification System
 
 ## Context for Next Session
-- Phase 1 (Customer Management Restructure) is fully COMPLETE
-- Next: Phase 2 (Customer Checkout Flow)
-- CompanyCounter table needs to be created on local DB
-- Migrations pending on Railway: 20260211100000, 20260211120000, 20260211140000
+- Phase 2 (Customer Checkout Flow) is COMPLETE
+- Unified checkout: both staff and customers use same CheckoutPage component
+- PO number is required for ALL customers at checkout
+- PO document upload supported (PDF/JPG/PNG, attached to order after creation)
+- Shipping address selection from company address book, with snapshot stored on order
+- PREPAY/COD customers see payment instructions after checkout
+- NET_30/60/90 customers get auto-fulfillment triggered
+- Old `CreateOrderModal` deleted, old accept flow replaced
+- Backend `/accept` endpoint still exists as legacy, but UI now uses `/checkout`
+- Migration pending on Railway: 20260212100000_add_shipping_address_to_sales_order
