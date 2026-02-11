@@ -30,9 +30,9 @@ router.use(authenticate);
 /**
  * GET /api/v1/suppliers
  * List suppliers with pagination and filtering
- * Access: Admin, Manager, Sales
+ * Access: Admin, Manager, Sales, Purchaser, Warehouse
  */
-router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'), async (req, res) => {
   try {
     const parseResult = supplierListQuerySchema.safeParse(req.query);
 
@@ -71,9 +71,9 @@ router.get('/', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
 /**
  * GET /api/v1/suppliers/:id
  * Get supplier by ID with contacts
- * Access: Admin, Manager, Sales
+ * Access: Admin, Manager, Sales, Purchaser, Warehouse
  */
-router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES'), async (req, res) => {
+router.get('/:id', requireRole('ADMIN', 'MANAGER', 'SALES', 'PURCHASER', 'WAREHOUSE'), async (req, res) => {
   try {
     const supplier = await getSupplierById(req.params.id);
 

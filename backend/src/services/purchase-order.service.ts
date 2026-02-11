@@ -68,8 +68,10 @@ export interface PurchaseOrderLineData {
 export interface PurchaseOrderSummary {
   id: string;
   poNumber: string;
-  supplier: { id: string; code: string; name: string };
+  supplierName: string;
+  supplierCode: string;
   status: PurchaseOrderStatus;
+  deliveryLocation: Warehouse;
   currency: SupplierCurrency;
   lineCount: number;
   total: number;
@@ -243,8 +245,10 @@ export async function getPurchaseOrders(
     items: purchaseOrders.map((po) => ({
       id: po.id,
       poNumber: po.poNumber,
-      supplier: po.supplier,
+      supplierName: po.supplier.name,
+      supplierCode: po.supplier.code,
       status: po.status,
+      deliveryLocation: po.deliveryLocation,
       currency: po.currency,
       lineCount: po._count.lines,
       total: Number(po.total),

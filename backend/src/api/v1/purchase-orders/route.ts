@@ -106,8 +106,10 @@ router.get(
 
       return res.json({
         success: true,
-        data: result.items,
-        pagination: result.pagination,
+        data: {
+          purchaseOrders: result.items,
+          pagination: result.pagination,
+        },
       });
     } catch (error) {
       console.error('List purchase orders error:', error);
