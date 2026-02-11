@@ -224,6 +224,7 @@ export async function createOrderFromQuote(
     requiredDate?: Date;
     customerNotes?: string;
     warehouse?: Warehouse;
+    shippingAddressId?: string;
   }
 ): Promise<{ success: boolean; order?: { id: string; orderNumber: string }; error?: string }> {
   // Get the quote with items
@@ -270,6 +271,30 @@ export async function createOrderFromQuote(
       ? 'UNPAID'
       : 'NOT_REQUIRED';
 
+  // Snapshot shipping address if provided
+  let shippingAddressSnapshot: Prisma.InputJsonValue | undefined;
+  if (options?.shippingAddressId) {
+    const address = await prisma.companyAddress.findFirst({
+      where: { id: options.shippingAddressId, companyId },
+    });
+    if (!address) {
+      return { success: false, error: 'Shipping address not found or does not belong to this company' };
+    }
+    shippingAddressSnapshot = {
+      label: address.label ?? null,
+      line1: address.line1,
+      line2: address.line2 ?? null,
+      suburb: address.suburb ?? null,
+      city: address.city,
+      province: address.province,
+      postalCode: address.postalCode,
+      country: address.country,
+      contactName: address.contactName ?? null,
+      contactPhone: address.contactPhone ?? null,
+      deliveryInstructions: address.deliveryInstructions ?? null,
+    };
+  }
+
   // Create order with lines in a transaction
   const order = await prisma.$transaction(async (tx) => {
     // Create the order
@@ -288,6 +313,8 @@ export async function createOrderFromQuote(
         warehouse,
         paymentTerms: companyPaymentTerms,
         paymentStatus: initialPaymentStatus,
+        shippingAddressId: options?.shippingAddressId,
+        shippingAddressSnapshot: shippingAddressSnapshot ?? undefined,
         subtotal: quote.subtotal,
         vatRate: quote.vatRate,
         vatAmount: quote.vatAmount,

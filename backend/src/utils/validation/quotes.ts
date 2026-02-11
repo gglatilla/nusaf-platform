@@ -43,9 +43,21 @@ export const cashCustomerSchema = z.object({
   cashCustomerAddress: z.string().max(500).optional(),
 });
 
+/**
+ * Schema for quote checkout (accept quote + create order with checkout data)
+ */
+export const checkoutQuoteSchema = z.object({
+  shippingAddressId: z.string().min(1).optional(),
+  customerPoNumber: z.string().min(1, 'PO number is required').max(50),
+  customerPoDate: z.string().datetime().optional().nullable(),
+  requiredDate: z.string().datetime().optional().nullable(),
+  customerNotes: z.string().max(2000).optional().nullable(),
+});
+
 // Type exports
 export type AddQuoteItemInput = z.infer<typeof addQuoteItemSchema>;
 export type UpdateQuoteItemInput = z.infer<typeof updateQuoteItemSchema>;
 export type UpdateQuoteNotesInput = z.infer<typeof updateQuoteNotesSchema>;
 export type QuoteListQuery = z.infer<typeof quoteListQuerySchema>;
 export type CashCustomerInput = z.infer<typeof cashCustomerSchema>;
+export type CheckoutQuoteInput = z.infer<typeof checkoutQuoteSchema>;

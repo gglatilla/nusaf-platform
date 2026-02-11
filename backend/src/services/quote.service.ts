@@ -616,6 +616,162 @@ export async function acceptQuote(
   return { success: true, orderId, orderNumber, fulfillmentTriggered, proformaGenerated };
 }
 
+export interface CheckoutQuoteOptions {
+  shippingAddressId?: string;
+  customerPoNumber: string;
+  customerPoDate?: Date | null;
+  requiredDate?: Date | null;
+  customerNotes?: string | null;
+}
+
+export interface CheckoutQuoteResult {
+  success: boolean;
+  error?: string;
+  orderId?: string;
+  orderNumber?: string;
+  paymentRequired?: boolean;
+  fulfillmentTriggered?: boolean;
+  proformaGenerated?: boolean;
+}
+
+/**
+ * Checkout quote — unified flow for both staff and customers.
+ * Accepts a CREATED quote with checkout data (PO number, shipping address, etc.),
+ * creates a sales order, and triggers downstream actions.
+ */
+export async function checkoutQuote(
+  quoteId: string,
+  userId: string,
+  companyId: string,
+  options: CheckoutQuoteOptions
+): Promise<CheckoutQuoteResult> {
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      companyId,
+      deletedAt: null,
+    },
+  });
+
+  if (!quote) {
+    return { success: false, error: 'Quote not found' };
+  }
+
+  if (quote.status !== 'CREATED') {
+    return { success: false, error: 'Only submitted quotes can be checked out' };
+  }
+
+  // Check if expired
+  if (quote.validUntil && new Date() > quote.validUntil) {
+    await prisma.quote.update({
+      where: { id: quoteId },
+      data: { status: 'EXPIRED', updatedBy: userId },
+    });
+    await releaseReservationsByReference('Quote', quoteId, 'Quote expired', userId);
+    return { success: false, error: 'Quote has expired' };
+  }
+
+  // Set status to ACCEPTED
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: {
+      status: 'ACCEPTED',
+      lastActivityAt: new Date(),
+      updatedBy: userId,
+    },
+  });
+
+  // Create Sales Order with checkout data
+  let orderId: string | undefined;
+  let orderNumber: string | undefined;
+
+  try {
+    const orderResult = await createOrderFromQuote(quoteId, userId, companyId, {
+      customerPoNumber: options.customerPoNumber,
+      customerPoDate: options.customerPoDate ? new Date(options.customerPoDate) : undefined,
+      requiredDate: options.requiredDate ? new Date(options.requiredDate) : undefined,
+      customerNotes: options.customerNotes ?? undefined,
+      shippingAddressId: options.shippingAddressId,
+    });
+
+    if (!orderResult.success || !orderResult.order) {
+      return { success: false, error: orderResult.error || 'Failed to create order from quote' };
+    }
+
+    orderId = orderResult.order.id;
+    orderNumber = orderResult.order.orderNumber;
+  } catch (error) {
+    console.error('Checkout order creation error:', error);
+    return { success: false, error: 'Failed to create order' };
+  }
+
+  // Auto-confirm order (DRAFT → CONFIRMED)
+  try {
+    const confirmResult = await confirmOrder(orderId, userId, companyId);
+    if (!confirmResult.success) {
+      console.error(`Order ${orderNumber}: auto-confirm failed — ${confirmResult.error}`);
+      return { success: true, orderId, orderNumber, paymentRequired: false, fulfillmentTriggered: false, proformaGenerated: false };
+    }
+  } catch (error) {
+    console.error(`Order ${orderNumber}: auto-confirm error:`, error);
+    return { success: true, orderId, orderNumber, paymentRequired: false, fulfillmentTriggered: false, proformaGenerated: false };
+  }
+
+  // Determine payment terms and trigger downstream actions
+  const order = await prisma.salesOrder.findUnique({
+    where: { id: orderId },
+    select: { paymentTerms: true },
+  });
+
+  const paymentTerms = order?.paymentTerms ?? 'NET_30';
+  const isAccountCustomer = !['PREPAY', 'COD'].includes(paymentTerms);
+  let fulfillmentTriggered = false;
+  let proformaGenerated = false;
+
+  if (isAccountCustomer) {
+    // Account customer (NET_30/60/90): auto-trigger fulfillment
+    try {
+      const planResult = await generateFulfillmentPlan({ orderId });
+      if (planResult.success && planResult.data) {
+        const execResult = await executeFulfillmentPlan({
+          plan: planResult.data,
+          userId,
+          companyId,
+        });
+        if (execResult.success) {
+          fulfillmentTriggered = true;
+        }
+      }
+    } catch (error) {
+      console.error(`Checkout order ${orderNumber}: fulfillment error:`, error);
+    }
+  } else {
+    // Prepay/COD customer: generate proforma invoice
+    try {
+      const proformaResult = await createProformaInvoice(
+        orderId,
+        { paymentTerms: paymentTerms === 'COD' ? 'Cash on Delivery' : 'Prepay — payment required before fulfillment' },
+        userId,
+        companyId
+      );
+      if (proformaResult.success && proformaResult.proformaInvoice) {
+        proformaGenerated = true;
+      }
+    } catch (error) {
+      console.error(`Checkout order ${orderNumber}: proforma error:`, error);
+    }
+  }
+
+  return {
+    success: true,
+    orderId,
+    orderNumber,
+    paymentRequired: !isAccountCustomer,
+    fulfillmentTriggered,
+    proformaGenerated,
+  };
+}
+
 /**
  * Reject quote - change status from CREATED to REJECTED
  * Also releases any soft reservations

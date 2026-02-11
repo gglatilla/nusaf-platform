@@ -8,6 +8,7 @@ import {
   updateQuoteNotesSchema,
   quoteListQuerySchema,
   cashCustomerSchema,
+  checkoutQuoteSchema,
 } from '../../../utils/validation/quotes';
 import {
   getOrCreateDraftQuote,
@@ -23,6 +24,7 @@ import {
   acceptQuote,
   rejectQuote,
   deleteQuote,
+  checkoutQuote,
 } from '../../../services/quote.service';
 
 const router = Router();
@@ -602,8 +604,74 @@ router.post('/:id/finalize', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/quotes/:id/checkout
+ * Unified checkout flow — accepts quote and creates order with checkout data.
+ * Available to both staff and customers.
+ */
+router.post('/:id/checkout', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate body
+    const parsed = checkoutQuoteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0].message },
+      });
+    }
+
+    // Verify quote access (staff can access any, customers only their own)
+    const quote = await getQuoteById(id, getEffectiveCompanyId(req));
+    if (!quote) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Quote not found' },
+      });
+    }
+
+    // Use quote's companyId for the checkout (staff may operate on any company's quote)
+    const result = await checkoutQuote(id, req.user!.id, quote.company.id, {
+      shippingAddressId: parsed.data.shippingAddressId,
+      customerPoNumber: parsed.data.customerPoNumber,
+      customerPoDate: parsed.data.customerPoDate ? new Date(parsed.data.customerPoDate) : null,
+      requiredDate: parsed.data.requiredDate ? new Date(parsed.data.requiredDate) : null,
+      customerNotes: parsed.data.customerNotes,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CHECKOUT_FAILED', message: result.error },
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        message: 'Order created successfully',
+        orderId: result.orderId,
+        orderNumber: result.orderNumber,
+        paymentRequired: result.paymentRequired ?? false,
+        fulfillmentTriggered: result.fulfillmentTriggered ?? false,
+        proformaGenerated: result.proformaGenerated ?? false,
+      },
+    });
+  } catch (error) {
+    console.error('Checkout error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'CHECKOUT_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to checkout quote',
+      },
+    });
+  }
+});
+
+/**
  * POST /api/v1/quotes/:id/accept
- * Accept quote (CREATED -> ACCEPTED)
+ * Accept quote (CREATED -> ACCEPTED) — legacy endpoint, use /checkout for new flows
  */
 router.post('/:id/accept', async (req, res) => {
   try {
