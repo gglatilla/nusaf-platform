@@ -1,23 +1,21 @@
 # Current Session
 
 ## Active Task
-Order Flow Bug Fixes — COMPLETE
+Fix Warehouse User Company Scoping — COMPLETE
 
 ## Plan
-See `.claude/plans/curious-bubbling-sprout.md`
+See `.claude/plans/nifty-sprouting-metcalfe.md`
 
 ## Completed Micro-tasks
 
-### Fix 1: Order Flow Communication Gaps (4414bb8)
-- **Bug 1**: Checkout render order — success screen now renders before quote status check
-- **Bug 2**: Staff notifications — added ORDER_RECEIVED type + notifyNewOrderForStaff() trigger
-- **Bug 3**: Fulfillment dashboard company scoping — removed companyId filter for staff (they see all customer fulfillment items)
-- **Bug 4**: Staff dashboard — wired up real order data via useOrders hook
-
-### Fix 2: Auto-Fulfillment + Warehouse Notifications (20de7ce)
-- **Bug 5**: Auto-fulfillment now uses SHIP_PARTIAL policy — creates picking slips for in-stock items, job cards for assembly, POs for backorders
-- **Bug 6**: WAREHOUSE role added to getStaffRecipientsForOrder() — warehouse staff now receive all order notifications
-- **Bug 7**: Added logging for fulfillment plan/execution failures (previously swallowed silently)
+### Fix: Company Scoping for All Fulfillment Documents (1eef2d2)
+- **Root cause**: All fulfillment document routes passed `req.user!.companyId` directly. Staff belong to internal company, documents have customer companyId — mismatch caused "not found"
+- Created shared `getEffectiveCompanyId()` in `backend/src/utils/company-scope.ts` — returns undefined for staff (no filter), companyId for customers
+- Applied to all 13 route files + 10 service files (picking-slips, job-cards, packing-lists, delivery-notes, transfer-requests, issues, purchase-requisitions, documents, return-authorizations, proforma-invoices, orders, quotes)
+- Added WAREHOUSE to PO navigation + GET list/detail/PDF API endpoints
+- Fixed notification recipients: warehouse always gets ORDER_RECEIVED even when customer has assigned sales rep
+- Updated notification tests for new behavior
+- All 151 tests pass, both frontend + backend compile clean
 
 ## Context for Next Session
 - Migrations pending on Railway: `20260214100000_add_order_received_notification`
