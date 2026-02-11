@@ -3,14 +3,13 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, X, Send, Calendar, Building, Trash2, Package } from 'lucide-react';
+import { X, Send, Calendar, Building, Trash2, ShoppingCart, CheckCircle } from 'lucide-react';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useQuote, useFinalizeQuote, useAcceptQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
+import { useQuote, useFinalizeQuote, useRejectQuote, useUpdateQuoteNotes, useDeleteQuote } from '@/hooks/useQuotes';
 import { QuoteStatusBadge } from '@/components/quotes/QuoteStatusBadge';
 import { QuoteItemsTable } from '@/components/quotes/QuoteItemsTable';
 import { QuoteTotals } from '@/components/quotes/QuoteTotals';
-import { CreateOrderModal } from '@/components/orders/CreateOrderModal';
 import { formatDate } from '@/lib/formatting';
 
 function getValidityInfo(validUntil: string | null, status: string): { text: string; className: string; urgent: boolean } | null {
@@ -61,15 +60,13 @@ export default function QuoteDetailPage() {
 
   const { data: quote, isLoading, error } = useQuote(quoteId);
   const finalize = useFinalizeQuote();
-  const accept = useAcceptQuote();
   const reject = useRejectQuote();
   const deleteQuote = useDeleteQuote();
   const updateNotes = useUpdateQuoteNotes();
 
   const [notes, setNotes] = useState('');
   const [notesEditing, setNotesEditing] = useState(false);
-  const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'finalize' | 'accept' | 'reject' | 'delete' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'finalize' | 'reject' | 'delete' | null>(null);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -88,17 +85,13 @@ export default function QuoteDetailPage() {
 
   const isEditable = quote.status === 'DRAFT';
   const canFinalize = quote.status === 'DRAFT' && quote.items.length > 0;
-  const canAcceptReject = quote.status === 'CREATED';
-  const canCreateOrder = quote.status === 'ACCEPTED' && !quote.convertedOrder;
+  const canCheckout = quote.status === 'CREATED';
   const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
   const handleConfirmAction = async () => {
     switch (confirmAction) {
       case 'finalize':
         await finalize.mutateAsync(quoteId);
-        break;
-      case 'accept':
-        await accept.mutateAsync(quoteId);
         break;
       case 'reject':
         await reject.mutateAsync(quoteId);
@@ -117,12 +110,6 @@ export default function QuoteDetailPage() {
       message: 'This quote will be locked for editing and valid for 30 days. Are you sure?',
       confirmLabel: 'Finalize',
       variant: 'warning' as const,
-    },
-    accept: {
-      title: 'Accept Quote',
-      message: 'Accept this quote and make it available for order creation?',
-      confirmLabel: 'Accept',
-      variant: 'info' as const,
     },
     reject: {
       title: 'Reject Quote',
@@ -184,16 +171,15 @@ export default function QuoteDetailPage() {
             </button>
           )}
 
-          {canAcceptReject && (
+          {canCheckout && (
             <>
-              <button
-                onClick={() => setConfirmAction('accept')}
-                disabled={accept.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+              <Link
+                href={`/quotes/${quoteId}/checkout`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
               >
-                <Check className="h-4 w-4" />
-                {accept.isPending ? 'Accepting...' : 'Accept'}
-              </button>
+                <ShoppingCart className="h-4 w-4" />
+                Proceed to Checkout
+              </Link>
               <button
                 onClick={() => setConfirmAction('reject')}
                 disabled={reject.isPending}
@@ -204,23 +190,13 @@ export default function QuoteDetailPage() {
               </button>
             </>
           )}
-
-          {canCreateOrder && (
-            <button
-              onClick={() => setShowCreateOrderModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
-            >
-              <Package className="h-4 w-4" />
-              Create Order
-            </button>
-          )}
         </div>
       </div>
 
       {/* Order Created Banner */}
       {quote.convertedOrder && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
-          <Package className="h-5 w-5 flex-shrink-0" />
+          <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium">Order created from this quote</p>
           </div>
@@ -403,14 +379,6 @@ export default function QuoteDetailPage() {
         </div>
       </div>
 
-      {/* Create Order Modal */}
-      <CreateOrderModal
-        quoteId={quoteId}
-        quoteNumber={quote.quoteNumber}
-        isOpen={showCreateOrderModal}
-        onClose={() => setShowCreateOrderModal(false)}
-      />
-
       {/* Confirm Dialog */}
       {confirmAction && (
         <ConfirmDialog
@@ -421,7 +389,7 @@ export default function QuoteDetailPage() {
           message={confirmConfig[confirmAction].message}
           confirmLabel={confirmConfig[confirmAction].confirmLabel}
           variant={confirmConfig[confirmAction].variant}
-          isLoading={finalize.isPending || accept.isPending || reject.isPending || deleteQuote.isPending}
+          isLoading={finalize.isPending || reject.isPending || deleteQuote.isPending}
         />
       )}
     </div>

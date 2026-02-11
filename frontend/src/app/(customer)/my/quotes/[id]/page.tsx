@@ -5,17 +5,16 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Check,
   X,
   Send,
   Calendar,
   Trash2,
   ShoppingCart,
+  CheckCircle,
 } from 'lucide-react';
 import {
   useQuote,
   useFinalizeQuote,
-  useAcceptQuote,
   useRejectQuote,
   useUpdateQuoteNotes,
   useDeleteQuote,
@@ -86,7 +85,6 @@ export default function CustomerQuoteDetailPage() {
 
   const { data: quote, isLoading, error } = useQuote(quoteId);
   const finalize = useFinalizeQuote();
-  const accept = useAcceptQuote();
   const reject = useRejectQuote();
   const deleteQuote = useDeleteQuote();
   const updateNotes = useUpdateQuoteNotes();
@@ -114,7 +112,7 @@ export default function CustomerQuoteDetailPage() {
 
   const isEditable = quote.status === 'DRAFT';
   const canFinalize = quote.status === 'DRAFT' && quote.items.length > 0;
-  const canAcceptReject = quote.status === 'CREATED';
+  const canCheckout = quote.status === 'CREATED';
   const validityInfo = getValidityInfo(quote.validUntil, quote.status);
 
   const handleFinalize = async () => {
@@ -124,16 +122,6 @@ export default function CustomerQuoteDetailPage() {
       )
     ) {
       await finalize.mutateAsync(quoteId);
-    }
-  };
-
-  const handleAccept = async () => {
-    if (confirm('Accept this quote? This will proceed to order creation.')) {
-      const result = await accept.mutateAsync(quoteId);
-      // Redirect to the created order if available
-      if (result?.orderId) {
-        router.push(`/my/orders/${result.orderId}`);
-      }
     }
   };
 
@@ -203,16 +191,15 @@ export default function CustomerQuoteDetailPage() {
             </button>
           )}
 
-          {canAcceptReject && (
+          {canCheckout && (
             <>
-              <button
-                onClick={handleAccept}
-                disabled={accept.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+              <Link
+                href={`/my/quotes/${quoteId}/checkout`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
               >
-                <Check className="h-4 w-4" />
-                {accept.isPending ? 'Accepting...' : 'Accept'}
-              </button>
+                <ShoppingCart className="h-4 w-4" />
+                Proceed to Checkout
+              </Link>
               <button
                 onClick={handleReject}
                 disabled={reject.isPending}
@@ -229,7 +216,7 @@ export default function CustomerQuoteDetailPage() {
       {/* Order Created Banner */}
       {quote.convertedOrder && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
-          <Check className="h-5 w-5 flex-shrink-0" />
+          <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium">Your order has been created</p>
           </div>
