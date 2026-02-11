@@ -14,3 +14,4 @@ export { PackingListsSection } from './PackingListsSection';
 export { PaymentsSection } from './PaymentsSection';
 export { RecordPaymentModal } from './RecordPaymentModal';
 export { CreditNotesSection } from './CreditNotesSection';
+export { BackorderSummarySection } from './BackorderSummarySection';

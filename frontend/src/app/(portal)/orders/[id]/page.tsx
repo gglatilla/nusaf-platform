@@ -27,6 +27,7 @@ import {
   PickingSlipsSection,
   JobCardsSection,
   TransferRequestsSection,
+  BackorderSummarySection,
   DeliveryNotesSection,
   ProformaInvoicesSection,
   TaxInvoicesSection,
@@ -564,6 +565,7 @@ export default function OrderDetailPage() {
           <PickingSlipsSection pickingSlips={pickingSlips ?? []} />
           <JobCardsSection jobCards={jobCards ?? []} />
           <TransferRequestsSection transferRequests={transferRequests ?? []} />
+          <BackorderSummarySection lines={order.lines} />
           <DeliveryNotesSection deliveryNotes={deliveryNotes ?? []} />
           <PackingListsSection packingLists={packingLists ?? []} />
           <ProformaInvoicesSection

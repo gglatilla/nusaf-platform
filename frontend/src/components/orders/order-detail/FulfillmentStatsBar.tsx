@@ -11,11 +11,15 @@ export function FulfillmentStatsBar({ lines }: FulfillmentStatsBarProps) {
   const totalOrdered = lines.reduce((sum, l) => sum + l.quantityOrdered, 0);
   const totalPicked = lines.reduce((sum, l) => sum + l.quantityPicked, 0);
   const totalShipped = lines.reduce((sum, l) => sum + l.quantityShipped, 0);
+  const totalBackorder = lines.reduce((sum, l) => sum + l.quantityBackorder, 0);
   const linesDelivered = lines.filter((l) => l.status === 'DELIVERED').length;
 
   const pickedPct = totalOrdered > 0 ? Math.round((totalPicked / totalOrdered) * 100) : 0;
   const shippedPct = totalOrdered > 0 ? Math.round((totalShipped / totalOrdered) * 100) : 0;
   const deliveredPct = totalLines > 0 ? Math.round((linesDelivered / totalLines) * 100) : 0;
+  const backorderPct = totalOrdered > 0 ? Math.round((totalBackorder / totalOrdered) * 100) : 0;
+
+  const hasBackorders = totalBackorder > 0;
 
   const stats = [
     {
@@ -52,8 +56,19 @@ export function FulfillmentStatsBar({ lines }: FulfillmentStatsBarProps) {
     },
   ];
 
+  if (hasBackorders) {
+    stats.push({
+      label: 'Backordered',
+      value: `${totalBackorder}/${totalOrdered}`,
+      sub: `${backorderPct}%`,
+      color: 'text-amber-700',
+      barColor: 'bg-amber-500',
+      pct: backorderPct,
+    });
+  }
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={`grid grid-cols-2 gap-4 ${hasBackorders ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
       {stats.map((stat) => (
         <div
           key={stat.label}
