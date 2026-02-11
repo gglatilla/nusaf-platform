@@ -155,6 +155,17 @@ export default function CustomerOrderDetailPage() {
         </div>
       )}
 
+      {/* Backorder Banner */}
+      {order.lines.some((l) => l.quantityBackorder > 0) && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-amber-50 border-amber-200 text-amber-700">
+          <Clock className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Some items are on backorder</p>
+            <p className="text-xs">We&apos;re working to fulfill these items as quickly as possible. You&apos;ll be notified when they ship.</p>
+          </div>
+        </div>
+      )}
+
       {/* Fulfillment Pipeline Steps */}
       <FulfillmentPipelineSteps orderStatus={order.status} />
 
