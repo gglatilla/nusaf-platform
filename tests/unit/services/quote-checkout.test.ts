@@ -129,7 +129,7 @@ function setupSuccessfulCheckout(paymentTerms: string = 'NET_30'): void {
   mockPrisma.salesOrder.findUnique.mockResolvedValue({ paymentTerms });
   mockGenerateFulfillmentPlan.mockResolvedValue({
     success: true,
-    data: { orderId: 'order-1', lines: [] },
+    data: { orderId: 'order-1', canProceed: true, lines: [] },
   });
   mockExecuteFulfillmentPlan.mockResolvedValue({
     success: true,
@@ -263,7 +263,7 @@ describe('Quote Service — checkoutQuote', () => {
     expect(result.paymentRequired).toBe(false);
     expect(result.fulfillmentTriggered).toBe(true);
     expect(result.proformaGenerated).toBe(false);
-    expect(mockGenerateFulfillmentPlan).toHaveBeenCalledWith({ orderId: 'order-1' });
+    expect(mockGenerateFulfillmentPlan).toHaveBeenCalledWith({ orderId: 'order-1', policyOverride: 'SHIP_PARTIAL' });
     expect(mockExecuteFulfillmentPlan).toHaveBeenCalled();
     expect(mockCreateProformaInvoice).not.toHaveBeenCalled();
   });

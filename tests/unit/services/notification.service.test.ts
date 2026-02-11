@@ -235,7 +235,7 @@ describe('Notification Service', () => {
         where: {
           companyId: 'nusaf-internal',
           isActive: true,
-          role: { in: ['SALES', 'MANAGER', 'ADMIN'] },
+          role: { in: ['SALES', 'MANAGER', 'ADMIN', 'WAREHOUSE'] },
         },
         select: { id: true },
       });

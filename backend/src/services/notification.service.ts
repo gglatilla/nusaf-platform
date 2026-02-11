@@ -166,7 +166,7 @@ export async function getStaffRecipientsForOrder(companyId: string): Promise<str
     where: {
       companyId: internalCompany.id,
       isActive: true,
-      role: { in: ['SALES', 'MANAGER', 'ADMIN'] },
+      role: { in: ['SALES', 'MANAGER', 'ADMIN', 'WAREHOUSE'] },
     },
     select: { id: true },
   });

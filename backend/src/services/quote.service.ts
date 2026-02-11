@@ -729,10 +729,15 @@ export async function checkoutQuote(
   let proformaGenerated = false;
 
   if (isAccountCustomer) {
-    // Account customer (NET_30/60/90): auto-trigger fulfillment
+    // Account customer (NET_30/60/90): auto-trigger fulfillment with SHIP_PARTIAL
+    // so in-stock items get picking slips immediately while backorders are tracked via POs
     try {
-      const planResult = await generateFulfillmentPlan({ orderId });
-      if (planResult.success && planResult.data) {
+      const planResult = await generateFulfillmentPlan({ orderId, policyOverride: 'SHIP_PARTIAL' });
+      if (!planResult.success) {
+        console.warn(`Checkout order ${orderNumber}: fulfillment plan failed — ${planResult.error}`);
+      } else if (planResult.data && !planResult.data.canProceed) {
+        console.warn(`Checkout order ${orderNumber}: fulfillment plan blocked — ${planResult.data.blockedReason}`);
+      } else if (planResult.data) {
         const execResult = await executeFulfillmentPlan({
           plan: planResult.data,
           userId,
@@ -740,6 +745,8 @@ export async function checkoutQuote(
         });
         if (execResult.success) {
           fulfillmentTriggered = true;
+        } else {
+          console.warn(`Checkout order ${orderNumber}: fulfillment execution failed — ${execResult.error}`);
         }
       }
     } catch (error) {
