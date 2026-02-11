@@ -44,23 +44,23 @@ See `.claude/plans/nested-sprouting-lake.md` for Phase 1.8 plan.
 - **1.8C** (3673c83): `AddressesTab` (card layout, shipping/billing groups) + `AddressFormModal` (SA provinces, delivery instructions)
 - **1.8D** (e5eda2c): `ContactsTab` (table with role badges, primary star) + `ContactFormModal` (role dropdown, primary/active toggles)
 
+### Phase 1.11: Cleanup + Link Audit — COMPLETE
+- Audited all frontend routes, navigation, links, and cross-references
+- Fixed "Search companies..." → "Search customers..." in CustomerCompanyPicker
+- Fixed "No companies found"/"No active companies" → "No customers found"/"No active customers"
+- Verified: sidebar nav, detail back link, list row links all point to `/admin/customers`
+- API client paths correctly use `/admin/companies` (backend API route, unchanged)
+- TypeScript build clean, no errors
+
 ## Pending Micro-tasks
-- [ ] Phase 1.9–1.10: MERGED INTO 1.8 — address + contact management delivered in Phase 1.8C/D
-- [ ] Phase 1.11: Cleanup + link audit
+- [x] Phase 1.9–1.10: MERGED INTO 1.8 — address + contact management delivered in Phase 1.8C/D
+- [x] Phase 1.11: Cleanup + link audit
 - [ ] Phase 2.1–2.2: Customer Checkout Flow
 - [ ] Phase 3.1–3.3: Backorder Visibility
 - [ ] Phase 4.1–4.5: Notification System
 
-## Commits This Session
-- f8e1053: Phase 1.8A — Customer detail hook, page shell, header, constants
-- f2c02b4: Phase 1.8B — OverviewTab + FinancialTab with inline editing
-- 3673c83: Phase 1.8C — AddressesTab + AddressFormModal
-- e5eda2c: Phase 1.8D — ContactsTab + ContactFormModal
-
 ## Context for Next Session
-- Phase 1.8 complete — all 4 tabs working (Overview, Financial, Addresses, Contacts)
-- Phase 1.9/1.10 were merged into 1.8C/1.8D (address + contact CRUD on detail page)
-- Next: Phase 1.11 (cleanup + link audit) then Phase 2 (Customer Checkout Flow)
-- New files created: `hooks/useCustomers.ts`, `components/customers/constants.ts`, `components/customers/detail/*.tsx`
+- Phase 1 (Customer Management Restructure) is fully COMPLETE
+- Next: Phase 2 (Customer Checkout Flow)
 - CompanyCounter table needs to be created on local DB
 - Migrations pending on Railway: 20260211100000, 20260211120000, 20260211140000
