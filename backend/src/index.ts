@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import { config } from './config';
-import { connectDatabase } from './config/database';
+import { connectDatabase, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
 import {
   CATEGORY_DEFINITIONS,
@@ -534,15 +534,56 @@ function logRoutes(app: express.Application): void {
   });
 }
 
+// Graceful shutdown
+let isShuttingDown = false;
+
+function gracefulShutdown(signal: string, server: ReturnType<typeof app.listen>): void {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  logger.info(`Received ${signal}, shutting down gracefully...`);
+
+  // Stop accepting new connections
+  server.close(async () => {
+    logger.info('HTTP server closed');
+    try {
+      await disconnectDatabase();
+      logger.info('Database disconnected');
+    } catch (err) {
+      logger.error('Error disconnecting database:', err);
+    }
+    process.exit(0);
+  });
+
+  // Force exit after 15s if graceful shutdown stalls
+  setTimeout(() => {
+    logger.error('Graceful shutdown timed out, forcing exit');
+    process.exit(1);
+  }, 15_000).unref();
+}
+
+// Global error handlers
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught exception:', error);
+  process.exit(1);
+});
+
 // Start server
 async function start(): Promise<void> {
   await connectDatabase();
 
-  app.listen(config.port, () => {
+  const server = app.listen(config.port, () => {
     logger.info(`Backend running on http://localhost:${config.port}`);
     logger.info(`Environment: ${config.nodeEnv}`);
     logRoutes(app);
   });
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
 }
 
 start().catch((error) => {

@@ -48,13 +48,26 @@ if (isDev) {
   globalForPrisma.prisma = prisma;
 }
 
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000;
+
 export async function connectDatabase(): Promise<void> {
-  try {
-    await prisma.$connect();
-    logger.info('Database connected successfully');
-  } catch (error) {
-    logger.error('Failed to connect to database', error);
-    process.exit(1);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await prisma.$connect();
+      logger.info('Database connected successfully');
+      return;
+    } catch (error) {
+      if (attempt === MAX_RETRIES) {
+        logger.error(`Failed to connect to database after ${MAX_RETRIES} attempts`, error);
+        process.exit(1);
+      }
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      logger.warn(`Database connection attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delay}ms...`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
 }
 
