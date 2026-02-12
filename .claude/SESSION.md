@@ -1,23 +1,24 @@
 # Current Session
 
 ## Active Task
-Fix Purchase Orders Page — COMPLETE
+Fix Railway Deployment (SIGTERM + P1001) — COMPLETE
 
 ## Plan
-See `.claude/plans/refactored-wandering-kahn.md`
+See `.claude/plans/structured-popping-toucan.md`
 
 ## Completed Micro-tasks
 
-### Fix: Purchase Orders List Page Not Displaying Data
-- **Root cause 1**: Backend PO list route returned `{ data: items[], pagination }` at root level — frontend expected `{ data: { purchaseOrders: [], pagination } }` (matching orders/quotes pattern)
-- **Root cause 2**: Service returned nested `supplier: { id, code, name }` — frontend expected flat `supplierName`, `supplierCode` fields. Also missing `deliveryLocation`.
-- **Root cause 3**: Supplier GET endpoints restricted to ADMIN/MANAGER/SALES — PURCHASER users couldn't load supplier dropdown for PO creation
-- Fixed `PurchaseOrderSummary` type: flattened supplier fields, added `deliveryLocation`
-- Fixed `getPurchaseOrders()` mapping: `supplierName`, `supplierCode`, `deliveryLocation`
-- Fixed route response envelope: `{ data: { purchaseOrders: result.items, pagination } }`
-- Fixed supplier routes: added PURCHASER + WAREHOUSE to GET roles
-- All 151 tests pass, both frontend + backend compile clean
+### Fix: Railway Deployment Crash Loop
+- Added graceful shutdown handlers (SIGTERM/SIGINT) — drains requests, disconnects DB, exits cleanly
+- Added `unhandledRejection` and `uncaughtException` global error handlers
+- Database connection retry: 5 attempts with exponential backoff (1s, 2s, 4s, 8s, 16s)
+- Separated `prisma migrate deploy` from `startCommand` — migrations now run manually via `railway run`
+- Added Railway health check config: `/api/v1/health` with 120s timeout
+- Updated `.env.example` with connection pool parameters
+- All 151 tests pass, backend type check clean
 
 ## Context for Next Session
-- Migrations pending on Railway: `20260214100000_add_order_received_notification`
+- **Migrations**: No longer auto-run on deploy. Run manually: `railway run npx prisma migrate deploy`
+- Pending migration: `20260214100000_add_order_received_notification`
+- **Railway DB check needed**: If P1001 persists after deploy, the PostgreSQL service itself is down — check Railway dashboard
 - Pre-existing test issue: `import.service.test.ts` fails due to missing `@nusaf/shared` module (unrelated)
