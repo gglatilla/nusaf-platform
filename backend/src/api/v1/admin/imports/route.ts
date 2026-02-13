@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { randomUUID } from 'crypto';
+import { prisma } from '../../../../config/database';
 import { authenticate, requireRole } from '../../../../middleware/auth';
 import {
   parseExcelFile,
@@ -34,9 +35,6 @@ const router = Router();
  */
 router.get('/debug/categories', async (_req, res) => {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       include: {
@@ -47,8 +45,6 @@ router.get('/debug/categories', async (_req, res) => {
       },
       orderBy: { sortOrder: 'asc' },
     });
-
-    await prisma.$disconnect();
 
     const totalSubCategories = categories.reduce((sum, cat) => sum + cat.subCategories.length, 0);
 
@@ -272,8 +268,6 @@ router.post('/validate', async (req, res) => {
  * Execute the import after validation
  */
 router.post('/execute', async (req, res) => {
-  const { PrismaClient } = await import('@prisma/client');
-  const prisma = new PrismaClient();
   let batchId: string | null = null;
 
   try {
@@ -370,8 +364,6 @@ router.post('/execute', async (req, res) => {
       fileStore.delete(fileId);
     }
 
-    await prisma.$disconnect();
-
     return res.json({
       success: true,
       data: {
@@ -401,8 +393,6 @@ router.post('/execute', async (req, res) => {
       }
     }
 
-    await prisma.$disconnect();
-
     return res.status(500).json({
       success: false,
       error: {
@@ -419,9 +409,6 @@ router.post('/execute', async (req, res) => {
  */
 router.get('/suppliers', async (_req, res) => {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const suppliers = await prisma.supplier.findMany({
       where: { isActive: true },
       select: { code: true, name: true, country: true },
@@ -446,9 +433,6 @@ router.get('/suppliers', async (_req, res) => {
  */
 router.get('/history', async (_req, res) => {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const imports = await prisma.importBatch.findMany({
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -458,8 +442,6 @@ router.get('/history', async (_req, res) => {
         },
       },
     });
-
-    await prisma.$disconnect();
 
     res.json({
       success: true,
@@ -492,9 +474,6 @@ router.get('/history', async (_req, res) => {
  */
 router.get('/categories', async (_req, res) => {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       include: {
@@ -505,8 +484,6 @@ router.get('/categories', async (_req, res) => {
       },
       orderBy: { sortOrder: 'asc' },
     });
-
-    await prisma.$disconnect();
 
     const totalSubCategories = categories.reduce((sum, cat) => sum + cat.subCategories.length, 0);
 

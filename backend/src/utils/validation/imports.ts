@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Supplier codes for import (only Italian suppliers)
-export const IMPORT_SUPPLIER_CODES = ['TECOM', 'CHIARAVALLI', 'REGINA'] as const;
+// Supplier codes available for price list import
+export const IMPORT_SUPPLIER_CODES = ['TECOM', 'CHIARAVALLI', 'REGINA', 'NUSAF'] as const;
 
 // Valid unit of measure codes
 export const UNIT_OF_MEASURE_CODES = ['EA', 'M', 'KG', 'BOX', 'SET', 'PAIR', 'ROLL'] as const;
@@ -16,7 +16,7 @@ export type ColumnField = (typeof COLUMN_FIELDS)[number];
  */
 export const uploadFileSchema = z.object({
   supplierCode: z.enum(IMPORT_SUPPLIER_CODES, {
-    errorMap: () => ({ message: 'Supplier must be one of: TECOM, CHIARAVALLI, REGINA' }),
+    errorMap: () => ({ message: 'Supplier must be one of: TECOM, CHIARAVALLI, REGINA, NUSAF' }),
   }),
 });
 
