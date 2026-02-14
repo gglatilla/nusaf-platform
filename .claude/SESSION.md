@@ -1,24 +1,22 @@
 # Current Session
 
 ## Active Task
-Fix Railway Deployment (SIGTERM + P1001) — COMPLETE
-
-## Plan
-See `.claude/plans/structured-popping-toucan.md`
+Enable SKU (nusafSku) Editing on Inventory Items — COMPLETE
 
 ## Completed Micro-tasks
-
-### Fix: Railway Deployment Crash Loop
-- Added graceful shutdown handlers (SIGTERM/SIGINT) — drains requests, disconnects DB, exits cleanly
-- Added `unhandledRejection` and `uncaughtException` global error handlers
-- Database connection retry: 5 attempts with exponential backoff (1s, 2s, 4s, 8s, 16s)
-- Separated `prisma migrate deploy` from `startCommand` — migrations now run manually via `railway run`
-- Added Railway health check config: `/api/v1/health` with 120s timeout
-- Updated `.env.example` with connection pool parameters
-- All 151 tests pass, backend type check clean
+- [x] Backend: Added `nusafSku` to `updateProductSchema` with regex validation
+- [x] Backend: Added `nusafSku` to `UpdateProductInput` interface
+- [x] Backend: Added uniqueness check + structured log + SkuMapping cascade in `updateProduct()`
+- [x] Frontend: Added `nusafSku` to `UpdateProductData` in both `api.ts` and `api/types/products.ts`
+- [x] Frontend: SKU field editable for ADMIN users, disabled for MANAGER with helper text
+- [x] Frontend: ConfirmDialog on SKU change with warning variant
+- [x] Frontend: URL redirect to new SKU after successful save
+- [x] Unit tests: 4 tests for SKU change logic (unique, duplicate, same-SKU no-op, backward-compatible)
+- [x] Type checks pass (backend + frontend)
 
 ## Context for Next Session
-- **Migrations**: No longer auto-run on deploy. Run manually: `railway run npx prisma migrate deploy`
-- Pending migration: `20260214100000_add_order_received_notification`
-- **Railway DB check needed**: If P1001 persists after deploy, the PostgreSQL service itself is down — check Railway dashboard
-- Pre-existing test issue: `import.service.test.ts` fails due to missing `@nusaf/shared` module (unrelated)
+- SKU editing is ADMIN-only (MANAGER can edit other fields but not SKU)
+- Import matching uses `(supplierId, supplierSku)` — changing nusafSku does NOT break imports
+- Historical document line items retain the original SKU (audit compliance)
+- SkuMapping records are cascaded when SKU changes
+- SKU format validation: `/^[A-Za-z0-9\-_.\/]+$/`

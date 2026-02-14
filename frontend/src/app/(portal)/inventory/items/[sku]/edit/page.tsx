@@ -5,12 +5,15 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Save, Loader2 } from 'lucide-react';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useUpdateProduct, useCategories } from '@/hooks/useProducts';
 import { useProductWithInventory } from '@/hooks/useProductInventory';
 import { useAuthStore } from '@/stores/auth-store';
 import { PageHeader } from '@/components/layout/PageHeader';
 import type { UpdateProductData } from '@/lib/api';
 import { UOM_SELECT_OPTIONS, getUomLabel } from '@/lib/constants/unit-of-measure';
+
+const SKU_REGEX = /^[A-Za-z0-9\-_.\/]+$/;
 
 function LoadingSkeleton() {
   return (
@@ -39,17 +42,21 @@ export default function InventoryItemEditPage() {
   const updateProduct = useUpdateProduct();
 
   const canEdit = user && ['ADMIN', 'MANAGER'].includes(user.role);
+  const canEditSku = user?.role === 'ADMIN';
   const canViewCosts = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
   // Form state
   const [formData, setFormData] = useState<Partial<UpdateProductData>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSkuConfirm, setShowSkuConfirm] = useState(false);
+  const [skuError, setSkuError] = useState<string | null>(null);
 
   // Initialize form when product loads
   useEffect(() => {
     if (product) {
       setFormData({
+        nusafSku: product.nusafSku || '',
         description: product.description || '',
         supplierSku: product.supplierSku || '',
         unitOfMeasure: product.unitOfMeasure || 'EA',
@@ -78,16 +85,42 @@ export default function InventoryItemEditPage() {
     setIsDirty(true);
   };
 
-  const handleSave = async () => {
+  const skuChanged = product && formData.nusafSku && formData.nusafSku !== product.nusafSku;
+
+  const handleSave = async (): Promise<void> => {
+    if (!product || !canEdit) return;
+
+    // Validate SKU format if changed
+    if (formData.nusafSku && !SKU_REGEX.test(formData.nusafSku)) {
+      setSkuError('SKU can only contain letters, numbers, hyphens, dots, underscores, and forward slashes');
+      return;
+    }
+
+    // If SKU changed, show confirmation first
+    if (skuChanged) {
+      setShowSkuConfirm(true);
+      return;
+    }
+
+    await executeSave();
+  };
+
+  const executeSave = async (): Promise<void> => {
     if (!product || !canEdit) return;
 
     setIsSaving(true);
+    setShowSkuConfirm(false);
     try {
       await updateProduct.mutateAsync({
         id: product.id,
         data: formData as UpdateProductData,
       });
       setIsDirty(false);
+
+      // Redirect to new SKU URL if SKU was changed
+      if (skuChanged && formData.nusafSku) {
+        router.replace(`/inventory/items/${formData.nusafSku}/edit`);
+      }
     } catch (error) {
       console.error('Failed to save item:', error);
     } finally {
@@ -164,13 +197,37 @@ export default function InventoryItemEditPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Code</label>
-                  <input
-                    type="text"
-                    value={product.nusafSku}
-                    disabled
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-500 font-mono"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">SKU cannot be changed after creation</p>
+                  {canEditSku ? (
+                    <>
+                      <input
+                        type="text"
+                        value={formData.nusafSku ?? product.nusafSku}
+                        onChange={(e) => {
+                          handleFieldChange('nusafSku', e.target.value);
+                          setSkuError(null);
+                        }}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono ${
+                          skuError ? 'border-red-300 bg-red-50' : 'border-slate-300'
+                        }`}
+                      />
+                      {skuError && (
+                        <p className="mt-1 text-xs text-red-600">{skuError}</p>
+                      )}
+                      {!skuError && (
+                        <p className="mt-1 text-xs text-slate-500">Letters, numbers, hyphens, dots, underscores, forward slashes</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={product.nusafSku}
+                        disabled
+                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-500 font-mono"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Only admins can change SKU codes</p>
+                    </>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Item Type</label>
@@ -389,6 +446,17 @@ export default function InventoryItemEditPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showSkuConfirm}
+        onConfirm={executeSave}
+        onCancel={() => setShowSkuConfirm(false)}
+        title="Change SKU Code?"
+        message={`This will change the SKU from "${product.nusafSku}" to "${formData.nusafSku}". Historical quotes and orders will retain the original SKU.`}
+        confirmLabel="Change SKU"
+        variant="warning"
+        isLoading={isSaving}
+      />
     </>
   );
 }

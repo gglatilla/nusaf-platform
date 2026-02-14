@@ -80,6 +80,9 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
  */
 export const updateProductSchema = z.object({
   // Core fields
+  nusafSku: z.string().min(1).max(100)
+    .regex(/^[A-Za-z0-9\-_.\/]+$/, 'SKU can only contain letters, numbers, hyphens, dots, underscores, and forward slashes')
+    .optional(),
   supplierSku: z.string().min(1).max(100).optional(),
   description: z.string().min(1).max(500).optional(),
   supplierId: z.string().min(1).optional(),

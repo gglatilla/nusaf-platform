@@ -153,6 +153,7 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData {
+  nusafSku?: string;
   supplierSku?: string;
   description?: string;
   supplierId?: string;

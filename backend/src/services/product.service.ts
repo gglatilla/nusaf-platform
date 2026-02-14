@@ -31,6 +31,7 @@ export interface CreateProductInput {
 }
 
 export interface UpdateProductInput {
+  nusafSku?: string;
   supplierSku?: string;
   description?: string;
   supplierId?: string;
@@ -228,6 +229,21 @@ export async function updateProduct(
     // Use the actual product ID for remaining operations
     const productId = existing.id;
 
+    // If changing nusafSku, verify uniqueness
+    const skuChanged = input.nusafSku && input.nusafSku !== existing.nusafSku;
+    if (skuChanged) {
+      const existingByNusafSku = await prisma.product.findUnique({
+        where: { nusafSku: input.nusafSku },
+      });
+
+      if (existingByNusafSku && existingByNusafSku.id !== productId) {
+        return {
+          success: false,
+          error: `Product with Nusaf SKU "${input.nusafSku}" already exists`,
+        };
+      }
+    }
+
     // If changing supplier, verify it exists
     if (input.supplierId && input.supplierId !== existing.supplierId) {
       const supplier = await prisma.supplier.findUnique({
@@ -289,6 +305,7 @@ export async function updateProduct(
     };
 
     // Core fields
+    if (input.nusafSku !== undefined) updateData.nusafSku = input.nusafSku;
     if (input.supplierSku !== undefined) updateData.supplierSku = input.supplierSku;
     if (input.description !== undefined) updateData.description = input.description;
     if (input.supplierId !== undefined) updateData.supplier = { connect: { id: input.supplierId } };
@@ -343,6 +360,22 @@ export async function updateProduct(
         subCategory: { select: { id: true, code: true, name: true } },
       },
     });
+
+    // Cascade SKU change to SkuMapping records
+    if (skuChanged && input.nusafSku) {
+      const oldSku = existing.nusafSku;
+      await prisma.skuMapping.updateMany({
+        where: { nusafSku: oldSku },
+        data: { nusafSku: input.nusafSku },
+      });
+      console.info('[SKU_CHANGE]', {
+        productId,
+        oldSku,
+        newSku: input.nusafSku,
+        userId,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     return {
       success: true,
