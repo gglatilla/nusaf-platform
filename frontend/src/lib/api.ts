@@ -398,6 +398,8 @@ export interface CatalogProduct {
     id: string;
     code: string;
     name: string;
+    isLocal: boolean;
+    currency: string;
   };
   category: {
     id: string;

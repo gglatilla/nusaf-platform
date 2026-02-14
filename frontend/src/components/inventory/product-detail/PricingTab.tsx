@@ -18,6 +18,8 @@ export function PricingTab({ product }: PricingTabProps) {
   const listPrice = product.listPrice;
   const costPrice = product.costPrice;
   const landedCost = product.landedCost;
+  const isLocal = product.supplier?.isLocal ?? false;
+  const supplierCurrency = product.supplier?.currency ?? 'EUR';
 
   const margin = costPrice && listPrice && listPrice > 0
     ? ((listPrice - costPrice) / listPrice * 100)
@@ -30,15 +32,19 @@ export function PricingTab({ product }: PricingTabProps) {
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Pricing Breakdown</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Supplier Cost */}
+          {/* Cost Price */}
           <div className="bg-slate-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">Supplier Cost</h3>
+            <h3 className="text-sm font-medium text-slate-500 uppercase mb-2">
+              {isLocal ? 'Cost Price' : 'Supplier Cost'}
+            </h3>
             <p className="text-2xl font-bold text-slate-900">
-              {costPrice != null ? formatCurrency(costPrice, 'EUR') : (
+              {costPrice != null ? formatCurrency(costPrice, isLocal ? 'ZAR' : supplierCurrency) : (
                 <span className="text-slate-400 text-lg font-normal">Not set</span>
               )}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Raw cost from supplier</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {isLocal ? 'Internal manufacturing cost' : 'Raw cost from supplier'}
+            </p>
           </div>
 
           {/* Landed Cost */}
@@ -49,7 +55,9 @@ export function PricingTab({ product }: PricingTabProps) {
                 <span className="text-slate-400 text-lg font-normal">Not set</span>
               )}
             </p>
-            <p className="text-xs text-blue-600 mt-1">EUR x Rate x (1 + Freight%)</p>
+            <p className="text-xs text-blue-600 mt-1">
+              {isLocal ? 'Cost + Freight%' : `${supplierCurrency} x Rate x (1 + Freight%)`}
+            </p>
           </div>
 
           {/* List Price */}
@@ -68,9 +76,15 @@ export function PricingTab({ product }: PricingTabProps) {
         <div className="mt-6 p-4 bg-slate-50 rounded-lg">
           <p className="text-sm text-slate-600 font-medium mb-2">Pricing Formula</p>
           <div className="flex items-center gap-2 flex-wrap text-sm text-slate-700">
-            <span className="bg-white px-2 py-1 rounded border border-slate-200">Supplier Cost (EUR)</span>
-            <ArrowRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <span className="bg-white px-2 py-1 rounded border border-slate-200">x EUR/ZAR Rate</span>
+            <span className="bg-white px-2 py-1 rounded border border-slate-200">
+              {isLocal ? 'Cost Price (ZAR)' : `Supplier Cost (${supplierCurrency})`}
+            </span>
+            {!isLocal && (
+              <>
+                <ArrowRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <span className="bg-white px-2 py-1 rounded border border-slate-200">x {supplierCurrency}/ZAR Rate</span>
+              </>
+            )}
             <ArrowRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
             <span className="bg-white px-2 py-1 rounded border border-slate-200">x (1 + Freight%)</span>
             <ArrowRight className="h-4 w-4 text-slate-400 flex-shrink-0" />

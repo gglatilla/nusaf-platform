@@ -205,7 +205,7 @@ router.get('/', authenticate, async (req, res) => {
       prisma.product.findMany({
         where,
         include: {
-          supplier: { select: { id: true, code: true, name: true } },
+          supplier: { select: { id: true, code: true, name: true, isLocal: true, currency: true } },
           category: { select: { id: true, code: true, name: true } },
           subCategory: { select: { id: true, code: true, name: true } },
           productImages: {
@@ -389,6 +389,8 @@ router.get('/:id', authenticate, async (req, res) => {
               id: true,
               code: true,
               name: true,
+              isLocal: true,
+              currency: true,
             },
           },
           category: {

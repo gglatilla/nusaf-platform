@@ -80,7 +80,7 @@ export interface ProductData {
   supplierId: string;
   categoryId: string;
   subCategoryId: string | null;
-  supplier: { id: string; code: string; name: string };
+  supplier: { id: string; code: string; name: string; isLocal: boolean; currency: string };
   category: { id: string; code: string; name: string };
   subCategory: { id: string; code: string; name: string } | null;
   createdAt: Date;
@@ -181,7 +181,7 @@ export async function createProduct(
         updatedBy: userId,
       },
       include: {
-        supplier: { select: { id: true, code: true, name: true } },
+        supplier: { select: { id: true, code: true, name: true, isLocal: true, currency: true } },
         category: { select: { id: true, code: true, name: true } },
         subCategory: { select: { id: true, code: true, name: true } },
       },
@@ -355,7 +355,7 @@ export async function updateProduct(
       where: { id: productId },
       data: updateData,
       include: {
-        supplier: { select: { id: true, code: true, name: true } },
+        supplier: { select: { id: true, code: true, name: true, isLocal: true, currency: true } },
         category: { select: { id: true, code: true, name: true } },
         subCategory: { select: { id: true, code: true, name: true } },
       },
@@ -444,7 +444,7 @@ export async function softDeleteProduct(
  */
 function transformProduct(product: Prisma.ProductGetPayload<{
   include: {
-    supplier: { select: { id: true; code: true; name: true } };
+    supplier: { select: { id: true; code: true; name: true; isLocal: true; currency: true } };
     category: { select: { id: true; code: true; name: true } };
     subCategory: { select: { id: true; code: true; name: true } };
   };
